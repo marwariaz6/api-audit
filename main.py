@@ -14,17 +14,90 @@ from reportlab.lib.colors import HexColor, black, white, red, green, orange
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 import urllib.parse
 import re
+from bs4 import BeautifulSoup
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
 
+class PageCollector:
+    def __init__(self):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+    
+    def get_navigation_links(self, url, max_links=10):
+        """Extract navigation menu links from a website"""
+        try:
+            logger.info(f"Fetching navigation links from: {url}")
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            base_domain = urllib.parse.urlparse(url).netloc
+            navigation_links = set()
+            
+            # Common navigation selectors
+            nav_selectors = [
+                'nav a',
+                'header a',
+                '.nav a',
+                '.menu a',
+                '.navigation a',
+                '.header-menu a',
+                '.main-menu a',
+                '.primary-menu a',
+                '.navbar a',
+                'ul.menu a',
+                'ul.nav a'
+            ]
+            
+            # Find navigation links
+            for selector in nav_selectors:
+                nav_elements = soup.select(selector)
+                for link in nav_elements:
+                    href = link.get('href', '').strip()
+                    if href and not href.startswith('#') and not href.startswith('mailto:') and not href.startswith('tel:'):
+                        # Convert relative URLs to absolute
+                        if href.startswith('/'):
+                            full_url = f"{urllib.parse.urlparse(url).scheme}://{base_domain}{href}"
+                        elif href.startswith('http'):
+                            # Check if it's same domain
+                            link_domain = urllib.parse.urlparse(href).netloc
+                            if link_domain == base_domain:
+                                full_url = href
+                            else:
+                                continue  # Skip external links
+                        else:
+                            # Relative path
+                            full_url = urllib.parse.urljoin(url, href)
+                        
+                        # Clean URL and add to set
+                        clean_url = full_url.split('#')[0].split('?')[0]
+                        if clean_url != url:  # Don't include the same homepage
+                            navigation_links.add(clean_url)
+            
+            # Convert to list and limit
+            nav_list = list(navigation_links)[:max_links]
+            logger.info(f"Found {len(nav_list)} navigation links")
+            return nav_list
+            
+        except Exception as e:
+            logger.error(f"Error fetching navigation links: {e}")
+            return []
+
 class SEOAuditor:
     def __init__(self):
         self.login = os.getenv('DATAFORSEO_LOGIN')
         self.password = os.getenv('DATAFORSEO_PASSWORD')
         self.base_url = "https://api.dataforseo.com/v3"
+        self.page_collector = PageCollector()
         
     def make_request(self, endpoint, data=None, method='GET'):
         """Make authenticated request to DataForSEO API"""
@@ -33,59 +106,204 @@ class SEOAuditor:
         
         # Check credentials
         if not self.login or not self.password:
-            print("DataForSEO credentials not configured. Please set DATAFORSEO_LOGIN and DATAFORSEO_PASSWORD in environment variables.")
+            logger.warning("DataForSEO credentials not configured. Using placeholder data.")
             return None
         
         try:
-            print(f"Making {method} request to: {url}")
+            logger.info(f"Making {method} request to: {url}")
             if method == 'POST':
                 response = requests.post(url, json=data, auth=auth, timeout=30)
             else:
                 response = requests.get(url, auth=auth, timeout=30)
             
-            print(f"Response status: {response.status_code}")
+            logger.info(f"Response status: {response.status_code}")
             response.raise_for_status()
             result = response.json()
-            print(f"API Response: {result}")
             return result
         except requests.exceptions.RequestException as e:
-            print(f"API request failed: {e}")
-            if hasattr(e, 'response') and e.response is not None:
-                print(f"Response content: {e.response.text}")
+            logger.error(f"API request failed: {e}")
             return None
     
-    def start_audit(self, url):
-        """Start on-page audit task"""
-        # If no credentials, return placeholder task ID
+    def start_multi_page_audit(self, homepage_url, max_pages=5):
+        """Start audit for homepage and navigation pages"""
+        # Get navigation links
+        nav_links = self.page_collector.get_navigation_links(homepage_url, max_pages)
+        
+        # Include homepage in the list
+        all_urls = [homepage_url] + nav_links
+        
+        # If no credentials, return placeholder task IDs
         if not self.login or not self.password:
-            return "placeholder_task_123"
-            
+            return {url: f"placeholder_task_{i}" for i, url in enumerate(all_urls)}
+        
+        # Start audit tasks for all URLs
+        task_ids = {}
         endpoint = "/on_page/task_post"
         
-        data = [{
-            "target": url,
-            "max_crawl_pages": 1,
-            "load_resources": True,
-            "enable_javascript": True,
-            "enable_browser_rendering": True,
-            "custom_js": "meta",
-            "browser_preset": "desktop"
-        }]
+        for url in all_urls:
+            data = [{
+                "target": url,
+                "max_crawl_pages": 1,
+                "load_resources": True,
+                "enable_javascript": True,
+                "enable_browser_rendering": True,
+                "custom_js": "meta",
+                "browser_preset": "desktop"
+            }]
+            
+            result = self.make_request(endpoint, data, 'POST')
+            if result and result.get('status_code') == 20000:
+                task_ids[url] = result['tasks'][0]['id']
+            else:
+                task_ids[url] = None
         
-        result = self.make_request(endpoint, data, 'POST')
-        if result and result.get('status_code') == 20000:
-            return result['tasks'][0]['id']
-        return None
+        return task_ids
+    
+    def get_multi_page_results(self, task_ids):
+        """Get audit results for multiple pages"""
+        results = {}
+        
+        for url, task_id in task_ids.items():
+            if task_id and task_id.startswith("placeholder_task_"):
+                # Generate varied placeholder data for each page
+                results[url] = self.get_placeholder_data_for_url(url)
+            elif task_id:
+                # Get real results from API
+                page_result = self.get_audit_results(task_id)
+                if page_result:
+                    results[url] = page_result
+                else:
+                    results[url] = self.get_placeholder_data_for_url(url)
+            else:
+                results[url] = self.get_placeholder_data_for_url(url)
+        
+        return results
+    
+    def get_placeholder_data_for_url(self, url):
+        """Generate placeholder data customized for specific URL"""
+        import random
+        
+        # Parse URL for customization
+        parsed_url = urllib.parse.urlparse(url)
+        domain = parsed_url.netloc
+        path = parsed_url.path.strip('/')
+        
+        # Determine page type from path
+        if not path or path == '':
+            page_type = 'homepage'
+            title_base = f"{domain.replace('www.', '').title()} - Premium Services & Solutions"
+        elif 'about' in path.lower():
+            page_type = 'about'
+            title_base = f"About Us - {domain.replace('www.', '').title()}"
+        elif 'service' in path.lower():
+            page_type = 'services'
+            title_base = f"Our Services - {domain.replace('www.', '').title()}"
+        elif 'contact' in path.lower():
+            page_type = 'contact'
+            title_base = f"Contact Us - {domain.replace('www.', '').title()}"
+        elif 'product' in path.lower():
+            page_type = 'products'
+            title_base = f"Products - {domain.replace('www.', '').title()}"
+        else:
+            page_type = 'general'
+            title_base = f"{path.replace('-', ' ').title()} - {domain.replace('www.', '').title()}"
+        
+        # Generate variable quality scores based on random factors
+        quality_factor = random.choice(['excellent', 'good', 'poor'])
+        
+        if quality_factor == 'excellent':
+            base_scores = {'title': 95, 'meta': 90, 'headings': 95, 'images': 85, 'content': 90, 'technical': 95}
+            word_count = random.randint(800, 1500)
+            images_with_alt = 8
+            images_without_alt = 1
+        elif quality_factor == 'good':
+            base_scores = {'title': 75, 'meta': 70, 'headings': 80, 'images': 65, 'content': 75, 'technical': 80}
+            word_count = random.randint(400, 800)
+            images_with_alt = 5
+            images_without_alt = 3
+        else:
+            base_scores = {'title': 45, 'meta': 30, 'headings': 50, 'images': 25, 'content': 40, 'technical': 55}
+            word_count = random.randint(150, 400)
+            images_with_alt = 2
+            images_without_alt = 6
+        
+        # Create comprehensive placeholder data
+        placeholder_data = {
+            'url': url,
+            'meta': {
+                'title': title_base[:60] if quality_factor != 'poor' else title_base[:25],
+                'description': f"Comprehensive {page_type} information for {domain}. Quality services and solutions." if quality_factor != 'poor' else "Short desc",
+                'keywords': f"{page_type}, {domain}, services, quality",
+                'author': f"{domain.replace('www.', '').title()} Team",
+                'robots': 'index, follow'
+            },
+            'content': {
+                'h1': [{'text': title_base}] if quality_factor != 'poor' else [{'text': 'Page Title'}, {'text': 'Another H1'}],
+                'h2': [
+                    {'text': f'{page_type.title()} Overview'},
+                    {'text': 'Key Features'},
+                    {'text': 'Benefits'},
+                ] if quality_factor != 'poor' else [],
+                'h3': [
+                    {'text': 'Feature 1'},
+                    {'text': 'Feature 2'},
+                    {'text': 'Feature 3'},
+                ],
+                'text_content': f"This {page_type} page provides comprehensive information about our services and solutions.",
+                'word_count': word_count
+            },
+            'resource': {
+                'images': (
+                    [{'alt': f'{page_type} image {i}', 'src': f'image{i}.jpg'} for i in range(images_with_alt)] +
+                    [{'alt': '', 'src': f'missing-alt{i}.jpg'} for i in range(images_without_alt)]
+                )
+            },
+            'links': [
+                {'domain_from': domain, 'domain_to': domain, 'type': 'internal'} for _ in range(random.randint(3, 8))
+            ] + [
+                {'domain_from': domain, 'domain_to': 'external-site.com', 'type': 'external'} for _ in range(random.randint(1, 3))
+            ],
+            'page_timing': {
+                'time_to_interactive': random.randint(1500, 4000),
+                'dom_complete': random.randint(1000, 3000),
+                'first_contentful_paint': random.randint(800, 2000),
+                'largest_contentful_paint': random.randint(1200, 3500),
+                'cumulative_layout_shift': round(random.uniform(0.05, 0.3), 2)
+            },
+            'schema_markup': [
+                {'type': 'Organization', 'found': quality_factor != 'poor'},
+                {'type': 'WebSite', 'found': quality_factor == 'excellent'},
+                {'type': 'WebPage', 'found': quality_factor != 'poor'}
+            ],
+            'technical': {
+                'ssl_certificate': quality_factor != 'poor',
+                'mobile_friendly': quality_factor != 'poor',
+                'page_size_kb': random.randint(800, 4000),
+                'text_html_ratio': round(random.uniform(0.1, 0.3), 2),
+                'gzip_compression': quality_factor != 'poor',
+                'minified_css': quality_factor == 'excellent',
+                'minified_js': quality_factor == 'excellent'
+            },
+            'social_meta': {
+                'og_title': title_base if quality_factor != 'poor' else '',
+                'og_description': f"Quality {page_type} page" if quality_factor != 'poor' else '',
+                'og_image': f"https://{domain}/og-image.jpg" if quality_factor != 'poor' else '',
+                'twitter_card': 'summary_large_image' if quality_factor != 'poor' else '',
+                'twitter_title': title_base if quality_factor != 'poor' else '',
+                'twitter_description': f"{page_type.title()} page description" if quality_factor != 'poor' else ''
+            }
+        }
+        
+        return [placeholder_data]
     
     def get_audit_results(self, task_id):
         """Get audit results by task ID"""
-        # If placeholder task, return sample data
-        if task_id == "placeholder_task_123":
-            return self.get_placeholder_data()
+        if task_id.startswith("placeholder_task_"):
+            return self.get_placeholder_data_for_url("https://example.com")
             
         endpoint = f"/on_page/task_get/{task_id}"
         
-        # Poll for results with retry logic
+        # Poll for results
         max_retries = 10
         for attempt in range(max_retries):
             result = self.make_request(endpoint)
@@ -93,255 +311,43 @@ class SEOAuditor:
                 tasks = result.get('tasks', [])
                 if tasks and tasks[0].get('status_message') == 'Ok':
                     return tasks[0].get('result', [])
-            
-            # Wait before retrying
             time.sleep(5)
         
         return None
     
-    def get_placeholder_data(self):
-        """Return comprehensive placeholder audit data for testing and demonstration"""
-        import random
+    def analyze_multi_page_data(self, multi_page_results):
+        """Analyze audit data for multiple pages"""
+        analyzed_pages = {}
+        overall_stats = {
+            'total_pages': len(multi_page_results),
+            'avg_scores': {},
+            'total_issues': 0,
+            'pages_with_issues': 0
+        }
         
-        # Generate varied placeholder data to simulate different SEO scenarios
-        scenarios = [
-            {
-                'url': 'https://demo-ecommerce.com',
-                'meta': {
-                    'title': 'Buy Quality Products Online - Demo Store',  # Good length
-                    'description': 'Shop our wide selection of premium products with fast shipping and excellent customer service. Best prices guaranteed on electronics, clothing, and home goods.',  # Good length
-                    'keywords': 'ecommerce, online shopping, electronics, clothing, home goods',
-                    'author': 'Demo Store Team',
-                    'robots': 'index, follow'
-                },
-                'content': {
-                    'h1': [{'text': 'Premium Online Shopping Experience - Demo Store'}],
-                    'h2': [
-                        {'text': 'Featured Products'},
-                        {'text': 'Customer Reviews'},
-                        {'text': 'Shipping Information'},
-                        {'text': 'Return Policy'}
-                    ],
-                    'h3': [
-                        {'text': 'Electronics'},
-                        {'text': 'Fashion'},
-                        {'text': 'Home & Garden'},
-                        {'text': 'Sports & Outdoors'}
-                    ],
-                    'text_content': 'Welcome to our premier online shopping destination. We offer a carefully curated selection of high-quality products across multiple categories including electronics, fashion, home goods, and more. Our commitment to customer satisfaction drives everything we do, from product selection to customer service. Shop with confidence knowing you\'re getting the best value and service.',
-                    'word_count': 650
-                },
-                'resource': {
-                    'images': [
-                        {'alt': 'Demo Store logo - Premium online shopping', 'src': 'logo.jpg'},
-                        {'alt': 'Featured product - Latest smartphone', 'src': 'product1.jpg'},
-                        {'alt': 'Customer using our mobile app', 'src': 'mobile-app.jpg'},
-                        {'alt': '', 'src': 'banner.jpg'},  # Missing alt text
-                        {'alt': 'Free shipping trucks', 'src': 'shipping.jpg'},
-                        {'alt': '', 'src': 'hero-image.jpg'},  # Missing alt text
-                        {'alt': 'Happy customer testimonial', 'src': 'testimonial.jpg'}
-                    ]
-                },
-                'links': [
-                    {'domain_from': 'demo-ecommerce.com', 'domain_to': 'demo-ecommerce.com', 'type': 'internal'},
-                    {'domain_from': 'demo-ecommerce.com', 'domain_to': 'demo-ecommerce.com', 'type': 'internal'},
-                    {'domain_from': 'demo-ecommerce.com', 'domain_to': 'demo-ecommerce.com', 'type': 'internal'},
-                    {'domain_from': 'demo-ecommerce.com', 'domain_to': 'demo-ecommerce.com', 'type': 'internal'},
-                    {'domain_from': 'demo-ecommerce.com', 'domain_to': 'trustpilot.com', 'type': 'external'},
-                    {'domain_from': 'demo-ecommerce.com', 'domain_to': 'facebook.com', 'type': 'external'},
-                    {'domain_from': 'demo-ecommerce.com', 'domain_to': 'instagram.com', 'type': 'external'}
-                ],
-                'page_timing': {
-                    'time_to_interactive': 2200,
-                    'dom_complete': 1600,
-                    'first_contentful_paint': 1100,
-                    'largest_contentful_paint': 1900,
-                    'cumulative_layout_shift': 0.12
-                },
-                'schema_markup': [
-                    {'type': 'Organization', 'found': True},
-                    {'type': 'WebSite', 'found': True},
-                    {'type': 'Product', 'found': True},
-                    {'type': 'BreadcrumbList', 'found': True}
-                ],
-                'technical': {
-                    'ssl_certificate': True,
-                    'mobile_friendly': True,
-                    'page_size_kb': 1800,
-                    'text_html_ratio': 0.18,
-                    'gzip_compression': True,
-                    'minified_css': True,
-                    'minified_js': True
-                },
-                'social_meta': {
-                    'og_title': 'Premium Online Shopping - Demo Store',
-                    'og_description': 'Shop quality products with fast shipping and great service',
-                    'og_image': 'https://demo-ecommerce.com/og-image.jpg',
-                    'twitter_card': 'summary_large_image',
-                    'twitter_title': 'Demo Store - Premium Shopping',
-                    'twitter_description': 'Quality products, fast shipping, excellent service'
-                }
-            },
-            {
-                'url': 'https://sample-blog.net',
-                'meta': {
-                    'title': 'Tech Blog',  # Too short
-                    'description': 'Blog about technology and software development tips for programmers and developers worldwide',  # Too short
-                    'keywords': 'technology, programming, software, development, coding',
-                    'author': 'Tech Blogger',
-                    'robots': 'index, follow'
-                },
-                'content': {
-                    'h1': [
-                        {'text': 'Latest Tech News'},  # Multiple H1s - bad practice
-                        {'text': 'Programming Tutorials'}
-                    ],
-                    'h2': [],  # No H2s - missing structure
-                    'h3': [
-                        {'text': 'Python Tips'},
-                        {'text': 'JavaScript Tricks'}
-                    ],
-                    'text_content': 'Welcome to our tech blog. We write about programming.',  # Very short content
-                    'word_count': 180
-                },
-                'resource': {
-                    'images': [
-                        {'alt': '', 'src': 'logo.png'},  # Missing alt text
-                        {'alt': '', 'src': 'header.jpg'},  # Missing alt text
-                        {'alt': '', 'src': 'code-snippet.png'},  # Missing alt text
-                        {'alt': 'Programming tutorial screenshot', 'src': 'tutorial.jpg'},
-                        {'alt': '', 'src': 'author-photo.jpg'}  # Missing alt text
-                    ]
-                },
-                'links': [
-                    {'domain_from': 'sample-blog.net', 'domain_to': 'sample-blog.net', 'type': 'internal'},
-                    {'domain_from': 'sample-blog.net', 'domain_to': 'sample-blog.net', 'type': 'internal'},
-                    {'domain_from': 'sample-blog.net', 'domain_to': 'github.com', 'type': 'external'}
-                ],
-                'page_timing': {
-                    'time_to_interactive': 3800,
-                    'dom_complete': 2900,
-                    'first_contentful_paint': 1800,
-                    'largest_contentful_paint': 3200,
-                    'cumulative_layout_shift': 0.28
-                },
-                'schema_markup': [
-                    {'type': 'Organization', 'found': False},
-                    {'type': 'WebSite', 'found': False},
-                    {'type': 'Article', 'found': False}
-                ],
-                'technical': {
-                    'ssl_certificate': False,
-                    'mobile_friendly': False,
-                    'page_size_kb': 4200,
-                    'text_html_ratio': 0.08,
-                    'gzip_compression': False,
-                    'minified_css': False,
-                    'minified_js': False
-                },
-                'social_meta': {
-                    'og_title': '',
-                    'og_description': '',
-                    'og_image': '',
-                    'twitter_card': '',
-                    'twitter_title': '',
-                    'twitter_description': ''
-                }
-            },
-            {
-                'url': 'https://perfect-seo-example.org',
-                'meta': {
-                    'title': 'Perfect SEO Example - Complete Digital Marketing Guide',
-                    'description': 'Comprehensive digital marketing and SEO guide with expert tips, strategies, and best practices for improving your website\'s search engine rankings.',
-                    'keywords': 'SEO, digital marketing, search engine optimization, website ranking, content marketing',
-                    'author': 'SEO Expert Team',
-                    'robots': 'index, follow'
-                },
-                'content': {
-                    'h1': [{'text': 'Complete Guide to Search Engine Optimization and Digital Marketing Success'}],
-                    'h2': [
-                        {'text': 'Understanding SEO Fundamentals'},
-                        {'text': 'On-Page Optimization Strategies'},
-                        {'text': 'Technical SEO Best Practices'},
-                        {'text': 'Content Marketing Excellence'},
-                        {'text': 'Link Building Techniques'},
-                        {'text': 'Local SEO Optimization'}
-                    ],
-                    'h3': [
-                        {'text': 'Keyword Research Tools'},
-                        {'text': 'Meta Tag Optimization'},
-                        {'text': 'Internal Linking Strategy'},
-                        {'text': 'Page Speed Optimization'},
-                        {'text': 'Mobile-First Indexing'},
-                        {'text': 'Schema Markup Implementation'},
-                        {'text': 'Content Quality Guidelines'},
-                        {'text': 'User Experience Factors'}
-                    ],
-                    'text_content': 'Search engine optimization is a comprehensive digital marketing strategy that involves optimizing your website to improve its visibility and ranking in search engine results pages. This complete guide covers all aspects of SEO from technical implementation to content strategy. We explore keyword research methodologies, on-page optimization techniques, technical SEO requirements, and advanced strategies for building domain authority. Understanding user intent and creating valuable content that serves your audience while satisfying search engine algorithms is crucial for long-term success. Our team of SEO experts has compiled years of experience into this comprehensive resource.',
-                    'word_count': 1250
-                },
-                'resource': {
-                    'images': [
-                        {'alt': 'SEO Expert Team logo - Digital marketing professionals', 'src': 'logo.svg'},
-                        {'alt': 'Search engine optimization infographic showing ranking factors', 'src': 'seo-infographic.jpg'},
-                        {'alt': 'Keyword research tools comparison chart', 'src': 'keyword-tools.png'},
-                        {'alt': 'Website analytics dashboard showing SEO improvements', 'src': 'analytics.jpg'},
-                        {'alt': 'Mobile-first design example for better SEO', 'src': 'mobile-design.jpg'},
-                        {'alt': 'Content marketing strategy flowchart', 'src': 'content-strategy.png'},
-                        {'alt': 'Local SEO optimization checklist visual guide', 'src': 'local-seo.jpg'},
-                        {'alt': 'Technical SEO audit results graph', 'src': 'technical-audit.png'}
-                    ]
-                },
-                'links': [
-                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'perfect-seo-example.org', 'type': 'internal'},
-                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'perfect-seo-example.org', 'type': 'internal'},
-                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'perfect-seo-example.org', 'type': 'internal'},
-                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'perfect-seo-example.org', 'type': 'internal'},
-                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'perfect-seo-example.org', 'type': 'internal'},
-                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'perfect-seo-example.org', 'type': 'internal'},
-                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'perfect-seo-example.org', 'type': 'internal'},
-                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'google.com', 'type': 'external'},
-                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'moz.com', 'type': 'external'},
-                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'searchengineland.com', 'type': 'external'},
-                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'semrush.com', 'type': 'external'}
-                ],
-                'page_timing': {
-                    'time_to_interactive': 1800,
-                    'dom_complete': 1200,
-                    'first_contentful_paint': 800,
-                    'largest_contentful_paint': 1500,
-                    'cumulative_layout_shift': 0.05
-                },
-                'schema_markup': [
-                    {'type': 'Organization', 'found': True},
-                    {'type': 'WebSite', 'found': True},
-                    {'type': 'Article', 'found': True},
-                    {'type': 'BreadcrumbList', 'found': True},
-                    {'type': 'FAQ', 'found': True}
-                ],
-                'technical': {
-                    'ssl_certificate': True,
-                    'mobile_friendly': True,
-                    'page_size_kb': 950,
-                    'text_html_ratio': 0.25,
-                    'gzip_compression': True,
-                    'minified_css': True,
-                    'minified_js': True
-                },
-                'social_meta': {
-                    'og_title': 'Complete SEO Guide - Digital Marketing Excellence',
-                    'og_description': 'Master SEO with our comprehensive guide covering all aspects of search engine optimization',
-                    'og_image': 'https://perfect-seo-example.org/og-seo-guide.jpg',
-                    'twitter_card': 'summary_large_image',
-                    'twitter_title': 'Complete SEO Guide - Perfect Example',
-                    'twitter_description': 'Everything you need to know about SEO and digital marketing success'
-                }
-            }
-        ]
+        all_scores = {'title': [], 'meta_description': [], 'headings': [], 'images': [], 'content': [], 'technical': [], 'social_media': [], 'schema_markup': [], 'overall': []}
         
-        # Randomly select one scenario to demonstrate different SEO conditions
-        selected_scenario = random.choice(scenarios)
-        return [selected_scenario]
+        for url, audit_data in multi_page_results.items():
+            page_analysis = self.analyze_seo_data(audit_data)
+            if page_analysis:
+                analyzed_pages[url] = page_analysis
+                
+                # Collect scores for averaging
+                for metric, score in page_analysis['scores'].items():
+                    if metric in all_scores:
+                        all_scores[metric].append(score)
+                
+                # Count issues
+                overall_stats['total_issues'] += len(page_analysis['issues'])
+                if page_analysis['issues']:
+                    overall_stats['pages_with_issues'] += 1
+        
+        # Calculate average scores
+        for metric, scores in all_scores.items():
+            if scores:
+                overall_stats['avg_scores'][metric] = round(sum(scores) / len(scores))
+        
+        return analyzed_pages, overall_stats
     
     def analyze_seo_data(self, audit_data):
         """Analyze audit data and generate insights"""
@@ -362,12 +368,13 @@ class SEOAuditor:
             'total_images': 0,
             'internal_links': 0,
             'external_links': 0,
-            'page_size': page_data.get('technical', {}).get('page_size_kb', page_data.get('page_timing', {}).get('time_to_interactive', 0)),
+            'page_size': page_data.get('technical', {}).get('page_size_kb', 0),
             'load_time': page_data.get('page_timing', {}).get('dom_complete', 0),
             'word_count': page_data.get('content', {}).get('word_count', 0),
             'schema_markup': page_data.get('schema_markup', []),
             'technical': page_data.get('technical', {}),
             'social_meta': page_data.get('social_meta', {}),
+            'page_timing': page_data.get('page_timing', {}),
             'issues': [],
             'scores': {}
         }
@@ -379,7 +386,6 @@ class SEOAuditor:
             analysis['h2_tags'] = [h.get('text', '') for h in content.get('h2', [])]
             analysis['h3_tags'] = [h.get('text', '') for h in content.get('h3', [])]
             
-            # Extract word count if available
             if content.get('word_count'):
                 analysis['word_count'] = content['word_count']
         
@@ -391,7 +397,7 @@ class SEOAuditor:
         # Analyze links
         links = page_data.get('links', [])
         for link in links:
-            if link.get('domain_to') == link.get('domain_from'):
+            if link.get('type') == 'internal':
                 analysis['internal_links'] += 1
             else:
                 analysis['external_links'] += 1
@@ -481,7 +487,7 @@ class SEOAuditor:
         
         # Schema markup score
         schema_count = len([s for s in analysis.get('schema_markup', []) if s.get('found')])
-        schema_score = min(100, schema_count * 35)  # Up to 100 for 3+ schemas
+        schema_score = min(100, schema_count * 35)
         scores['schema_markup'] = schema_score
         
         # Overall score
@@ -584,6 +590,14 @@ class PDFReportGenerator:
             textColor=HexColor('#A23B72')
         )
         
+        self.subheading_style = ParagraphStyle(
+            'CustomSubHeading',
+            parent=self.styles['Heading3'],
+            fontSize=14,
+            spaceAfter=8,
+            textColor=HexColor('#2E86AB')
+        )
+        
         self.body_style = ParagraphStyle(
             'CustomBody',
             parent=self.styles['Normal'],
@@ -600,26 +614,31 @@ class PDFReportGenerator:
         else:
             return HexColor('#F44336')  # Red
     
-    def generate_color_coded_report(self, analysis, filename):
-        """Generate enhanced PDF report with color-coded tables"""
+    def generate_multi_page_report(self, analyzed_pages, overall_stats, filename):
+        """Generate comprehensive multi-page PDF report"""
         doc = SimpleDocTemplate(filename, pagesize=A4)
         story = []
         
         # Title page
-        story.append(Paragraph("SEO Audit Report", self.title_style))
+        story.append(Paragraph("Multi-Page SEO Audit Report", self.title_style))
         story.append(Spacer(1, 20))
         
-        # URL and date
-        story.append(Paragraph(f"<b>Website:</b> {analysis['url']}", self.body_style))
+        # Overall statistics
+        homepage_url = list(analyzed_pages.keys())[0] if analyzed_pages else "Unknown"
+        domain = urllib.parse.urlparse(homepage_url).netloc
+        
+        story.append(Paragraph(f"<b>Website:</b> {domain}", self.body_style))
+        story.append(Paragraph(f"<b>Pages Audited:</b> {overall_stats['total_pages']}", self.body_style))
+        story.append(Paragraph(f"<b>Total Issues Found:</b> {overall_stats['total_issues']}", self.body_style))
+        story.append(Paragraph(f"<b>Pages with Issues:</b> {overall_stats['pages_with_issues']}", self.body_style))
         story.append(Paragraph(f"<b>Report Date:</b> {datetime.now().strftime('%Y-%m-%d %H:%M')}", self.body_style))
         story.append(Spacer(1, 30))
         
-        # Overall score with color-coded background
-        overall_score = analysis['scores']['overall']
+        # Overall site score
+        overall_score = overall_stats['avg_scores'].get('overall', 0)
         score_color = self.get_score_color(overall_score)
-        story.append(Paragraph("Overall SEO Score", self.heading_style))
+        story.append(Paragraph("Overall Site SEO Score", self.heading_style))
         
-        # Create overall score table with color background
         overall_table = Table([[f"{overall_score}/100"]], colWidths=[3*inch])
         overall_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), score_color),
@@ -634,308 +653,32 @@ class PDFReportGenerator:
         story.append(overall_table)
         story.append(Spacer(1, 30))
         
-        # Color-coded scores table
-        story.append(Paragraph("Detailed SEO Metrics", self.heading_style))
+        # Site-wide average scores
+        story.append(Paragraph("Site-Wide Average SEO Metrics", self.heading_style))
         
-        score_data = [['SEO Metric', 'Score', 'Performance Level', 'Priority']]
+        avg_score_data = [['SEO Metric', 'Average Score', 'Performance Level']]
         
-        # Define priority levels
-        priority_map = {
-            'title': 'High',
-            'meta_description': 'High', 
-            'headings': 'Medium',
-            'images': 'Medium',
-            'content': 'High',
-            'technical': 'High',
-            'social_media': 'Low',
-            'schema_markup': 'Medium'
-        }
-        
-        for metric, score in analysis['scores'].items():
+        for metric, avg_score in overall_stats['avg_scores'].items():
             if metric != 'overall':
-                if score >= 80:
+                if avg_score >= 80:
                     status = 'Excellent'
-                elif score >= 60:
+                elif avg_score >= 60:
                     status = 'Good'
-                elif score >= 40:
+                elif avg_score >= 40:
                     status = 'Needs Work'
                 else:
                     status = 'Critical'
                 
-                priority = priority_map.get(metric, 'Medium')
-                score_data.append([
-                    metric.replace('_', ' ').title(), 
-                    f"{score}/100", 
-                    status,
-                    priority
+                avg_score_data.append([
+                    metric.replace('_', ' ').title(),
+                    f"{avg_score}/100",
+                    status
                 ])
         
-        score_table = Table(score_data, colWidths=[2.2*inch, 1*inch, 1.3*inch, 1*inch])
+        avg_score_table = Table(avg_score_data, colWidths=[2.5*inch, 1.5*inch, 1.5*inch])
         
-        # Create table style with color-coded rows
-        table_style = [
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#1a237e')),  # Header - dark blue
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 11),
-            ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
-        ]
-        
-        # Add color coding for each row based on score
-        for i, row in enumerate(score_data[1:], 1):
-            score_text = row[1]
-            score_value = int(score_text.split('/')[0])
-            row_color = self.get_score_color(score_value)
-            
-            # Light version of the color for better readability
-            if score_value >= 80:
-                bg_color = HexColor('#E8F5E8')  # Light green
-            elif score_value >= 60:
-                bg_color = HexColor('#FFF3E0')  # Light orange
-            else:
-                bg_color = HexColor('#FFEBEE')  # Light red
-            
-            table_style.append(('BACKGROUND', (0, i), (-1, i), bg_color))
-            
-            # Color the score column with the actual score color
-            table_style.append(('BACKGROUND', (1, i), (1, i), row_color))
-            table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
-            table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
-        
-        score_table.setStyle(TableStyle(table_style))
-        story.append(score_table)
-        story.append(Spacer(1, 30))
-        
-        # Separate Issues section
-        story.append(Paragraph("🚨 Issues Found", self.heading_style))
-        
-        if analysis['issues']:
-            # Create issues list with priority color-coding
-            issues_data = [['Priority', 'Issue Description']]
-            
-            for issue in analysis['issues']:
-                if 'title' in issue.lower() or 'meta description' in issue.lower():
-                    priority = 'HIGH'
-                elif 'image' in issue.lower() or 'heading' in issue.lower() or 'content' in issue.lower():
-                    priority = 'MEDIUM'
-                else:
-                    priority = 'LOW'
-                
-                issues_data.append([priority, issue])
-            
-            issues_table = Table(issues_data, colWidths=[1.2*inch, 4.8*inch])
-            
-            # Style the issues table
-            issues_style = [
-                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#d32f2f')),  # Red header
-                ('TEXTCOLOR', (0, 0), (-1, 0), white),
-                ('ALIGN', (0, 0), (0, -1), 'CENTER'),  # Center priority column
-                ('ALIGN', (1, 0), (1, -1), 'LEFT'),    # Left align issue column
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 12),
-                ('FONTSIZE', (0, 1), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('TOPPADDING', (0, 1), (-1, -1), 8),
-                ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
-                ('GRID', (0, 0), (-1, -1), 1, black),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
-            ]
-            
-            # Color-code priority column
-            for i, row in enumerate(issues_data[1:], 1):
-                priority = row[0]
-                if priority == 'HIGH':
-                    issues_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f44336')))
-                    issues_style.append(('TEXTCOLOR', (0, i), (0, i), white))
-                elif priority == 'MEDIUM':
-                    issues_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#ff9800')))
-                    issues_style.append(('TEXTCOLOR', (0, i), (0, i), white))
-                else:
-                    issues_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#4caf50')))
-                    issues_style.append(('TEXTCOLOR', (0, i), (0, i), white))
-                
-                issues_style.append(('FONTNAME', (0, i), (0, i), 'Helvetica-Bold'))
-                
-                # Alternate row colors for better readability
-                if i % 2 == 0:
-                    issues_style.append(('BACKGROUND', (1, i), (1, i), HexColor('#f8f9fa')))
-            
-            issues_table.setStyle(TableStyle(issues_style))
-            story.append(issues_table)
-        else:
-            story.append(Paragraph("🎉 No issues found! Your website SEO is in excellent condition.", self.body_style))
-        
-        story.append(Spacer(1, 30))
-        
-        # Separate Actionable Recommendations section
-        story.append(Paragraph("💡 Actionable Recommendations", self.heading_style))
-        
-        if analysis['issues']:
-            # Create recommendations with detailed actions
-            recommendations_data = [['Action Required', 'Detailed Recommendation', 'Expected Impact']]
-            
-            for issue in analysis['issues']:
-                # Generate specific recommendations with impact
-                if 'title' in issue.lower():
-                    if 'short' in issue.lower():
-                        action = 'Extend Title Tag'
-                        recommendation = 'Expand your title to 30-60 characters by adding relevant keywords and brand name. Example: "Your Service | Brand Name | Location"'
-                        impact = 'Improved CTR & Rankings'
-                    elif 'long' in issue.lower():
-                        action = 'Shorten Title Tag'
-                        recommendation = 'Reduce title to under 60 characters to prevent truncation in search results. Focus on primary keywords.'
-                        impact = 'Better SERP Display'
-                    else:
-                        action = 'Add Title Tag'
-                        recommendation = 'Create compelling 30-60 character title with primary keyword near the beginning and brand name at the end.'
-                        impact = 'Higher Search Visibility'
-                        
-                elif 'meta description' in issue.lower():
-                    if 'short' in issue.lower():
-                        action = 'Expand Meta Description'
-                        recommendation = 'Write compelling 120-160 character description including primary keywords, value proposition, and call-to-action.'
-                        impact = 'Increased Click-Through Rate'
-                    elif 'long' in issue.lower():
-                        action = 'Optimize Meta Description'
-                        recommendation = 'Trim description to 120-160 characters while keeping key messaging and call-to-action.'
-                        impact = 'Prevention of SERP Truncation'
-                    else:
-                        action = 'Create Meta Description'
-                        recommendation = 'Write unique 120-160 character description that summarizes page content and encourages clicks.'
-                        impact = 'Better Search Snippets'
-                        
-                elif 'alt text' in issue.lower():
-                    action = 'Add Alt Text to Images'
-                    recommendation = 'Write descriptive alt text for all images (5-15 words) describing what\'s shown. Include keywords naturally when relevant.'
-                    impact = 'Improved Accessibility & Image SEO'
-                    
-                elif 'H1' in issue and 'Add' in issue:
-                    action = 'Add H1 Heading'
-                    recommendation = 'Create one clear H1 tag that includes your primary keyword and describes the main page topic.'
-                    impact = 'Better Content Structure'
-                    
-                elif 'H1' in issue and 'one' in issue:
-                    action = 'Fix Multiple H1 Tags'
-                    recommendation = 'Use only one H1 tag per page. Convert additional H1s to H2 or H3 tags to maintain proper heading hierarchy.'
-                    impact = 'Clearer Content Hierarchy'
-                    
-                elif 'H2' in issue:
-                    action = 'Add H2 Subheadings'
-                    recommendation = 'Break content into sections using H2 tags with relevant keywords. Aim for 2-5 H2s per page based on content length.'
-                    impact = 'Enhanced Readability & SEO'
-                    
-                elif 'content' in issue.lower() and 'word' in issue.lower():
-                    action = 'Expand Content'
-                    recommendation = 'Add valuable, relevant content to reach 300+ words. Include FAQ section, detailed descriptions, or user benefits.'
-                    impact = 'Better Search Rankings'
-                    
-                elif 'internal link' in issue.lower():
-                    action = 'Add Internal Links'
-                    recommendation = 'Link to 3-5 relevant pages using descriptive anchor text. Connect related content and important pages.'
-                    impact = 'Improved Site Authority Distribution'
-                    
-                elif 'SSL' in issue or 'HTTPS' in issue:
-                    action = 'Install SSL Certificate'
-                    recommendation = 'Secure your website with SSL/TLS certificate and ensure all pages load over HTTPS protocol.'
-                    impact = 'Security & Ranking Factor'
-                    
-                elif 'mobile' in issue.lower():
-                    action = 'Optimize for Mobile'
-                    recommendation = 'Implement responsive design, optimize touch targets, and ensure fast mobile load times.'
-                    impact = 'Mobile Search Rankings'
-                    
-                elif 'compression' in issue.lower():
-                    action = 'Enable GZIP Compression'
-                    recommendation = 'Configure server to compress text files (HTML, CSS, JS) reducing page load times by 60-80%.'
-                    impact = 'Faster Page Speed'
-                    
-                elif 'page size' in issue.lower():
-                    action = 'Optimize Page Size'
-                    recommendation = 'Compress images, minify CSS/JS, remove unused code. Target under 3MB total page size.'
-                    impact = 'Improved Core Web Vitals'
-                    
-                elif 'Open Graph' in issue or 'og_' in issue.lower():
-                    action = 'Add Social Media Tags'
-                    recommendation = 'Implement Open Graph meta tags (og:title, og:description, og:image) for better social media sharing.'
-                    impact = 'Enhanced Social Sharing'
-                    
-                elif 'structured data' in issue.lower() or 'schema' in issue.lower():
-                    action = 'Implement Schema Markup'
-                    recommendation = 'Add JSON-LD structured data for Organization, WebSite, and relevant business schemas.'
-                    impact = 'Rich Search Results'
-                    
-                else:
-                    action = 'Address SEO Issue'
-                    recommendation = 'Follow SEO best practices to resolve this issue and improve overall optimization.'
-                    impact = 'Better Search Performance'
-                
-                recommendations_data.append([action, recommendation, impact])
-            
-            recommendations_table = Table(recommendations_data, colWidths=[1.5*inch, 3.5*inch, 1*inch])
-            
-            # Style the recommendations table
-            rec_style = [
-                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#4caf50')),  # Green header
-                ('TEXTCOLOR', (0, 0), (-1, 0), white),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 11),
-                ('FONTSIZE', (0, 1), (-1, -1), 9),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('TOPPADDING', (0, 1), (-1, -1), 8),
-                ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
-                ('GRID', (0, 0), (-1, -1), 1, black),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP')
-            ]
-            
-            # Alternate row colors for better readability
-            for i in range(1, len(recommendations_data)):
-                if i % 2 == 0:
-                    rec_style.append(('BACKGROUND', (0, i), (-1, i), HexColor('#f1f8e9')))
-                
-                # Highlight action column
-                rec_style.append(('FONTNAME', (0, i), (0, i), 'Helvetica-Bold'))
-                rec_style.append(('TEXTCOLOR', (0, i), (0, i), HexColor('#2e7d32')))
-                
-                # Highlight impact column
-                rec_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
-                rec_style.append(('TEXTCOLOR', (2, i), (2, i), HexColor('#1565c0')))
-            
-            recommendations_table.setStyle(TableStyle(rec_style))
-            story.append(recommendations_table)
-        else:
-            story.append(Paragraph("✨ Your website is already well-optimized! Consider these advanced optimizations:", self.body_style))
-            story.append(Paragraph("• Implement advanced schema markup for rich snippets", self.body_style))
-            story.append(Paragraph("• Optimize for Core Web Vitals and page speed", self.body_style))
-            story.append(Paragraph("• Enhance internal linking strategy", self.body_style))
-            story.append(Paragraph("• Create pillar pages and topic clusters", self.body_style))
-        
-        story.append(Spacer(1, 30))
-        
-        # Technical summary table
-        story.append(Paragraph("Technical Details", self.heading_style))
-        
-        tech_data = [
-            ['Metric', 'Value', 'Status'],
-            ['Title Length', f"{len(analysis['title'])} characters", 'Good' if 30 <= len(analysis['title']) <= 60 else 'Needs Work'],
-            ['Meta Description Length', f"{len(analysis['meta_description'])} characters", 'Good' if 120 <= len(analysis['meta_description']) <= 160 else 'Needs Work'],
-            ['H1 Tags Count', str(len(analysis['h1_tags'])), 'Good' if len(analysis['h1_tags']) == 1 else 'Needs Work'],
-            ['H2 Tags Count', str(len(analysis['h2_tags'])), 'Good' if len(analysis['h2_tags']) > 0 else 'Needs Work'],
-            ['Images Total', str(analysis['total_images']), 'Info'],
-            ['Images Missing Alt', str(analysis['images_without_alt']), 'Good' if analysis['images_without_alt'] == 0 else 'Needs Work'],
-            ['Internal Links', str(analysis['internal_links']), 'Good' if analysis['internal_links'] >= 3 else 'Needs Work'],
-            ['External Links', str(analysis['external_links']), 'Good' if analysis['external_links'] > 0 else 'OK'],
-            ['Content Words', str(analysis['word_count']), 'Good' if analysis['word_count'] >= 300 else 'Needs Work']
-        ]
-        
-        tech_table = Table(tech_data, colWidths=[2.5*inch, 2*inch, 1.5*inch])
-        
-        # Style technical table with alternating colors
-        tech_style = [
+        # Style the average scores table
+        avg_table_style = [
             ('BACKGROUND', (0, 0), (-1, 0), HexColor('#1a237e')),
             ('TEXTCOLOR', (0, 0), (-1, 0), white),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
@@ -947,39 +690,199 @@ class PDFReportGenerator:
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
         ]
         
-        # Color-code status column and alternate row colors
-        for i, row in enumerate(tech_data[1:], 1):
-            # Alternate row colors
-            if i % 2 == 0:
-                tech_style.append(('BACKGROUND', (0, i), (-1, i), HexColor('#F8F9FA')))
+        # Color code the average scores
+        for i, row in enumerate(avg_score_data[1:], 1):
+            score_text = row[1]
+            score_value = int(score_text.split('/')[0])
+            row_color = self.get_score_color(score_value)
             
-            # Color-code status
-            status = row[2]
-            if status == 'Good':
-                tech_style.append(('BACKGROUND', (2, i), (2, i), HexColor('#4CAF50')))
-                tech_style.append(('TEXTCOLOR', (2, i), (2, i), white))
-            elif status == 'Needs Work':
-                tech_style.append(('BACKGROUND', (2, i), (2, i), HexColor('#F44336')))
-                tech_style.append(('TEXTCOLOR', (2, i), (2, i), white))
-            elif status == 'OK':
-                tech_style.append(('BACKGROUND', (2, i), (2, i), HexColor('#FF9800')))
-                tech_style.append(('TEXTCOLOR', (2, i), (2, i), white))
-            else:  # Info
-                tech_style.append(('BACKGROUND', (2, i), (2, i), HexColor('#2196F3')))
-                tech_style.append(('TEXTCOLOR', (2, i), (2, i), white))
+            if score_value >= 80:
+                bg_color = HexColor('#E8F5E8')
+            elif score_value >= 60:
+                bg_color = HexColor('#FFF3E0')
+            else:
+                bg_color = HexColor('#FFEBEE')
             
-            tech_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+            avg_table_style.append(('BACKGROUND', (0, i), (-1, i), bg_color))
+            avg_table_style.append(('BACKGROUND', (1, i), (1, i), row_color))
+            avg_table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+            avg_table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
         
-        tech_table.setStyle(TableStyle(tech_style))
-        story.append(tech_table)
+        avg_score_table.setStyle(TableStyle(avg_table_style))
+        story.append(avg_score_table)
+        story.append(Spacer(1, 30))
+        
+        # Page-by-page summary table
+        story.append(Paragraph("Page-by-Page Summary", self.heading_style))
+        
+        page_summary_data = [['Page URL', 'Overall Score', 'Top Issues', 'Status']]
+        
+        for url, analysis in analyzed_pages.items():
+            page_score = analysis['scores']['overall']
+            top_issues = len(analysis['issues'])
+            
+            if page_score >= 80:
+                status = '✅ Excellent'
+            elif page_score >= 60:
+                status = '⚠️ Good'
+            else:
+                status = '❌ Needs Work'
+            
+            # Truncate URL for display
+            display_url = url if len(url) <= 50 else url[:47] + "..."
+            
+            page_summary_data.append([
+                display_url,
+                f"{page_score}/100",
+                f"{top_issues} issues",
+                status
+            ])
+        
+        page_summary_table = Table(page_summary_data, colWidths=[3*inch, 1*inch, 1*inch, 1.5*inch])
+        
+        # Style the page summary table
+        summary_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#1a237e')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]
+        
+        # Color code page scores
+        for i, row in enumerate(page_summary_data[1:], 1):
+            score_text = row[1]
+            score_value = int(score_text.split('/')[0])
+            row_color = self.get_score_color(score_value)
+            
+            summary_style.append(('BACKGROUND', (1, i), (1, i), row_color))
+            summary_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+            summary_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+            
+            # Alternate row background
+            if i % 2 == 0:
+                summary_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+                summary_style.append(('BACKGROUND', (2, i), (-1, i), HexColor('#f8f9fa')))
+        
+        page_summary_table.setStyle(TableStyle(summary_style))
+        story.append(page_summary_table)
+        
+        # Individual page details
+        for url, analysis in analyzed_pages.items():
+            story.append(PageBreak())
+            
+            # Page header
+            display_url = url if len(url) <= 80 else url[:77] + "..."
+            story.append(Paragraph(f"Page Analysis: {display_url}", self.heading_style))
+            story.append(Spacer(1, 20))
+            
+            # Page score
+            page_score = analysis['scores']['overall']
+            score_color = self.get_score_color(page_score)
+            
+            page_score_table = Table([[f"{page_score}/100"]], colWidths=[2*inch])
+            page_score_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), score_color),
+                ('TEXTCOLOR', (0, 0), (-1, -1), white),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 24),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
+                ('TOPPADDING', (0, 0), (-1, -1), 15),
+            ]))
+            story.append(page_score_table)
+            story.append(Spacer(1, 20))
+            
+            # Generate detailed page report
+            self.add_page_details(story, analysis)
         
         doc.build(story)
     
-    def generate_report(self, analysis, filename):
-        """Generate standard PDF report (kept for compatibility)"""
-        return self.generate_color_coded_report(analysis, filename)
+    def add_page_details(self, story, analysis):
+        """Add detailed analysis for a single page"""
+        # Page metrics table
+        story.append(Paragraph("Page SEO Metrics", self.subheading_style))
+        
+        metrics_data = [['Metric', 'Score', 'Status']]
+        
+        for metric, score in analysis['scores'].items():
+            if metric != 'overall':
+                if score >= 80:
+                    status = 'Excellent'
+                elif score >= 60:
+                    status = 'Good'
+                else:
+                    status = 'Needs Work'
+                
+                metrics_data.append([
+                    metric.replace('_', ' ').title(),
+                    f"{score}/100",
+                    status
+                ])
+        
+        metrics_table = Table(metrics_data, colWidths=[2*inch, 1*inch, 1.5*inch])
+        
+        # Style metrics table
+        metrics_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#4caf50')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]
+        
+        # Color code scores
+        for i, row in enumerate(metrics_data[1:], 1):
+            score_text = row[1]
+            score_value = int(score_text.split('/')[0])
+            row_color = self.get_score_color(score_value)
+            
+            metrics_style.append(('BACKGROUND', (1, i), (1, i), row_color))
+            metrics_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+            metrics_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+        
+        metrics_table.setStyle(TableStyle(metrics_style))
+        story.append(metrics_table)
+        story.append(Spacer(1, 20))
+        
+        # Page issues
+        if analysis['issues']:
+            story.append(Paragraph("Issues Found on This Page", self.subheading_style))
+            
+            for i, issue in enumerate(analysis['issues'], 1):
+                story.append(Paragraph(f"• {issue}", self.body_style))
+            
+            story.append(Spacer(1, 15))
+        
+        # Technical details
+        story.append(Paragraph("Technical Details", self.subheading_style))
+        
+        tech_details = [
+            f"Title: {analysis['title'][:100]}..." if len(analysis['title']) > 100 else f"Title: {analysis['title']}",
+            f"Meta Description Length: {len(analysis['meta_description'])} characters",
+            f"Word Count: {analysis['word_count']} words",
+            f"Images: {analysis['total_images']} total ({analysis['images_without_alt']} missing alt text)",
+            f"Internal Links: {analysis['internal_links']}",
+            f"External Links: {analysis['external_links']}",
+            f"Page Size: {analysis['page_size']} KB" if analysis['page_size'] else "Page Size: Unknown"
+        ]
+        
+        for detail in tech_details:
+            story.append(Paragraph(f"• {detail}", self.body_style))
+        
+        story.append(Spacer(1, 20))
 
-# Initialize the auditor
+# Initialize components
 auditor = SEOAuditor()
 pdf_generator = PDFReportGenerator()
 
@@ -992,37 +895,48 @@ def generate_pdf():
     try:
         data = request.get_json()
         url = data.get('url', 'https://example.com')
+        max_pages = data.get('max_pages', 5)
         
         # Validate URL format
         if not url.startswith(('http://', 'https://')):
             url = 'https://' + url
         
-        # Get placeholder data and analyze it
-        audit_data = auditor.get_placeholder_data()
+        logger.info(f"Starting multi-page audit for: {url}")
         
-        # Update URL in placeholder data
-        if audit_data:
-            audit_data[0]['url'] = url
+        # Start multi-page audit
+        task_ids = auditor.start_multi_page_audit(url, max_pages)
+        logger.info(f"Started audit for {len(task_ids)} pages")
         
-        analysis = auditor.analyze_seo_data(audit_data)
-        if not analysis:
-            return jsonify({'error': 'Failed to analyze data'}), 500
+        # Wait a moment for tasks to process
+        time.sleep(2)
+        
+        # Get results for all pages
+        multi_page_results = auditor.get_multi_page_results(task_ids)
+        logger.info(f"Retrieved results for {len(multi_page_results)} pages")
+        
+        # Analyze all pages
+        analyzed_pages, overall_stats = auditor.analyze_multi_page_data(multi_page_results)
+        
+        if not analyzed_pages:
+            return jsonify({'error': 'Failed to analyze any pages'}), 500
         
         # Generate filename
         domain = urllib.parse.urlparse(url).netloc
         domain = re.sub(r'[^\w\-_\.]', '_', domain)
-        filename = f"seo_audit_report_{domain}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        filename = f"seo_audit_{domain}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
         filepath = os.path.join('reports', filename)
         
         # Create reports directory if it doesn't exist
         os.makedirs('reports', exist_ok=True)
         
-        # Generate PDF with color-coded table
-        pdf_generator.generate_color_coded_report(analysis, filepath)
+        # Generate comprehensive multi-page PDF report
+        pdf_generator.generate_multi_page_report(analyzed_pages, overall_stats, filepath)
         
+        logger.info(f"Generated report: {filename}")
         return send_file(filepath, as_attachment=True, download_name=filename)
     
     except Exception as e:
+        logger.error(f"Error generating PDF: {e}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
