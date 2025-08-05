@@ -104,36 +104,81 @@ class SEOAuditor:
         return [{
             'url': 'https://example.com',
             'meta': {
-                'title': 'Example Website - Your Business Online',
-                'description': 'This is an example website showing how our SEO audit tool works. Perfect length meta description for testing purposes.'
+                'title': 'Example Website - Your Business Online Solutions',
+                'description': 'This is an example website showing how our comprehensive SEO audit tool works. Perfect length meta description for testing all features.',
+                'keywords': 'seo, audit, website, optimization, testing',
+                'author': 'Example Company',
+                'robots': 'index, follow'
             },
             'content': {
-                'h1': [{'text': 'Welcome to Example Website'}],
+                'h1': [{'text': 'Welcome to Example Website - Professional SEO Services'}],
                 'h2': [
-                    {'text': 'Our Services'},
-                    {'text': 'About Us'},
-                    {'text': 'Contact Information'}
-                ]
+                    {'text': 'Our Comprehensive SEO Services'},
+                    {'text': 'About Our Expert Team'},
+                    {'text': 'Contact Information and Support'},
+                    {'text': 'Client Success Stories'},
+                    {'text': 'Free SEO Resources and Tools'}
+                ],
+                'h3': [
+                    {'text': 'On-Page Optimization'},
+                    {'text': 'Technical SEO Audits'},
+                    {'text': 'Keyword Research'},
+                    {'text': 'Content Strategy'},
+                    {'text': 'Link Building Services'}
+                ],
+                'text_content': 'This is example content for the SEO audit. The page contains valuable information about search engine optimization services, best practices, and comprehensive analysis tools. Our team provides expert guidance for improving website visibility and search rankings through proven strategies and data-driven insights.',
+                'word_count': 450
             },
             'resource': {
                 'images': [
-                    {'alt': 'Company logo'},
-                    {'alt': 'Team photo'},
-                    {'alt': ''},  # Missing alt text
-                    {'alt': 'Product image'},
-                    {'alt': ''}   # Missing alt text
+                    {'alt': 'Company logo - Professional SEO Services', 'src': 'logo.jpg'},
+                    {'alt': 'Team photo - SEO experts working together', 'src': 'team.jpg'},
+                    {'alt': '', 'src': 'banner1.jpg'},  # Missing alt text
+                    {'alt': 'Product image - SEO audit dashboard', 'src': 'product.jpg'},
+                    {'alt': '', 'src': 'banner2.jpg'},   # Missing alt text
+                    {'alt': 'Client testimonial photo', 'src': 'testimonial.jpg'},
+                    {'alt': 'SEO performance graph showing improvements', 'src': 'graph.jpg'},
+                    {'alt': '', 'src': 'hero-bg.jpg'}   # Missing alt text
                 ]
             },
             'links': [
-                {'domain_from': 'example.com', 'domain_to': 'example.com'},  # Internal
-                {'domain_from': 'example.com', 'domain_to': 'example.com'},  # Internal
-                {'domain_from': 'example.com', 'domain_to': 'example.com'},  # Internal
-                {'domain_from': 'example.com', 'domain_to': 'google.com'},   # External
-                {'domain_from': 'example.com', 'domain_to': 'facebook.com'}, # External
+                {'domain_from': 'example.com', 'domain_to': 'example.com', 'type': 'internal'},  # Internal
+                {'domain_from': 'example.com', 'domain_to': 'example.com', 'type': 'internal'},  # Internal
+                {'domain_from': 'example.com', 'domain_to': 'example.com', 'type': 'internal'},  # Internal
+                {'domain_from': 'example.com', 'domain_to': 'example.com', 'type': 'internal'},  # Internal
+                {'domain_from': 'example.com', 'domain_to': 'example.com', 'type': 'internal'},  # Internal
+                {'domain_from': 'example.com', 'domain_to': 'google.com', 'type': 'external'},   # External
+                {'domain_from': 'example.com', 'domain_to': 'facebook.com', 'type': 'external'}, # External
+                {'domain_from': 'example.com', 'domain_to': 'twitter.com', 'type': 'external'},  # External
             ],
             'page_timing': {
                 'time_to_interactive': 2500,
-                'dom_complete': 1800
+                'dom_complete': 1800,
+                'first_contentful_paint': 1200,
+                'largest_contentful_paint': 2100,
+                'cumulative_layout_shift': 0.15
+            },
+            'schema_markup': [
+                {'type': 'Organization', 'found': True},
+                {'type': 'WebSite', 'found': True},
+                {'type': 'BreadcrumbList', 'found': False}
+            ],
+            'technical': {
+                'ssl_certificate': True,
+                'mobile_friendly': True,
+                'page_size_kb': 2400,
+                'text_html_ratio': 0.15,
+                'gzip_compression': True,
+                'minified_css': False,
+                'minified_js': True
+            },
+            'social_meta': {
+                'og_title': 'Example Website - Professional SEO Services',
+                'og_description': 'Get comprehensive SEO audit and optimization services',
+                'og_image': 'https://example.com/og-image.jpg',
+                'twitter_card': 'summary_large_image',
+                'twitter_title': 'Example Website SEO Services',
+                'twitter_description': 'Professional SEO audit and optimization'
             }
         }]
     
@@ -148,16 +193,20 @@ class SEOAuditor:
             'url': page_data.get('url', ''),
             'title': page_data.get('meta', {}).get('title', ''),
             'meta_description': page_data.get('meta', {}).get('description', ''),
+            'meta_keywords': page_data.get('meta', {}).get('keywords', ''),
             'h1_tags': [],
             'h2_tags': [],
+            'h3_tags': [],
             'images_without_alt': 0,
             'total_images': 0,
             'internal_links': 0,
             'external_links': 0,
-            'page_size': page_data.get('page_timing', {}).get('time_to_interactive', 0),
+            'page_size': page_data.get('technical', {}).get('page_size_kb', page_data.get('page_timing', {}).get('time_to_interactive', 0)),
             'load_time': page_data.get('page_timing', {}).get('dom_complete', 0),
-            'word_count': 0,
-            'schema_markup': [],
+            'word_count': page_data.get('content', {}).get('word_count', 0),
+            'schema_markup': page_data.get('schema_markup', []),
+            'technical': page_data.get('technical', {}),
+            'social_meta': page_data.get('social_meta', {}),
             'issues': [],
             'scores': {}
         }
@@ -167,6 +216,11 @@ class SEOAuditor:
         if content:
             analysis['h1_tags'] = [h.get('text', '') for h in content.get('h1', [])]
             analysis['h2_tags'] = [h.get('text', '') for h in content.get('h2', [])]
+            analysis['h3_tags'] = [h.get('text', '') for h in content.get('h3', [])]
+            
+            # Extract word count if available
+            if content.get('word_count'):
+                analysis['word_count'] = content['word_count']
         
         # Analyze images
         images = page_data.get('resource', {}).get('images', [])
@@ -197,7 +251,7 @@ class SEOAuditor:
         if not title:
             title_score = 0
         elif len(title) < 30 or len(title) > 60:
-            title_score = 60
+            title_score = 70
         scores['title'] = title_score
         
         # Meta description score
@@ -206,16 +260,19 @@ class SEOAuditor:
         if not meta_desc:
             meta_score = 0
         elif len(meta_desc) < 120 or len(meta_desc) > 160:
-            meta_score = 70
+            meta_score = 75
         scores['meta_description'] = meta_score
         
         # Headings score
         h1_count = len(analysis['h1_tags'])
+        h2_count = len(analysis['h2_tags'])
         headings_score = 100
         if h1_count == 0:
             headings_score = 20
         elif h1_count > 1:
             headings_score = 60
+        elif h2_count == 0:
+            headings_score = 70
         scores['headings'] = headings_score
         
         # Images score
@@ -225,6 +282,46 @@ class SEOAuditor:
         else:
             images_score = 100
         scores['images'] = images_score
+        
+        # Content score
+        word_count = analysis['word_count']
+        content_score = 100
+        if word_count < 300:
+            content_score = 50
+        elif word_count < 500:
+            content_score = 75
+        scores['content'] = content_score
+        
+        # Technical score
+        technical = analysis.get('technical', {})
+        technical_score = 100
+        if not technical.get('ssl_certificate', True):
+            technical_score -= 20
+        if not technical.get('mobile_friendly', True):
+            technical_score -= 15
+        if not technical.get('gzip_compression', True):
+            technical_score -= 10
+        if technical.get('page_size_kb', 0) > 3000:
+            technical_score -= 15
+        scores['technical'] = max(0, technical_score)
+        
+        # Social media score
+        social = analysis.get('social_meta', {})
+        social_score = 100
+        if not social.get('og_title'):
+            social_score -= 25
+        if not social.get('og_description'):
+            social_score -= 25
+        if not social.get('og_image'):
+            social_score -= 25
+        if not social.get('twitter_card'):
+            social_score -= 25
+        scores['social_media'] = max(0, social_score)
+        
+        # Schema markup score
+        schema_count = len([s for s in analysis.get('schema_markup', []) if s.get('found')])
+        schema_score = min(100, schema_count * 35)  # Up to 100 for 3+ schemas
+        scores['schema_markup'] = schema_score
         
         # Overall score
         scores['overall'] = int(sum(scores.values()) / len(scores))
@@ -253,10 +350,17 @@ class SEOAuditor:
         
         # Heading issues
         h1_count = len(analysis['h1_tags'])
+        h2_count = len(analysis['h2_tags'])
         if h1_count == 0:
             issues.append("Add an H1 tag to your page")
         elif h1_count > 1:
             issues.append("Use only one H1 tag per page")
+        if h2_count == 0:
+            issues.append("Add H2 tags to structure your content better")
+        
+        # Content issues
+        if analysis['word_count'] < 300:
+            issues.append("Add more content - pages should have at least 300 words")
         
         # Image issues
         if analysis['images_without_alt'] > 0:
@@ -265,6 +369,33 @@ class SEOAuditor:
         # Link issues
         if analysis['internal_links'] < 3:
             issues.append("Add more internal links to improve site navigation")
+        
+        # Technical issues
+        technical = analysis.get('technical', {})
+        if not technical.get('ssl_certificate', True):
+            issues.append("Install SSL certificate for HTTPS security")
+        if not technical.get('mobile_friendly', True):
+            issues.append("Make your website mobile-friendly")
+        if not technical.get('gzip_compression', True):
+            issues.append("Enable GZIP compression to reduce page load times")
+        if technical.get('page_size_kb', 0) > 3000:
+            issues.append("Optimize page size - current size is too large")
+        
+        # Social media issues
+        social = analysis.get('social_meta', {})
+        if not social.get('og_title'):
+            issues.append("Add Open Graph title for better social media sharing")
+        if not social.get('og_description'):
+            issues.append("Add Open Graph description for social media")
+        if not social.get('og_image'):
+            issues.append("Add Open Graph image for social media previews")
+        
+        # Schema markup issues
+        schema_found = len([s for s in analysis.get('schema_markup', []) if s.get('found')])
+        if schema_found == 0:
+            issues.append("Add structured data (Schema markup) to help search engines understand your content")
+        elif schema_found < 2:
+            issues.append("Consider adding more types of structured data for better SEO")
         
         return issues
 
