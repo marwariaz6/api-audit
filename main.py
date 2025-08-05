@@ -325,7 +325,7 @@ class SEOAuditor:
             'pages_with_issues': 0
         }
         
-        all_scores = {'title': [], 'meta_description': [], 'headings': [], 'images': [], 'content': [], 'technical': [], 'social_media': [], 'schema_markup': [], 'overall': []}
+        all_scores = {'title': [], 'meta_description': [], 'headings': [], 'images': [], 'content': [], 'technical': [], 'overall': []}
         
         for url, audit_data in multi_page_results.items():
             page_analysis = self.analyze_seo_data(audit_data)
@@ -471,23 +471,7 @@ class SEOAuditor:
         
         
         
-        # Social media score
-        social = analysis.get('social_meta', {})
-        social_score = 100
-        if not social.get('og_title'):
-            social_score -= 25
-        if not social.get('og_description'):
-            social_score -= 25
-        if not social.get('og_image'):
-            social_score -= 25
-        if not social.get('twitter_card'):
-            social_score -= 25
-        scores['social_media'] = max(0, social_score)
         
-        # Schema markup score
-        schema_count = len([s for s in analysis.get('schema_markup', []) if s.get('found')])
-        schema_score = min(100, schema_count * 35)
-        scores['schema_markup'] = schema_score
         
         # Overall score
         scores['overall'] = int(sum(scores.values()) / len(scores))
@@ -538,21 +522,7 @@ class SEOAuditor:
         
         
         
-        # Social media issues
-        social = analysis.get('social_meta', {})
-        if not social.get('og_title'):
-            issues.append("Add Open Graph title for better social media sharing")
-        if not social.get('og_description'):
-            issues.append("Add Open Graph description for social media")
-        if not social.get('og_image'):
-            issues.append("Add Open Graph image for social media previews")
         
-        # Schema markup issues
-        schema_found = len([s for s in analysis.get('schema_markup', []) if s.get('found')])
-        if schema_found == 0:
-            issues.append("Add structured data (Schema markup) to help search engines understand your content")
-        elif schema_found < 2:
-            issues.append("Consider adding more types of structured data for better SEO")
         
         return issues
 
@@ -664,8 +634,7 @@ class PDFReportGenerator:
         self.add_metric_analysis(story, analyzed_pages, "🔹 Image Optimization", "images")
         self.add_metric_analysis(story, analyzed_pages, "🔹 Content Quality", "content")
         self.add_metric_analysis(story, analyzed_pages, "🔹 Internal Linking", "internal_links")
-        self.add_metric_analysis(story, analyzed_pages, "🔹 Social Media", "social_media")
-        self.add_metric_analysis(story, analyzed_pages, "🔹 Schema Markup", "schema_markup")
+        
         
         doc.build(story)
     
@@ -696,9 +665,7 @@ class PDFReportGenerator:
             'headings': self.get_heading_issues(analysis),
             'images': self.get_image_issues(analysis),
             'content': self.get_content_issues(analysis),
-            'internal_links': self.get_internal_link_issues(analysis),
-            'social_media': self.get_social_issues(analysis),
-            'schema_markup': self.get_schema_issues(analysis)
+            'internal_links': self.get_internal_link_issues(analysis)
         }
         
         return issues_map.get(metric, "No specific issues")
@@ -772,29 +739,7 @@ class PDFReportGenerator:
     
     
     
-    def get_social_issues(self, analysis):
-        """Get social media optimization issues"""
-        social = analysis.get('social_meta', {})
-        issues = []
-        
-        if not social.get('og_title'):
-            issues.append("No OG title")
-        if not social.get('og_description'):
-            issues.append("No OG description")
-        if not social.get('og_image'):
-            issues.append("No OG image")
-        
-        return ", ".join(issues) if issues else "Social media optimized"
     
-    def get_schema_issues(self, analysis):
-        """Get schema markup issues"""
-        schema_found = len([s for s in analysis.get('schema_markup', []) if s.get('found')])
-        if schema_found == 0:
-            return "No structured data"
-        elif schema_found == 1:
-            return "Basic schema present"
-        else:
-            return "Rich structured data"
     
     def get_metric_issues_list(self, analyzed_pages, metric):
         """Get comprehensive list of issues found for a specific metric"""
@@ -844,26 +789,6 @@ class PDFReportGenerator:
             elif metric == 'internal_links':
                 if analysis['internal_links'] < 3:
                     issues.add("Poor internal linking structure")
-                    
-            
-                    
-            elif metric == 'social_media':
-                social = analysis.get('social_meta', {})
-                if not social.get('og_title'):
-                    issues.add("Missing Open Graph titles")
-                if not social.get('og_description'):
-                    issues.add("Missing Open Graph descriptions")
-                if not social.get('og_image'):
-                    issues.add("Missing Open Graph images")
-                if not social.get('twitter_card'):
-                    issues.add("Missing Twitter Card meta tags")
-                    
-            elif metric == 'schema_markup':
-                schema_found = len([s for s in analysis.get('schema_markup', []) if s.get('found')])
-                if schema_found == 0:
-                    issues.add("No structured data markup found")
-                elif schema_found < 2:
-                    issues.add("Limited structured data types implemented")
         
         return list(issues)
     
@@ -911,21 +836,6 @@ class PDFReportGenerator:
                 "Link to relevant pages that provide additional value",
                 "Create a logical site structure with clear navigation paths",
                 "Use internal linking to distribute page authority throughout your site"
-            ],
-            
-            'social_media': [
-                "Add Open Graph meta tags (og:title, og:description, og:image)",
-                "Implement Twitter Card meta tags for better social sharing",
-                "Create custom social media images for each page",
-                "Write compelling social media descriptions",
-                "Test social media previews across different platforms"
-            ],
-            'schema_markup': [
-                "Implement Organization schema markup on your homepage",
-                "Add WebPage or Article schema to relevant pages",
-                "Use LocalBusiness schema if you have a physical location",
-                "Implement FAQ or HowTo schema where applicable",
-                "Test schema markup using Google's Rich Results Tool"
             ],
             'overall': [
                 "Focus on improving the lowest-scoring metrics first",
