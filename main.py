@@ -469,18 +469,7 @@ class SEOAuditor:
             content_score = 75
         scores['content'] = content_score
         
-        # Technical score
-        technical = analysis.get('technical', {})
-        technical_score = 100
-        if not technical.get('ssl_certificate', True):
-            technical_score -= 20
-        if not technical.get('mobile_friendly', True):
-            technical_score -= 15
-        if not technical.get('gzip_compression', True):
-            technical_score -= 10
-        if technical.get('page_size_kb', 0) > 3000:
-            technical_score -= 15
-        scores['technical'] = max(0, technical_score)
+        
         
         # Social media score
         social = analysis.get('social_meta', {})
@@ -547,16 +536,7 @@ class SEOAuditor:
         if analysis['internal_links'] < 3:
             issues.append("Add more internal links to improve site navigation")
         
-        # Technical issues
-        technical = analysis.get('technical', {})
-        if not technical.get('ssl_certificate', True):
-            issues.append("Install SSL certificate for HTTPS security")
-        if not technical.get('mobile_friendly', True):
-            issues.append("Make your website mobile-friendly")
-        if not technical.get('gzip_compression', True):
-            issues.append("Enable GZIP compression to reduce page load times")
-        if technical.get('page_size_kb', 0) > 3000:
-            issues.append("Optimize page size - current size is too large")
+        
         
         # Social media issues
         social = analysis.get('social_meta', {})
@@ -684,7 +664,6 @@ class PDFReportGenerator:
         self.add_metric_analysis(story, analyzed_pages, "🔹 Image Optimization", "images")
         self.add_metric_analysis(story, analyzed_pages, "🔹 Content Quality", "content")
         self.add_metric_analysis(story, analyzed_pages, "🔹 Internal Linking", "internal_links")
-        self.add_metric_analysis(story, analyzed_pages, "🔹 Technical SEO", "technical")
         self.add_metric_analysis(story, analyzed_pages, "🔹 Social Media", "social_media")
         self.add_metric_analysis(story, analyzed_pages, "🔹 Schema Markup", "schema_markup")
         
@@ -718,7 +697,6 @@ class PDFReportGenerator:
             'images': self.get_image_issues(analysis),
             'content': self.get_content_issues(analysis),
             'internal_links': self.get_internal_link_issues(analysis),
-            'technical': self.get_technical_issues(analysis),
             'social_media': self.get_social_issues(analysis),
             'schema_markup': self.get_schema_issues(analysis)
         }
@@ -792,19 +770,7 @@ class PDFReportGenerator:
         else:
             return "Excellent internal linking"
     
-    def get_technical_issues(self, analysis):
-        """Get technical SEO issues"""
-        technical = analysis.get('technical', {})
-        issues = []
-        
-        if not technical.get('ssl_certificate', True):
-            issues.append("No SSL")
-        if not technical.get('mobile_friendly', True):
-            issues.append("Not mobile-friendly")
-        if technical.get('page_size_kb', 0) > 3000:
-            issues.append("Large page size")
-        
-        return ", ".join(issues) if issues else "Technical SEO optimized"
+    
     
     def get_social_issues(self, analysis):
         """Get social media optimization issues"""
@@ -879,16 +845,7 @@ class PDFReportGenerator:
                 if analysis['internal_links'] < 3:
                     issues.add("Poor internal linking structure")
                     
-            elif metric == 'technical':
-                technical = analysis.get('technical', {})
-                if not technical.get('ssl_certificate', True):
-                    issues.add("Missing SSL certificate")
-                if not technical.get('mobile_friendly', True):
-                    issues.add("Pages not optimized for mobile devices")
-                if technical.get('page_size_kb', 0) > 3000:
-                    issues.add("Large page sizes affecting load times")
-                if not technical.get('gzip_compression', True):
-                    issues.add("Missing GZIP compression")
+            
                     
             elif metric == 'social_media':
                 social = analysis.get('social_meta', {})
@@ -955,13 +912,7 @@ class PDFReportGenerator:
                 "Create a logical site structure with clear navigation paths",
                 "Use internal linking to distribute page authority throughout your site"
             ],
-            'technical': [
-                "Install and maintain SSL certificate for HTTPS security",
-                "Ensure all pages are mobile-friendly and responsive",
-                "Enable GZIP compression to reduce page load times",
-                "Optimize images and minimize CSS/JavaScript files",
-                "Monitor Core Web Vitals and improve page speed metrics"
-            ],
+            
             'social_media': [
                 "Add Open Graph meta tags (og:title, og:description, og:image)",
                 "Implement Twitter Card meta tags for better social sharing",
