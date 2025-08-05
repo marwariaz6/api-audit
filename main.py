@@ -830,6 +830,163 @@ class PDFReportGenerator:
         else:
             return "Rich structured data"
     
+    def get_metric_issues_list(self, analyzed_pages, metric):
+        """Get comprehensive list of issues found for a specific metric"""
+        issues = set()
+        
+        for url, analysis in analyzed_pages.items():
+            score = analysis['scores'].get(metric, 0)
+            
+            if metric == 'title':
+                if not analysis['title']:
+                    issues.add("Missing title tags on some pages")
+                elif len(analysis['title']) < 30:
+                    issues.add("Title tags that are too short (< 30 characters)")
+                elif len(analysis['title']) > 60:
+                    issues.add("Title tags that are too long (> 60 characters)")
+                    
+            elif metric == 'meta_description':
+                if not analysis['meta_description']:
+                    issues.add("Missing meta descriptions on some pages")
+                elif len(analysis['meta_description']) < 120:
+                    issues.add("Meta descriptions that are too short (< 120 characters)")
+                elif len(analysis['meta_description']) > 160:
+                    issues.add("Meta descriptions that are too long (> 160 characters)")
+                    
+            elif metric == 'headings':
+                h1_count = len(analysis['h1_tags'])
+                h2_count = len(analysis['h2_tags'])
+                if h1_count == 0:
+                    issues.add("Pages missing H1 tags")
+                elif h1_count > 1:
+                    issues.add("Pages with multiple H1 tags")
+                if h2_count == 0:
+                    issues.add("Pages lacking H2 tags for content structure")
+                    
+            elif metric == 'images':
+                if analysis['images_without_alt'] > 0:
+                    issues.add(f"Images missing alt text ({analysis['images_without_alt']} images found)")
+                if analysis['total_images'] == 0:
+                    issues.add("Pages with no images for visual engagement")
+                    
+            elif metric == 'content':
+                if analysis['word_count'] < 300:
+                    issues.add("Pages with insufficient content (< 300 words)")
+                elif analysis['word_count'] < 500:
+                    issues.add("Pages that could benefit from more comprehensive content")
+                    
+            elif metric == 'internal_links':
+                if analysis['internal_links'] < 3:
+                    issues.add("Poor internal linking structure")
+                    
+            elif metric == 'technical':
+                technical = analysis.get('technical', {})
+                if not technical.get('ssl_certificate', True):
+                    issues.add("Missing SSL certificate")
+                if not technical.get('mobile_friendly', True):
+                    issues.add("Pages not optimized for mobile devices")
+                if technical.get('page_size_kb', 0) > 3000:
+                    issues.add("Large page sizes affecting load times")
+                if not technical.get('gzip_compression', True):
+                    issues.add("Missing GZIP compression")
+                    
+            elif metric == 'social_media':
+                social = analysis.get('social_meta', {})
+                if not social.get('og_title'):
+                    issues.add("Missing Open Graph titles")
+                if not social.get('og_description'):
+                    issues.add("Missing Open Graph descriptions")
+                if not social.get('og_image'):
+                    issues.add("Missing Open Graph images")
+                if not social.get('twitter_card'):
+                    issues.add("Missing Twitter Card meta tags")
+                    
+            elif metric == 'schema_markup':
+                schema_found = len([s for s in analysis.get('schema_markup', []) if s.get('found')])
+                if schema_found == 0:
+                    issues.add("No structured data markup found")
+                elif schema_found < 2:
+                    issues.add("Limited structured data types implemented")
+        
+        return list(issues)
+    
+    def get_metric_recommendations(self, metric):
+        """Get actionable recommendations for a specific metric"""
+        recommendations = {
+            'title': [
+                "Write unique, descriptive titles for each page (30-60 characters)",
+                "Include primary keywords naturally in title tags",
+                "Place most important keywords at the beginning of titles",
+                "Avoid keyword stuffing and maintain readability",
+                "Use your brand name consistently across titles"
+            ],
+            'meta_description': [
+                "Write compelling meta descriptions for all pages (120-160 characters)",
+                "Include a clear call-to-action in meta descriptions",
+                "Use primary and secondary keywords naturally",
+                "Make each meta description unique and relevant to page content",
+                "Test different descriptions to improve click-through rates"
+            ],
+            'headings': [
+                "Use only one H1 tag per page as the main headline",
+                "Structure content with H2 and H3 tags in logical hierarchy",
+                "Include target keywords in heading tags naturally",
+                "Make headings descriptive and user-friendly",
+                "Use headings to break up content and improve readability"
+            ],
+            'images': [
+                "Add descriptive alt text to all images",
+                "Use keywords in alt text when relevant and natural",
+                "Optimize image file sizes for faster loading",
+                "Use descriptive file names for images",
+                "Implement proper image compression and WebP format when possible"
+            ],
+            'content': [
+                "Create comprehensive, valuable content (minimum 300 words)",
+                "Focus on user intent and provide clear answers",
+                "Use target keywords naturally throughout content",
+                "Include related keywords and semantic variations",
+                "Update content regularly to maintain freshness and relevance"
+            ],
+            'internal_links': [
+                "Add 3-8 relevant internal links per page",
+                "Use descriptive anchor text for internal links",
+                "Link to relevant pages that provide additional value",
+                "Create a logical site structure with clear navigation paths",
+                "Use internal linking to distribute page authority throughout your site"
+            ],
+            'technical': [
+                "Install and maintain SSL certificate for HTTPS security",
+                "Ensure all pages are mobile-friendly and responsive",
+                "Enable GZIP compression to reduce page load times",
+                "Optimize images and minimize CSS/JavaScript files",
+                "Monitor Core Web Vitals and improve page speed metrics"
+            ],
+            'social_media': [
+                "Add Open Graph meta tags (og:title, og:description, og:image)",
+                "Implement Twitter Card meta tags for better social sharing",
+                "Create custom social media images for each page",
+                "Write compelling social media descriptions",
+                "Test social media previews across different platforms"
+            ],
+            'schema_markup': [
+                "Implement Organization schema markup on your homepage",
+                "Add WebPage or Article schema to relevant pages",
+                "Use LocalBusiness schema if you have a physical location",
+                "Implement FAQ or HowTo schema where applicable",
+                "Test schema markup using Google's Rich Results Tool"
+            ],
+            'overall': [
+                "Focus on improving the lowest-scoring metrics first",
+                "Monitor SEO performance regularly with analytics tools",
+                "Create a content strategy based on keyword research",
+                "Build quality backlinks from relevant, authoritative websites",
+                "Keep up with SEO best practices and algorithm updates"
+            ]
+        }
+        
+        return recommendations.get(metric, [])
+    
     def create_metric_table(self, data, metric_type):
         """Create a standardized metric table"""
         if metric_type == 'overall':
@@ -888,6 +1045,21 @@ class PDFReportGenerator:
         
         metric_table = self.create_metric_table(table_data, metric)
         story.append(metric_table)
+        story.append(Spacer(1, 15))
+        
+        # Add Issues Found section
+        issues_found = self.get_metric_issues_list(analyzed_pages, metric)
+        if issues_found:
+            story.append(Paragraph("Issues Found:", self.subheading_style))
+            for issue in issues_found:
+                story.append(Paragraph(f"• {issue}", self.body_style))
+            story.append(Spacer(1, 10))
+        
+        # Add Actionable Recommendations section
+        recommendations = self.get_metric_recommendations(metric)
+        story.append(Paragraph("Actionable Recommendations:", self.subheading_style))
+        for recommendation in recommendations:
+            story.append(Paragraph(f"• {recommendation}", self.body_style))
         story.append(Spacer(1, 20))
 
 # Initialize components
