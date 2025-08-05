@@ -549,73 +549,209 @@ class PDFReportGenerator:
         story.append(score_table)
         story.append(Spacer(1, 30))
         
-        # Issues summary with color-coded priority
-        story.append(Paragraph("Action Items & Recommendations", self.heading_style))
+        # Separate Issues section
+        story.append(Paragraph("🚨 Issues Found", self.heading_style))
         
         if analysis['issues']:
-            issues_data = [['Priority', 'Issue', 'Recommendation']]
+            # Create issues list with priority color-coding
+            issues_data = [['Priority', 'Issue Description']]
             
             for issue in analysis['issues']:
                 if 'title' in issue.lower() or 'meta description' in issue.lower():
                     priority = 'HIGH'
-                    priority_color = HexColor('#F44336')  # Red
-                elif 'image' in issue.lower() or 'heading' in issue.lower():
+                elif 'image' in issue.lower() or 'heading' in issue.lower() or 'content' in issue.lower():
                     priority = 'MEDIUM'
-                    priority_color = HexColor('#FF9800')  # Orange
                 else:
                     priority = 'LOW'
-                    priority_color = HexColor('#4CAF50')  # Green
                 
-                # Generate specific recommendation
-                if 'title' in issue.lower():
-                    recommendation = 'Optimize title tag for 30-60 characters'
-                elif 'meta description' in issue.lower():
-                    recommendation = 'Write compelling meta description 120-160 chars'
-                elif 'alt text' in issue.lower():
-                    recommendation = 'Add descriptive alt text to all images'
-                elif 'H1' in issue:
-                    recommendation = 'Add exactly one H1 tag per page'
-                elif 'content' in issue.lower():
-                    recommendation = 'Add more quality, relevant content'
-                else:
-                    recommendation = 'Address this SEO issue for better rankings'
-                
-                issues_data.append([priority, issue, recommendation])
+                issues_data.append([priority, issue])
             
-            issues_table = Table(issues_data, colWidths=[1*inch, 2.5*inch, 2.5*inch])
+            issues_table = Table(issues_data, colWidths=[1.2*inch, 4.8*inch])
             
             # Style the issues table
             issues_style = [
-                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#1a237e')),
+                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#d32f2f')),  # Red header
                 ('TEXTCOLOR', (0, 0), (-1, 0), white),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (0, 0), (0, -1), 'CENTER'),  # Center priority column
+                ('ALIGN', (1, 0), (1, -1), 'LEFT'),    # Left align issue column
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 11),
-                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('FONTSIZE', (0, 1), (-1, -1), 10),
                 ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('TOPPADDING', (0, 1), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
                 ('GRID', (0, 0), (-1, -1), 1, black),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP')
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
             ]
             
             # Color-code priority column
             for i, row in enumerate(issues_data[1:], 1):
                 priority = row[0]
                 if priority == 'HIGH':
-                    issues_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#FFCDD2')))
-                    issues_style.append(('TEXTCOLOR', (0, i), (0, i), HexColor('#D32F2F')))
+                    issues_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f44336')))
+                    issues_style.append(('TEXTCOLOR', (0, i), (0, i), white))
                 elif priority == 'MEDIUM':
-                    issues_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#FFE0B2')))
-                    issues_style.append(('TEXTCOLOR', (0, i), (0, i), HexColor('#F57C00')))
+                    issues_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#ff9800')))
+                    issues_style.append(('TEXTCOLOR', (0, i), (0, i), white))
                 else:
-                    issues_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#C8E6C9')))
-                    issues_style.append(('TEXTCOLOR', (0, i), (0, i), HexColor('#388E3C')))
+                    issues_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#4caf50')))
+                    issues_style.append(('TEXTCOLOR', (0, i), (0, i), white))
                 
                 issues_style.append(('FONTNAME', (0, i), (0, i), 'Helvetica-Bold'))
+                
+                # Alternate row colors for better readability
+                if i % 2 == 0:
+                    issues_style.append(('BACKGROUND', (1, i), (1, i), HexColor('#f8f9fa')))
             
             issues_table.setStyle(TableStyle(issues_style))
             story.append(issues_table)
         else:
-            story.append(Paragraph("🎉 No critical issues found! Your website is well-optimized.", self.body_style))
+            story.append(Paragraph("🎉 No issues found! Your website SEO is in excellent condition.", self.body_style))
+        
+        story.append(Spacer(1, 30))
+        
+        # Separate Actionable Recommendations section
+        story.append(Paragraph("💡 Actionable Recommendations", self.heading_style))
+        
+        if analysis['issues']:
+            # Create recommendations with detailed actions
+            recommendations_data = [['Action Required', 'Detailed Recommendation', 'Expected Impact']]
+            
+            for issue in analysis['issues']:
+                # Generate specific recommendations with impact
+                if 'title' in issue.lower():
+                    if 'short' in issue.lower():
+                        action = 'Extend Title Tag'
+                        recommendation = 'Expand your title to 30-60 characters by adding relevant keywords and brand name. Example: "Your Service | Brand Name | Location"'
+                        impact = 'Improved CTR & Rankings'
+                    elif 'long' in issue.lower():
+                        action = 'Shorten Title Tag'
+                        recommendation = 'Reduce title to under 60 characters to prevent truncation in search results. Focus on primary keywords.'
+                        impact = 'Better SERP Display'
+                    else:
+                        action = 'Add Title Tag'
+                        recommendation = 'Create compelling 30-60 character title with primary keyword near the beginning and brand name at the end.'
+                        impact = 'Higher Search Visibility'
+                        
+                elif 'meta description' in issue.lower():
+                    if 'short' in issue.lower():
+                        action = 'Expand Meta Description'
+                        recommendation = 'Write compelling 120-160 character description including primary keywords, value proposition, and call-to-action.'
+                        impact = 'Increased Click-Through Rate'
+                    elif 'long' in issue.lower():
+                        action = 'Optimize Meta Description'
+                        recommendation = 'Trim description to 120-160 characters while keeping key messaging and call-to-action.'
+                        impact = 'Prevention of SERP Truncation'
+                    else:
+                        action = 'Create Meta Description'
+                        recommendation = 'Write unique 120-160 character description that summarizes page content and encourages clicks.'
+                        impact = 'Better Search Snippets'
+                        
+                elif 'alt text' in issue.lower():
+                    action = 'Add Alt Text to Images'
+                    recommendation = 'Write descriptive alt text for all images (5-15 words) describing what\'s shown. Include keywords naturally when relevant.'
+                    impact = 'Improved Accessibility & Image SEO'
+                    
+                elif 'H1' in issue and 'Add' in issue:
+                    action = 'Add H1 Heading'
+                    recommendation = 'Create one clear H1 tag that includes your primary keyword and describes the main page topic.'
+                    impact = 'Better Content Structure'
+                    
+                elif 'H1' in issue and 'one' in issue:
+                    action = 'Fix Multiple H1 Tags'
+                    recommendation = 'Use only one H1 tag per page. Convert additional H1s to H2 or H3 tags to maintain proper heading hierarchy.'
+                    impact = 'Clearer Content Hierarchy'
+                    
+                elif 'H2' in issue:
+                    action = 'Add H2 Subheadings'
+                    recommendation = 'Break content into sections using H2 tags with relevant keywords. Aim for 2-5 H2s per page based on content length.'
+                    impact = 'Enhanced Readability & SEO'
+                    
+                elif 'content' in issue.lower() and 'word' in issue.lower():
+                    action = 'Expand Content'
+                    recommendation = 'Add valuable, relevant content to reach 300+ words. Include FAQ section, detailed descriptions, or user benefits.'
+                    impact = 'Better Search Rankings'
+                    
+                elif 'internal link' in issue.lower():
+                    action = 'Add Internal Links'
+                    recommendation = 'Link to 3-5 relevant pages using descriptive anchor text. Connect related content and important pages.'
+                    impact = 'Improved Site Authority Distribution'
+                    
+                elif 'SSL' in issue or 'HTTPS' in issue:
+                    action = 'Install SSL Certificate'
+                    recommendation = 'Secure your website with SSL/TLS certificate and ensure all pages load over HTTPS protocol.'
+                    impact = 'Security & Ranking Factor'
+                    
+                elif 'mobile' in issue.lower():
+                    action = 'Optimize for Mobile'
+                    recommendation = 'Implement responsive design, optimize touch targets, and ensure fast mobile load times.'
+                    impact = 'Mobile Search Rankings'
+                    
+                elif 'compression' in issue.lower():
+                    action = 'Enable GZIP Compression'
+                    recommendation = 'Configure server to compress text files (HTML, CSS, JS) reducing page load times by 60-80%.'
+                    impact = 'Faster Page Speed'
+                    
+                elif 'page size' in issue.lower():
+                    action = 'Optimize Page Size'
+                    recommendation = 'Compress images, minify CSS/JS, remove unused code. Target under 3MB total page size.'
+                    impact = 'Improved Core Web Vitals'
+                    
+                elif 'Open Graph' in issue or 'og_' in issue.lower():
+                    action = 'Add Social Media Tags'
+                    recommendation = 'Implement Open Graph meta tags (og:title, og:description, og:image) for better social media sharing.'
+                    impact = 'Enhanced Social Sharing'
+                    
+                elif 'structured data' in issue.lower() or 'schema' in issue.lower():
+                    action = 'Implement Schema Markup'
+                    recommendation = 'Add JSON-LD structured data for Organization, WebSite, and relevant business schemas.'
+                    impact = 'Rich Search Results'
+                    
+                else:
+                    action = 'Address SEO Issue'
+                    recommendation = 'Follow SEO best practices to resolve this issue and improve overall optimization.'
+                    impact = 'Better Search Performance'
+                
+                recommendations_data.append([action, recommendation, impact])
+            
+            recommendations_table = Table(recommendations_data, colWidths=[1.5*inch, 3.5*inch, 1*inch])
+            
+            # Style the recommendations table
+            rec_style = [
+                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#4caf50')),  # Green header
+                ('TEXTCOLOR', (0, 0), (-1, 0), white),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 11),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('TOPPADDING', (0, 1), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 1, black),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP')
+            ]
+            
+            # Alternate row colors for better readability
+            for i in range(1, len(recommendations_data)):
+                if i % 2 == 0:
+                    rec_style.append(('BACKGROUND', (0, i), (-1, i), HexColor('#f1f8e9')))
+                
+                # Highlight action column
+                rec_style.append(('FONTNAME', (0, i), (0, i), 'Helvetica-Bold'))
+                rec_style.append(('TEXTCOLOR', (0, i), (0, i), HexColor('#2e7d32')))
+                
+                # Highlight impact column
+                rec_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+                rec_style.append(('TEXTCOLOR', (2, i), (2, i), HexColor('#1565c0')))
+            
+            recommendations_table.setStyle(TableStyle(rec_style))
+            story.append(recommendations_table)
+        else:
+            story.append(Paragraph("✨ Your website is already well-optimized! Consider these advanced optimizations:", self.body_style))
+            story.append(Paragraph("• Implement advanced schema markup for rich snippets", self.body_style))
+            story.append(Paragraph("• Optimize for Core Web Vitals and page speed", self.body_style))
+            story.append(Paragraph("• Enhance internal linking strategy", self.body_style))
+            story.append(Paragraph("• Create pillar pages and topic clusters", self.body_style))
         
         story.append(Spacer(1, 30))
         
