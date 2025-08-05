@@ -1,0 +1,527 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO Audit Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E86AB, #A23B72);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .audit-form {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #2E86AB;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #2E86AB, #A23B72);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #2E86AB;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+        }
+
+        .score-overview {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .overall-score {
+            font-size: 4rem;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .score-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .score-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #ddd;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .score-card.good {
+            border-left-color: #4CAF50;
+        }
+
+        .score-card.warning {
+            border-left-color: #FF9800;
+        }
+
+        .score-card.critical {
+            border-left-color: #F44336;
+        }
+
+        .score-card h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .score-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .issues-section {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .issues-section h3 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+
+        .issue-item {
+            background: white;
+            padding: 10px 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #ff6b6b;
+        }
+
+        .technical-details {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .technical-details h3 {
+            color: #1565c0;
+            margin-bottom: 15px;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .detail-item {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .detail-item strong {
+            display: block;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .generate-report-btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            margin-top: 20px;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .overall-score {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 SEO Audit Tool</h1>
+            <p>Comprehensive on-page SEO analysis powered by DataForSEO</p>
+        </div>
+
+        <div class="main-content">
+            <div class="audit-form">
+                <h2>Start Your SEO Audit</h2>
+                <form id="auditForm">
+                    <div class="form-group">
+                        <label for="url">Website URL</label>
+                        <input type="url" id="url" name="url" placeholder="https://example.com" required>
+                    </div>
+                    <button type="submit" class="btn" id="auditBtn">Start Audit</button>
+                </form>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analyzing your website... This may take up to 60 seconds.</p>
+            </div>
+
+            <div class="error" id="error" style="display: none;"></div>
+
+            <div class="results" id="results">
+                <div class="score-overview">
+                    <h2>Overall SEO Score</h2>
+                    <div class="overall-score" id="overallScore">--</div>
+                    <p>Based on key on-page SEO factors</p>
+                </div>
+
+                <div class="score-grid" id="scoreGrid">
+                    <!-- Score cards will be populated here -->
+                </div>
+
+                <div class="issues-section" id="issuesSection" style="display: none;">
+                    <h3>🚨 Issues & Recommendations</h3>
+                    <div id="issuesList"></div>
+                </div>
+
+                <div class="technical-details">
+                    <h3>📊 Technical Details</h3>
+                    <div class="detail-grid" id="technicalGrid">
+                        <!-- Technical details will be populated here -->
+                    </div>
+                </div>
+
+                <button class="btn generate-report-btn" id="generateReportBtn">
+                    📄 Generate PDF Report
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentAnalysis = null;
+
+        document.getElementById('auditForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const url = document.getElementById('url').value;
+            const auditBtn = document.getElementById('auditBtn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const error = document.getElementById('error');
+            
+            // Reset UI
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            error.style.display = 'none';
+            auditBtn.disabled = true;
+            auditBtn.textContent = 'Analyzing...';
+            
+            try {
+                // Start audit
+                const startResponse = await fetch('/audit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+                
+                const startData = await startResponse.json();
+                
+                if (!startResponse.ok) {
+                    throw new Error(startData.error || 'Failed to start audit');
+                }
+                
+                const taskId = startData.task_id;
+                
+                // Poll for results
+                const maxAttempts = 20;
+                let attempts = 0;
+                
+                const pollResults = async () => {
+                    attempts++;
+                    
+                    try {
+                        const resultResponse = await fetch(`/results/${taskId}`);
+                        const resultData = await resultResponse.json();
+                        
+                        if (resultResponse.ok) {
+                            // Success - display results
+                            currentAnalysis = resultData;
+                            displayResults(resultData);
+                            loading.style.display = 'none';
+                            results.style.display = 'block';
+                            auditBtn.disabled = false;
+                            auditBtn.textContent = 'Start Audit';
+                        } else if (attempts < maxAttempts) {
+                            // Not ready yet - try again
+                            setTimeout(pollResults, 3000);
+                        } else {
+                            throw new Error('Audit timed out');
+                        }
+                    } catch (err) {
+                        if (attempts < maxAttempts) {
+                            setTimeout(pollResults, 3000);
+                        } else {
+                            throw err;
+                        }
+                    }
+                };
+                
+                // Start polling after initial delay
+                setTimeout(pollResults, 5000);
+                
+            } catch (err) {
+                console.error('Audit failed:', err);
+                loading.style.display = 'none';
+                error.style.display = 'block';
+                error.textContent = err.message || 'An error occurred during the audit';
+                auditBtn.disabled = false;
+                auditBtn.textContent = 'Start Audit';
+            }
+        });
+
+        function displayResults(analysis) {
+            // Overall score
+            const overallScore = document.getElementById('overallScore');
+            overallScore.textContent = analysis.scores.overall + '/100';
+            overallScore.style.color = getScoreColor(analysis.scores.overall);
+            
+            // Score cards
+            const scoreGrid = document.getElementById('scoreGrid');
+            scoreGrid.innerHTML = '';
+            
+            Object.entries(analysis.scores).forEach(([metric, score]) => {
+                if (metric !== 'overall') {
+                    const card = createScoreCard(metric, score);
+                    scoreGrid.appendChild(card);
+                }
+            });
+            
+            // Issues
+            const issuesSection = document.getElementById('issuesSection');
+            const issuesList = document.getElementById('issuesList');
+            
+            if (analysis.issues && analysis.issues.length > 0) {
+                issuesSection.style.display = 'block';
+                issuesList.innerHTML = '';
+                
+                analysis.issues.forEach(issue => {
+                    const issueDiv = document.createElement('div');
+                    issueDiv.className = 'issue-item';
+                    issueDiv.textContent = issue;
+                    issuesList.appendChild(issueDiv);
+                });
+            } else {
+                issuesSection.style.display = 'none';
+            }
+            
+            // Technical details
+            const technicalGrid = document.getElementById('technicalGrid');
+            technicalGrid.innerHTML = '';
+            
+            const technicalData = [
+                { label: 'Title Tag', value: analysis.title || 'Not found' },
+                { label: 'Meta Description', value: analysis.meta_description || 'Not found' },
+                { label: 'H1 Tags', value: analysis.h1_tags.length },
+                { label: 'H2 Tags', value: analysis.h2_tags.length },
+                { label: 'Total Images', value: analysis.total_images },
+                { label: 'Images without Alt', value: analysis.images_without_alt },
+                { label: 'Internal Links', value: analysis.internal_links },
+                { label: 'External Links', value: analysis.external_links }
+            ];
+            
+            technicalData.forEach(item => {
+                const detailDiv = document.createElement('div');
+                detailDiv.className = 'detail-item';
+                detailDiv.innerHTML = `<strong>${item.label}</strong>${item.value}`;
+                technicalGrid.appendChild(detailDiv);
+            });
+        }
+
+        function createScoreCard(metric, score) {
+            const card = document.createElement('div');
+            card.className = 'score-card';
+            
+            if (score >= 80) card.classList.add('good');
+            else if (score >= 60) card.classList.add('warning');
+            else card.classList.add('critical');
+            
+            const metricName = metric.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            card.innerHTML = `
+                <h3>${metricName}</h3>
+                <div class="score-value" style="color: ${getScoreColor(score)}">${score}/100</div>
+                <p>${getScoreStatus(score)}</p>
+            `;
+            
+            return card;
+        }
+
+        function getScoreColor(score) {
+            if (score >= 80) return '#4CAF50';
+            if (score >= 60) return '#FF9800';
+            return '#F44336';
+        }
+
+        function getScoreStatus(score) {
+            if (score >= 80) return 'Good';
+            if (score >= 60) return 'Needs Improvement';
+            return 'Critical';
+        }
+
+        // Generate PDF report
+        document.getElementById('generateReportBtn').addEventListener('click', async function() {
+            if (!currentAnalysis) return;
+            
+            try {
+                const response = await fetch('/generate-report', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ analysis: currentAnalysis })
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `seo_audit_report_${Date.now()}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                } else {
+                    alert('Failed to generate report');
+                }
+            } catch (err) {
+                console.error('Report generation failed:', err);
+                alert('Failed to generate report');
+            }
+        });
+    </script>
+</body>
+</html>
