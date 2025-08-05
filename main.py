@@ -31,21 +31,32 @@ class SEOAuditor:
         url = f"{self.base_url}{endpoint}"
         auth = (self.login, self.password)
         
+        # Check credentials
+        if not self.login or not self.password:
+            print("DataForSEO credentials not configured. Please set DATAFORSEO_LOGIN and DATAFORSEO_PASSWORD in environment variables.")
+            return None
+        
         try:
+            print(f"Making {method} request to: {url}")
             if method == 'POST':
                 response = requests.post(url, json=data, auth=auth, timeout=30)
             else:
                 response = requests.get(url, auth=auth, timeout=30)
             
+            print(f"Response status: {response.status_code}")
             response.raise_for_status()
-            return response.json()
+            result = response.json()
+            print(f"API Response: {result}")
+            return result
         except requests.exceptions.RequestException as e:
             print(f"API request failed: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"Response content: {e.response.text}")
             return None
     
     def start_audit(self, url):
         """Start on-page audit task"""
-        endpoint = "/on_page/page_info/task_post"
+        endpoint = "/on_page/task_post"
         
         data = [{
             "target": url,
@@ -64,7 +75,7 @@ class SEOAuditor:
     
     def get_audit_results(self, task_id):
         """Get audit results by task ID"""
-        endpoint = f"/on_page/page_info/task_get/{task_id}"
+        endpoint = f"/on_page/task_get/{task_id}"
         
         # Poll for results with retry logic
         max_retries = 10
