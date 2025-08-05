@@ -406,6 +406,16 @@ class SEOAuditor:
         analysis['scores'] = self.calculate_scores(analysis)
         analysis['issues'] = self.generate_recommendations(analysis)
         
+        # Add internal links as a separate metric score
+        if analysis['internal_links'] < 3:
+            internal_link_score = 40
+        elif analysis['internal_links'] < 8:
+            internal_link_score = 70
+        else:
+            internal_link_score = 95
+        
+        analysis['scores']['internal_links'] = internal_link_score
+        
         return analysis
     
     def calculate_scores(self, analysis):
@@ -615,7 +625,7 @@ class PDFReportGenerator:
             return HexColor('#F44336')  # Red
     
     def generate_multi_page_report(self, analyzed_pages, overall_stats, filename):
-        """Generate comprehensive multi-page PDF report"""
+        """Generate comprehensive metric-by-metric PDF report"""
         doc = SimpleDocTemplate(filename, pagesize=A4)
         story = []
         
@@ -653,35 +663,186 @@ class PDFReportGenerator:
         story.append(overall_table)
         story.append(Spacer(1, 30))
         
-        # Site-wide average scores
-        story.append(Paragraph("Site-Wide Average SEO Metrics", self.heading_style))
+        # Overall Page Scores Summary
+        story.append(Paragraph("🔹 Overall Page Scores", self.heading_style))
+        overall_page_data = [['Page URL', 'Overall Score']]
         
-        avg_score_data = [['SEO Metric', 'Average Score', 'Performance Level']]
+        for url, analysis in analyzed_pages.items():
+            # Truncate URL for display
+            display_url = self.truncate_url(url, 60)
+            page_score = analysis['scores']['overall']
+            overall_page_data.append([display_url, f"{page_score}/100"])
         
-        for metric, avg_score in overall_stats['avg_scores'].items():
-            if metric != 'overall':
-                if avg_score >= 80:
-                    status = 'Excellent'
-                elif avg_score >= 60:
-                    status = 'Good'
-                elif avg_score >= 40:
-                    status = 'Needs Work'
-                else:
-                    status = 'Critical'
-                
-                avg_score_data.append([
-                    metric.replace('_', ' ').title(),
-                    f"{avg_score}/100",
-                    status
-                ])
+        overall_page_table = self.create_metric_table(overall_page_data, 'overall')
+        story.append(overall_page_table)
+        story.append(Spacer(1, 30))
         
-        avg_score_table = Table(avg_score_data, colWidths=[2.5*inch, 1.5*inch, 1.5*inch])
+        # Metric-by-metric analysis
+        self.add_metric_analysis(story, analyzed_pages, "🔹 Title Tag Optimization", "title")
+        self.add_metric_analysis(story, analyzed_pages, "🔹 Meta Description", "meta_description")
+        self.add_metric_analysis(story, analyzed_pages, "🔹 Heading Structure", "headings")
+        self.add_metric_analysis(story, analyzed_pages, "🔹 Image Optimization", "images")
+        self.add_metric_analysis(story, analyzed_pages, "🔹 Content Quality", "content")
+        self.add_metric_analysis(story, analyzed_pages, "🔹 Internal Linking", "internal_links")
+        self.add_metric_analysis(story, analyzed_pages, "🔹 Technical SEO", "technical")
+        self.add_metric_analysis(story, analyzed_pages, "🔹 Social Media", "social_media")
+        self.add_metric_analysis(story, analyzed_pages, "🔹 Schema Markup", "schema_markup")
         
-        # Style the average scores table
-        avg_table_style = [
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#1a237e')),
+        doc.build(story)
+    
+    def truncate_url(self, url, max_length=50):
+        """Truncate URL for display in tables"""
+        if len(url) <= max_length:
+            return url
+        
+        # Try to show domain + path intelligently
+        parsed = urllib.parse.urlparse(url)
+        domain = parsed.netloc
+        path = parsed.path
+        
+        if len(domain) > max_length - 3:
+            return domain[:max_length-3] + "..."
+        
+        remaining = max_length - len(domain) - 3
+        if len(path) > remaining:
+            return domain + path[:remaining] + "..."
+        
+        return domain + path
+    
+    def get_metric_issue(self, analysis, metric):
+        """Get specific issue description for a metric"""
+        issues_map = {
+            'title': self.get_title_issues(analysis),
+            'meta_description': self.get_meta_issues(analysis),
+            'headings': self.get_heading_issues(analysis),
+            'images': self.get_image_issues(analysis),
+            'content': self.get_content_issues(analysis),
+            'internal_links': self.get_internal_link_issues(analysis),
+            'technical': self.get_technical_issues(analysis),
+            'social_media': self.get_social_issues(analysis),
+            'schema_markup': self.get_schema_issues(analysis)
+        }
+        
+        return issues_map.get(metric, "No specific issues")
+    
+    def get_title_issues(self, analysis):
+        """Get title-specific issues"""
+        title = analysis['title']
+        if not title:
+            return "Missing title tag"
+        elif len(title) < 30:
+            return "Too short (< 30 chars)"
+        elif len(title) > 60:
+            return "Too long (> 60 chars)"
+        else:
+            return "Optimized"
+    
+    def get_meta_issues(self, analysis):
+        """Get meta description issues"""
+        meta_desc = analysis['meta_description']
+        if not meta_desc:
+            return "Missing meta description"
+        elif len(meta_desc) < 120:
+            return "Too short (< 120 chars)"
+        elif len(meta_desc) > 160:
+            return "Too long (> 160 chars)"
+        else:
+            return "Optimized"
+    
+    def get_heading_issues(self, analysis):
+        """Get heading structure issues"""
+        h1_count = len(analysis['h1_tags'])
+        h2_count = len(analysis['h2_tags'])
+        
+        if h1_count == 0:
+            return "Missing H1 tag"
+        elif h1_count > 1:
+            return "Multiple H1 tags"
+        elif h2_count == 0:
+            return "No H2 tags for structure"
+        else:
+            return "Well structured"
+    
+    def get_image_issues(self, analysis):
+        """Get image optimization issues"""
+        if analysis['total_images'] == 0:
+            return "No images found"
+        elif analysis['images_without_alt'] > 0:
+            return f"{analysis['images_without_alt']} missing alt text"
+        else:
+            return "All images optimized"
+    
+    def get_content_issues(self, analysis):
+        """Get content quality issues"""
+        word_count = analysis['word_count']
+        if word_count < 300:
+            return f"Low word count ({word_count} words)"
+        elif word_count < 500:
+            return "Good content length"
+        else:
+            return "Comprehensive content"
+    
+    def get_internal_link_issues(self, analysis):
+        """Get internal linking issues"""
+        internal_links = analysis['internal_links']
+        if internal_links < 3:
+            return f"Few internal links ({internal_links})"
+        elif internal_links < 10:
+            return "Good internal linking"
+        else:
+            return "Excellent internal linking"
+    
+    def get_technical_issues(self, analysis):
+        """Get technical SEO issues"""
+        technical = analysis.get('technical', {})
+        issues = []
+        
+        if not technical.get('ssl_certificate', True):
+            issues.append("No SSL")
+        if not technical.get('mobile_friendly', True):
+            issues.append("Not mobile-friendly")
+        if technical.get('page_size_kb', 0) > 3000:
+            issues.append("Large page size")
+        
+        return ", ".join(issues) if issues else "Technical SEO optimized"
+    
+    def get_social_issues(self, analysis):
+        """Get social media optimization issues"""
+        social = analysis.get('social_meta', {})
+        issues = []
+        
+        if not social.get('og_title'):
+            issues.append("No OG title")
+        if not social.get('og_description'):
+            issues.append("No OG description")
+        if not social.get('og_image'):
+            issues.append("No OG image")
+        
+        return ", ".join(issues) if issues else "Social media optimized"
+    
+    def get_schema_issues(self, analysis):
+        """Get schema markup issues"""
+        schema_found = len([s for s in analysis.get('schema_markup', []) if s.get('found')])
+        if schema_found == 0:
+            return "No structured data"
+        elif schema_found == 1:
+            return "Basic schema present"
+        else:
+            return "Rich structured data"
+    
+    def create_metric_table(self, data, metric_type):
+        """Create a standardized metric table"""
+        if metric_type == 'overall':
+            table = Table(data, colWidths=[4*inch, 1.5*inch])
+        else:
+            table = Table(data, colWidths=[3*inch, 1*inch, 2.5*inch])
+        
+        # Basic table style
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
             ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 11),
             ('FONTSIZE', (0, 1), (-1, -1), 10),
@@ -690,196 +851,43 @@ class PDFReportGenerator:
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
         ]
         
-        # Color code the average scores
-        for i, row in enumerate(avg_score_data[1:], 1):
-            score_text = row[1]
-            score_value = int(score_text.split('/')[0])
-            row_color = self.get_score_color(score_value)
-            
-            if score_value >= 80:
-                bg_color = HexColor('#E8F5E8')
-            elif score_value >= 60:
-                bg_color = HexColor('#FFF3E0')
-            else:
-                bg_color = HexColor('#FFEBEE')
-            
-            avg_table_style.append(('BACKGROUND', (0, i), (-1, i), bg_color))
-            avg_table_style.append(('BACKGROUND', (1, i), (1, i), row_color))
-            avg_table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
-            avg_table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
-        
-        avg_score_table.setStyle(TableStyle(avg_table_style))
-        story.append(avg_score_table)
-        story.append(Spacer(1, 30))
-        
-        # Page-by-page summary table
-        story.append(Paragraph("Page-by-Page Summary", self.heading_style))
-        
-        page_summary_data = [['Page URL', 'Overall Score', 'Top Issues', 'Status']]
-        
-        for url, analysis in analyzed_pages.items():
-            page_score = analysis['scores']['overall']
-            top_issues = len(analysis['issues'])
-            
-            if page_score >= 80:
-                status = '✅ Excellent'
-            elif page_score >= 60:
-                status = '⚠️ Good'
-            else:
-                status = '❌ Needs Work'
-            
-            # Truncate URL for display
-            display_url = url if len(url) <= 50 else url[:47] + "..."
-            
-            page_summary_data.append([
-                display_url,
-                f"{page_score}/100",
-                f"{top_issues} issues",
-                status
-            ])
-        
-        page_summary_table = Table(page_summary_data, colWidths=[3*inch, 1*inch, 1*inch, 1.5*inch])
-        
-        # Style the page summary table
-        summary_style = [
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#1a237e')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
-            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
-        ]
-        
-        # Color code page scores
-        for i, row in enumerate(page_summary_data[1:], 1):
-            score_text = row[1]
-            score_value = int(score_text.split('/')[0])
-            row_color = self.get_score_color(score_value)
-            
-            summary_style.append(('BACKGROUND', (1, i), (1, i), row_color))
-            summary_style.append(('TEXTCOLOR', (1, i), (1, i), white))
-            summary_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
-            
-            # Alternate row background
-            if i % 2 == 0:
-                summary_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
-                summary_style.append(('BACKGROUND', (2, i), (-1, i), HexColor('#f8f9fa')))
-        
-        page_summary_table.setStyle(TableStyle(summary_style))
-        story.append(page_summary_table)
-        
-        # Individual page details
-        for url, analysis in analyzed_pages.items():
-            story.append(PageBreak())
-            
-            # Page header
-            display_url = url if len(url) <= 80 else url[:77] + "..."
-            story.append(Paragraph(f"Page Analysis: {display_url}", self.heading_style))
-            story.append(Spacer(1, 20))
-            
-            # Page score
-            page_score = analysis['scores']['overall']
-            score_color = self.get_score_color(page_score)
-            
-            page_score_table = Table([[f"{page_score}/100"]], colWidths=[2*inch])
-            page_score_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), score_color),
-                ('TEXTCOLOR', (0, 0), (-1, -1), white),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 24),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
-                ('TOPPADDING', (0, 0), (-1, -1), 15),
-            ]))
-            story.append(page_score_table)
-            story.append(Spacer(1, 20))
-            
-            # Generate detailed page report
-            self.add_page_details(story, analysis)
-        
-        doc.build(story)
-    
-    def add_page_details(self, story, analysis):
-        """Add detailed analysis for a single page"""
-        # Page metrics table
-        story.append(Paragraph("Page SEO Metrics", self.subheading_style))
-        
-        metrics_data = [['Metric', 'Score', 'Status']]
-        
-        for metric, score in analysis['scores'].items():
-            if metric != 'overall':
-                if score >= 80:
-                    status = 'Excellent'
-                elif score >= 60:
-                    status = 'Good'
-                else:
-                    status = 'Needs Work'
-                
-                metrics_data.append([
-                    metric.replace('_', ' ').title(),
-                    f"{score}/100",
-                    status
-                ])
-        
-        metrics_table = Table(metrics_data, colWidths=[2*inch, 1*inch, 1.5*inch])
-        
-        # Style metrics table
-        metrics_style = [
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#4caf50')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
-        ]
-        
         # Color code scores
-        for i, row in enumerate(metrics_data[1:], 1):
-            score_text = row[1]
+        score_column = 1 if metric_type == 'overall' else 1
+        for i, row in enumerate(data[1:], 1):
+            score_text = row[score_column]
             score_value = int(score_text.split('/')[0])
             row_color = self.get_score_color(score_value)
             
-            metrics_style.append(('BACKGROUND', (1, i), (1, i), row_color))
-            metrics_style.append(('TEXTCOLOR', (1, i), (1, i), white))
-            metrics_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
-        
-        metrics_table.setStyle(TableStyle(metrics_style))
-        story.append(metrics_table)
-        story.append(Spacer(1, 20))
-        
-        # Page issues
-        if analysis['issues']:
-            story.append(Paragraph("Issues Found on This Page", self.subheading_style))
+            table_style.append(('BACKGROUND', (score_column, i), (score_column, i), row_color))
+            table_style.append(('TEXTCOLOR', (score_column, i), (score_column, i), white))
+            table_style.append(('FONTNAME', (score_column, i), (score_column, i), 'Helvetica-Bold'))
             
-            for i, issue in enumerate(analysis['issues'], 1):
-                story.append(Paragraph(f"• {issue}", self.body_style))
+            # Alternate row background for readability
+            if i % 2 == 0:
+                bg_color = HexColor('#f8f9fa')
+                table_style.append(('BACKGROUND', (0, i), (0, i), bg_color))
+                if metric_type != 'overall':
+                    table_style.append(('BACKGROUND', (2, i), (2, i), bg_color))
+        
+        table.setStyle(TableStyle(table_style))
+        return table
+    
+    def add_metric_analysis(self, story, analyzed_pages, title, metric):
+        """Add metric-by-metric analysis section"""
+        story.append(Paragraph(title, self.heading_style))
+        
+        # Create metric-specific table
+        table_data = [['Page URL', 'Score', 'Issue/Status']]
+        
+        for url, analysis in analyzed_pages.items():
+            display_url = self.truncate_url(url, 50)
+            score = analysis['scores'].get(metric, 0)
+            issue = self.get_metric_issue(analysis, metric)
             
-            story.append(Spacer(1, 15))
+            table_data.append([display_url, f"{score}/100", issue])
         
-        # Technical details
-        story.append(Paragraph("Technical Details", self.subheading_style))
-        
-        tech_details = [
-            f"Title: {analysis['title'][:100]}..." if len(analysis['title']) > 100 else f"Title: {analysis['title']}",
-            f"Meta Description Length: {len(analysis['meta_description'])} characters",
-            f"Word Count: {analysis['word_count']} words",
-            f"Images: {analysis['total_images']} total ({analysis['images_without_alt']} missing alt text)",
-            f"Internal Links: {analysis['internal_links']}",
-            f"External Links: {analysis['external_links']}",
-            f"Page Size: {analysis['page_size']} KB" if analysis['page_size'] else "Page Size: Unknown"
-        ]
-        
-        for detail in tech_details:
-            story.append(Paragraph(f"• {detail}", self.body_style))
-        
+        metric_table = self.create_metric_table(table_data, metric)
+        story.append(metric_table)
         story.append(Spacer(1, 20))
 
 # Initialize components
