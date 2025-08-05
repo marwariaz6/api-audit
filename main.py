@@ -439,8 +439,8 @@ class PDFReportGenerator:
         else:
             return HexColor('#F44336')  # Red
     
-    def generate_report(self, analysis, filename):
-        """Generate PDF report"""
+    def generate_color_coded_report(self, analysis, filename):
+        """Generate enhanced PDF report with color-coded tables"""
         doc = SimpleDocTemplate(filename, pagesize=A4)
         story = []
         
@@ -453,85 +453,234 @@ class PDFReportGenerator:
         story.append(Paragraph(f"<b>Report Date:</b> {datetime.now().strftime('%Y-%m-%d %H:%M')}", self.body_style))
         story.append(Spacer(1, 30))
         
-        # Overall score
+        # Overall score with color-coded background
         overall_score = analysis['scores']['overall']
         score_color = self.get_score_color(overall_score)
         story.append(Paragraph("Overall SEO Score", self.heading_style))
-        story.append(Paragraph(f"<font color='{score_color}'><b>{overall_score}/100</b></font>", 
-                              ParagraphStyle('ScoreStyle', fontSize=36, alignment=TA_CENTER)))
-        story.append(Spacer(1, 20))
         
-        # Scores table
-        story.append(Paragraph("Detailed Scores", self.heading_style))
+        # Create overall score table with color background
+        overall_table = Table([[f"{overall_score}/100"]], colWidths=[3*inch])
+        overall_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), score_color),
+            ('TEXTCOLOR', (0, 0), (-1, -1), white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 36),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 20),
+            ('TOPPADDING', (0, 0), (-1, -1), 20),
+        ]))
+        story.append(overall_table)
+        story.append(Spacer(1, 30))
         
-        score_data = [['Metric', 'Score', 'Status']]
+        # Color-coded scores table
+        story.append(Paragraph("Detailed SEO Metrics", self.heading_style))
+        
+        score_data = [['SEO Metric', 'Score', 'Performance Level', 'Priority']]
+        
+        # Define priority levels
+        priority_map = {
+            'title': 'High',
+            'meta_description': 'High', 
+            'headings': 'Medium',
+            'images': 'Medium',
+            'content': 'High',
+            'technical': 'High',
+            'social_media': 'Low',
+            'schema_markup': 'Medium'
+        }
+        
         for metric, score in analysis['scores'].items():
             if metric != 'overall':
-                status = 'Good' if score >= 80 else 'Needs Improvement' if score >= 60 else 'Critical'
-                score_data.append([metric.replace('_', ' ').title(), f"{score}/100", status])
+                if score >= 80:
+                    status = 'Excellent'
+                elif score >= 60:
+                    status = 'Good'
+                elif score >= 40:
+                    status = 'Needs Work'
+                else:
+                    status = 'Critical'
+                
+                priority = priority_map.get(metric, 'Medium')
+                score_data.append([
+                    metric.replace('_', ' ').title(), 
+                    f"{score}/100", 
+                    status,
+                    priority
+                ])
         
-        score_table = Table(score_data, colWidths=[2*inch, 1*inch, 1.5*inch])
-        score_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+        score_table = Table(score_data, colWidths=[2.2*inch, 1*inch, 1.3*inch, 1*inch])
+        
+        # Create table style with color-coded rows
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#1a237e')),  # Header - dark blue
             ('TEXTCOLOR', (0, 0), (-1, 0), white),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), HexColor('#F5F5F5')),
-            ('GRID', (0, 0), (-1, -1), 1, black)
-        ]))
-        
-        story.append(score_table)
-        story.append(Spacer(1, 20))
-        
-        # Issues and recommendations
-        story.append(Paragraph("Issues & Recommendations", self.heading_style))
-        
-        if analysis['issues']:
-            for i, issue in enumerate(analysis['issues'], 1):
-                story.append(Paragraph(f"{i}. {issue}", self.body_style))
-        else:
-            story.append(Paragraph("No critical issues found!", self.body_style))
-        
-        story.append(Spacer(1, 20))
-        
-        # Technical details
-        story.append(Paragraph("Technical Details", self.heading_style))
-        
-        details_data = [
-            ['Title Tag', analysis['title'] or 'Not found'],
-            ['Meta Description', analysis['meta_description'] or 'Not found'],
-            ['H1 Tags', str(len(analysis['h1_tags']))],
-            ['H2 Tags', str(len(analysis['h2_tags']))],
-            ['Total Images', str(analysis['total_images'])],
-            ['Images without Alt', str(analysis['images_without_alt'])],
-            ['Internal Links', str(analysis['internal_links'])],
-            ['External Links', str(analysis['external_links'])]
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
         ]
         
-        details_table = Table(details_data, colWidths=[2*inch, 4*inch])
-        details_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, -1), HexColor('#E3F2FD')),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP')
-        ]))
+        # Add color coding for each row based on score
+        for i, row in enumerate(score_data[1:], 1):
+            score_text = row[1]
+            score_value = int(score_text.split('/')[0])
+            row_color = self.get_score_color(score_value)
+            
+            # Light version of the color for better readability
+            if score_value >= 80:
+                bg_color = HexColor('#E8F5E8')  # Light green
+            elif score_value >= 60:
+                bg_color = HexColor('#FFF3E0')  # Light orange
+            else:
+                bg_color = HexColor('#FFEBEE')  # Light red
+            
+            table_style.append(('BACKGROUND', (0, i), (-1, i), bg_color))
+            
+            # Color the score column with the actual score color
+            table_style.append(('BACKGROUND', (1, i), (1, i), row_color))
+            table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+            table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
         
-        story.append(details_table)
+        score_table.setStyle(TableStyle(table_style))
+        story.append(score_table)
         story.append(Spacer(1, 30))
         
-        # Notes section
-        story.append(Paragraph("Notes & Custom Annotations", self.heading_style))
-        story.append(Paragraph("_" * 80, self.body_style))
-        story.append(Spacer(1, 20))
-        story.append(Paragraph("_" * 80, self.body_style))
-        story.append(Spacer(1, 20))
-        story.append(Paragraph("_" * 80, self.body_style))
+        # Issues summary with color-coded priority
+        story.append(Paragraph("Action Items & Recommendations", self.heading_style))
+        
+        if analysis['issues']:
+            issues_data = [['Priority', 'Issue', 'Recommendation']]
+            
+            for issue in analysis['issues']:
+                if 'title' in issue.lower() or 'meta description' in issue.lower():
+                    priority = 'HIGH'
+                    priority_color = HexColor('#F44336')  # Red
+                elif 'image' in issue.lower() or 'heading' in issue.lower():
+                    priority = 'MEDIUM'
+                    priority_color = HexColor('#FF9800')  # Orange
+                else:
+                    priority = 'LOW'
+                    priority_color = HexColor('#4CAF50')  # Green
+                
+                # Generate specific recommendation
+                if 'title' in issue.lower():
+                    recommendation = 'Optimize title tag for 30-60 characters'
+                elif 'meta description' in issue.lower():
+                    recommendation = 'Write compelling meta description 120-160 chars'
+                elif 'alt text' in issue.lower():
+                    recommendation = 'Add descriptive alt text to all images'
+                elif 'H1' in issue:
+                    recommendation = 'Add exactly one H1 tag per page'
+                elif 'content' in issue.lower():
+                    recommendation = 'Add more quality, relevant content'
+                else:
+                    recommendation = 'Address this SEO issue for better rankings'
+                
+                issues_data.append([priority, issue, recommendation])
+            
+            issues_table = Table(issues_data, colWidths=[1*inch, 2.5*inch, 2.5*inch])
+            
+            # Style the issues table
+            issues_style = [
+                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#1a237e')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), white),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 11),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('GRID', (0, 0), (-1, -1), 1, black),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP')
+            ]
+            
+            # Color-code priority column
+            for i, row in enumerate(issues_data[1:], 1):
+                priority = row[0]
+                if priority == 'HIGH':
+                    issues_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#FFCDD2')))
+                    issues_style.append(('TEXTCOLOR', (0, i), (0, i), HexColor('#D32F2F')))
+                elif priority == 'MEDIUM':
+                    issues_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#FFE0B2')))
+                    issues_style.append(('TEXTCOLOR', (0, i), (0, i), HexColor('#F57C00')))
+                else:
+                    issues_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#C8E6C9')))
+                    issues_style.append(('TEXTCOLOR', (0, i), (0, i), HexColor('#388E3C')))
+                
+                issues_style.append(('FONTNAME', (0, i), (0, i), 'Helvetica-Bold'))
+            
+            issues_table.setStyle(TableStyle(issues_style))
+            story.append(issues_table)
+        else:
+            story.append(Paragraph("🎉 No critical issues found! Your website is well-optimized.", self.body_style))
+        
+        story.append(Spacer(1, 30))
+        
+        # Technical summary table
+        story.append(Paragraph("Technical Details", self.heading_style))
+        
+        tech_data = [
+            ['Metric', 'Value', 'Status'],
+            ['Title Length', f"{len(analysis['title'])} characters", 'Good' if 30 <= len(analysis['title']) <= 60 else 'Needs Work'],
+            ['Meta Description Length', f"{len(analysis['meta_description'])} characters", 'Good' if 120 <= len(analysis['meta_description']) <= 160 else 'Needs Work'],
+            ['H1 Tags Count', str(len(analysis['h1_tags'])), 'Good' if len(analysis['h1_tags']) == 1 else 'Needs Work'],
+            ['H2 Tags Count', str(len(analysis['h2_tags'])), 'Good' if len(analysis['h2_tags']) > 0 else 'Needs Work'],
+            ['Images Total', str(analysis['total_images']), 'Info'],
+            ['Images Missing Alt', str(analysis['images_without_alt']), 'Good' if analysis['images_without_alt'] == 0 else 'Needs Work'],
+            ['Internal Links', str(analysis['internal_links']), 'Good' if analysis['internal_links'] >= 3 else 'Needs Work'],
+            ['External Links', str(analysis['external_links']), 'Good' if analysis['external_links'] > 0 else 'OK'],
+            ['Content Words', str(analysis['word_count']), 'Good' if analysis['word_count'] >= 300 else 'Needs Work']
+        ]
+        
+        tech_table = Table(tech_data, colWidths=[2.5*inch, 2*inch, 1.5*inch])
+        
+        # Style technical table with alternating colors
+        tech_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#1a237e')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]
+        
+        # Color-code status column and alternate row colors
+        for i, row in enumerate(tech_data[1:], 1):
+            # Alternate row colors
+            if i % 2 == 0:
+                tech_style.append(('BACKGROUND', (0, i), (-1, i), HexColor('#F8F9FA')))
+            
+            # Color-code status
+            status = row[2]
+            if status == 'Good':
+                tech_style.append(('BACKGROUND', (2, i), (2, i), HexColor('#4CAF50')))
+                tech_style.append(('TEXTCOLOR', (2, i), (2, i), white))
+            elif status == 'Needs Work':
+                tech_style.append(('BACKGROUND', (2, i), (2, i), HexColor('#F44336')))
+                tech_style.append(('TEXTCOLOR', (2, i), (2, i), white))
+            elif status == 'OK':
+                tech_style.append(('BACKGROUND', (2, i), (2, i), HexColor('#FF9800')))
+                tech_style.append(('TEXTCOLOR', (2, i), (2, i), white))
+            else:  # Info
+                tech_style.append(('BACKGROUND', (2, i), (2, i), HexColor('#2196F3')))
+                tech_style.append(('TEXTCOLOR', (2, i), (2, i), white))
+            
+            tech_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+        
+        tech_table.setStyle(TableStyle(tech_style))
+        story.append(tech_table)
         
         doc.build(story)
+    
+    def generate_report(self, analysis, filename):
+        """Generate standard PDF report (kept for compatibility)"""
+        return self.generate_color_coded_report(analysis, filename)
 
 # Initialize the auditor
 auditor = SEOAuditor()
@@ -541,67 +690,38 @@ pdf_generator = PDFReportGenerator()
 def index():
     return render_template('index.html')
 
-@app.route('/audit', methods=['POST'])
-def start_audit():
-    data = request.get_json()
-    url = data.get('url')
-    
-    if not url:
-        return jsonify({'error': 'URL is required'}), 400
-    
-    # Validate URL format
-    if not url.startswith(('http://', 'https://')):
-        url = 'https://' + url
-    
+@app.route('/generate-pdf', methods=['POST'])
+def generate_pdf():
     try:
-        # Start audit
-        task_id = auditor.start_audit(url)
-        if not task_id:
-            return jsonify({'error': 'Failed to start audit'}), 500
+        data = request.get_json()
+        url = data.get('url', 'https://example.com')
         
-        return jsonify({'task_id': task_id, 'status': 'started'})
-    
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/results/<task_id>')
-def get_results(task_id):
-    try:
-        # Get audit results
-        audit_data = auditor.get_audit_results(task_id)
-        if not audit_data:
-            return jsonify({'error': 'Results not ready or task failed'}), 404
+        # Validate URL format
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
         
-        # Analyze data
+        # Get placeholder data and analyze it
+        audit_data = auditor.get_placeholder_data()
+        
+        # Update URL in placeholder data
+        if audit_data:
+            audit_data[0]['url'] = url
+        
         analysis = auditor.analyze_seo_data(audit_data)
         if not analysis:
             return jsonify({'error': 'Failed to analyze data'}), 500
         
-        return jsonify(analysis)
-    
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/generate-report', methods=['POST'])
-def generate_report():
-    try:
-        data = request.get_json()
-        analysis = data.get('analysis')
-        
-        if not analysis:
-            return jsonify({'error': 'Analysis data is required'}), 400
-        
         # Generate filename
-        domain = urllib.parse.urlparse(analysis['url']).netloc
+        domain = urllib.parse.urlparse(url).netloc
         domain = re.sub(r'[^\w\-_\.]', '_', domain)
-        filename = f"audit_report_{domain}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        filename = f"seo_audit_report_{domain}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
         filepath = os.path.join('reports', filename)
         
         # Create reports directory if it doesn't exist
         os.makedirs('reports', exist_ok=True)
         
-        # Generate PDF
-        pdf_generator.generate_report(analysis, filepath)
+        # Generate PDF with color-coded table
+        pdf_generator.generate_color_coded_report(analysis, filepath)
         
         return send_file(filepath, as_attachment=True, download_name=filename)
     
