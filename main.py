@@ -100,87 +100,248 @@ class SEOAuditor:
         return None
     
     def get_placeholder_data(self):
-        """Return placeholder audit data for testing"""
-        return [{
-            'url': 'https://example.com',
-            'meta': {
-                'title': 'Example Website - Your Business Online Solutions',
-                'description': 'This is an example website showing how our comprehensive SEO audit tool works. Perfect length meta description for testing all features.',
-                'keywords': 'seo, audit, website, optimization, testing',
-                'author': 'Example Company',
-                'robots': 'index, follow'
-            },
-            'content': {
-                'h1': [{'text': 'Welcome to Example Website - Professional SEO Services'}],
-                'h2': [
-                    {'text': 'Our Comprehensive SEO Services'},
-                    {'text': 'About Our Expert Team'},
-                    {'text': 'Contact Information and Support'},
-                    {'text': 'Client Success Stories'},
-                    {'text': 'Free SEO Resources and Tools'}
+        """Return comprehensive placeholder audit data for testing and demonstration"""
+        import random
+        
+        # Generate varied placeholder data to simulate different SEO scenarios
+        scenarios = [
+            {
+                'url': 'https://demo-ecommerce.com',
+                'meta': {
+                    'title': 'Buy Quality Products Online - Demo Store',  # Good length
+                    'description': 'Shop our wide selection of premium products with fast shipping and excellent customer service. Best prices guaranteed on electronics, clothing, and home goods.',  # Good length
+                    'keywords': 'ecommerce, online shopping, electronics, clothing, home goods',
+                    'author': 'Demo Store Team',
+                    'robots': 'index, follow'
+                },
+                'content': {
+                    'h1': [{'text': 'Premium Online Shopping Experience - Demo Store'}],
+                    'h2': [
+                        {'text': 'Featured Products'},
+                        {'text': 'Customer Reviews'},
+                        {'text': 'Shipping Information'},
+                        {'text': 'Return Policy'}
+                    ],
+                    'h3': [
+                        {'text': 'Electronics'},
+                        {'text': 'Fashion'},
+                        {'text': 'Home & Garden'},
+                        {'text': 'Sports & Outdoors'}
+                    ],
+                    'text_content': 'Welcome to our premier online shopping destination. We offer a carefully curated selection of high-quality products across multiple categories including electronics, fashion, home goods, and more. Our commitment to customer satisfaction drives everything we do, from product selection to customer service. Shop with confidence knowing you\'re getting the best value and service.',
+                    'word_count': 650
+                },
+                'resource': {
+                    'images': [
+                        {'alt': 'Demo Store logo - Premium online shopping', 'src': 'logo.jpg'},
+                        {'alt': 'Featured product - Latest smartphone', 'src': 'product1.jpg'},
+                        {'alt': 'Customer using our mobile app', 'src': 'mobile-app.jpg'},
+                        {'alt': '', 'src': 'banner.jpg'},  # Missing alt text
+                        {'alt': 'Free shipping trucks', 'src': 'shipping.jpg'},
+                        {'alt': '', 'src': 'hero-image.jpg'},  # Missing alt text
+                        {'alt': 'Happy customer testimonial', 'src': 'testimonial.jpg'}
+                    ]
+                },
+                'links': [
+                    {'domain_from': 'demo-ecommerce.com', 'domain_to': 'demo-ecommerce.com', 'type': 'internal'},
+                    {'domain_from': 'demo-ecommerce.com', 'domain_to': 'demo-ecommerce.com', 'type': 'internal'},
+                    {'domain_from': 'demo-ecommerce.com', 'domain_to': 'demo-ecommerce.com', 'type': 'internal'},
+                    {'domain_from': 'demo-ecommerce.com', 'domain_to': 'demo-ecommerce.com', 'type': 'internal'},
+                    {'domain_from': 'demo-ecommerce.com', 'domain_to': 'trustpilot.com', 'type': 'external'},
+                    {'domain_from': 'demo-ecommerce.com', 'domain_to': 'facebook.com', 'type': 'external'},
+                    {'domain_from': 'demo-ecommerce.com', 'domain_to': 'instagram.com', 'type': 'external'}
                 ],
-                'h3': [
-                    {'text': 'On-Page Optimization'},
-                    {'text': 'Technical SEO Audits'},
-                    {'text': 'Keyword Research'},
-                    {'text': 'Content Strategy'},
-                    {'text': 'Link Building Services'}
+                'page_timing': {
+                    'time_to_interactive': 2200,
+                    'dom_complete': 1600,
+                    'first_contentful_paint': 1100,
+                    'largest_contentful_paint': 1900,
+                    'cumulative_layout_shift': 0.12
+                },
+                'schema_markup': [
+                    {'type': 'Organization', 'found': True},
+                    {'type': 'WebSite', 'found': True},
+                    {'type': 'Product', 'found': True},
+                    {'type': 'BreadcrumbList', 'found': True}
                 ],
-                'text_content': 'This is example content for the SEO audit. The page contains valuable information about search engine optimization services, best practices, and comprehensive analysis tools. Our team provides expert guidance for improving website visibility and search rankings through proven strategies and data-driven insights.',
-                'word_count': 450
+                'technical': {
+                    'ssl_certificate': True,
+                    'mobile_friendly': True,
+                    'page_size_kb': 1800,
+                    'text_html_ratio': 0.18,
+                    'gzip_compression': True,
+                    'minified_css': True,
+                    'minified_js': True
+                },
+                'social_meta': {
+                    'og_title': 'Premium Online Shopping - Demo Store',
+                    'og_description': 'Shop quality products with fast shipping and great service',
+                    'og_image': 'https://demo-ecommerce.com/og-image.jpg',
+                    'twitter_card': 'summary_large_image',
+                    'twitter_title': 'Demo Store - Premium Shopping',
+                    'twitter_description': 'Quality products, fast shipping, excellent service'
+                }
             },
-            'resource': {
-                'images': [
-                    {'alt': 'Company logo - Professional SEO Services', 'src': 'logo.jpg'},
-                    {'alt': 'Team photo - SEO experts working together', 'src': 'team.jpg'},
-                    {'alt': '', 'src': 'banner1.jpg'},  # Missing alt text
-                    {'alt': 'Product image - SEO audit dashboard', 'src': 'product.jpg'},
-                    {'alt': '', 'src': 'banner2.jpg'},   # Missing alt text
-                    {'alt': 'Client testimonial photo', 'src': 'testimonial.jpg'},
-                    {'alt': 'SEO performance graph showing improvements', 'src': 'graph.jpg'},
-                    {'alt': '', 'src': 'hero-bg.jpg'}   # Missing alt text
-                ]
+            {
+                'url': 'https://sample-blog.net',
+                'meta': {
+                    'title': 'Tech Blog',  # Too short
+                    'description': 'Blog about technology and software development tips for programmers and developers worldwide',  # Too short
+                    'keywords': 'technology, programming, software, development, coding',
+                    'author': 'Tech Blogger',
+                    'robots': 'index, follow'
+                },
+                'content': {
+                    'h1': [
+                        {'text': 'Latest Tech News'},  # Multiple H1s - bad practice
+                        {'text': 'Programming Tutorials'}
+                    ],
+                    'h2': [],  # No H2s - missing structure
+                    'h3': [
+                        {'text': 'Python Tips'},
+                        {'text': 'JavaScript Tricks'}
+                    ],
+                    'text_content': 'Welcome to our tech blog. We write about programming.',  # Very short content
+                    'word_count': 180
+                },
+                'resource': {
+                    'images': [
+                        {'alt': '', 'src': 'logo.png'},  # Missing alt text
+                        {'alt': '', 'src': 'header.jpg'},  # Missing alt text
+                        {'alt': '', 'src': 'code-snippet.png'},  # Missing alt text
+                        {'alt': 'Programming tutorial screenshot', 'src': 'tutorial.jpg'},
+                        {'alt': '', 'src': 'author-photo.jpg'}  # Missing alt text
+                    ]
+                },
+                'links': [
+                    {'domain_from': 'sample-blog.net', 'domain_to': 'sample-blog.net', 'type': 'internal'},
+                    {'domain_from': 'sample-blog.net', 'domain_to': 'sample-blog.net', 'type': 'internal'},
+                    {'domain_from': 'sample-blog.net', 'domain_to': 'github.com', 'type': 'external'}
+                ],
+                'page_timing': {
+                    'time_to_interactive': 3800,
+                    'dom_complete': 2900,
+                    'first_contentful_paint': 1800,
+                    'largest_contentful_paint': 3200,
+                    'cumulative_layout_shift': 0.28
+                },
+                'schema_markup': [
+                    {'type': 'Organization', 'found': False},
+                    {'type': 'WebSite', 'found': False},
+                    {'type': 'Article', 'found': False}
+                ],
+                'technical': {
+                    'ssl_certificate': False,
+                    'mobile_friendly': False,
+                    'page_size_kb': 4200,
+                    'text_html_ratio': 0.08,
+                    'gzip_compression': False,
+                    'minified_css': False,
+                    'minified_js': False
+                },
+                'social_meta': {
+                    'og_title': '',
+                    'og_description': '',
+                    'og_image': '',
+                    'twitter_card': '',
+                    'twitter_title': '',
+                    'twitter_description': ''
+                }
             },
-            'links': [
-                {'domain_from': 'example.com', 'domain_to': 'example.com', 'type': 'internal'},  # Internal
-                {'domain_from': 'example.com', 'domain_to': 'example.com', 'type': 'internal'},  # Internal
-                {'domain_from': 'example.com', 'domain_to': 'example.com', 'type': 'internal'},  # Internal
-                {'domain_from': 'example.com', 'domain_to': 'example.com', 'type': 'internal'},  # Internal
-                {'domain_from': 'example.com', 'domain_to': 'example.com', 'type': 'internal'},  # Internal
-                {'domain_from': 'example.com', 'domain_to': 'google.com', 'type': 'external'},   # External
-                {'domain_from': 'example.com', 'domain_to': 'facebook.com', 'type': 'external'}, # External
-                {'domain_from': 'example.com', 'domain_to': 'twitter.com', 'type': 'external'},  # External
-            ],
-            'page_timing': {
-                'time_to_interactive': 2500,
-                'dom_complete': 1800,
-                'first_contentful_paint': 1200,
-                'largest_contentful_paint': 2100,
-                'cumulative_layout_shift': 0.15
-            },
-            'schema_markup': [
-                {'type': 'Organization', 'found': True},
-                {'type': 'WebSite', 'found': True},
-                {'type': 'BreadcrumbList', 'found': False}
-            ],
-            'technical': {
-                'ssl_certificate': True,
-                'mobile_friendly': True,
-                'page_size_kb': 2400,
-                'text_html_ratio': 0.15,
-                'gzip_compression': True,
-                'minified_css': False,
-                'minified_js': True
-            },
-            'social_meta': {
-                'og_title': 'Example Website - Professional SEO Services',
-                'og_description': 'Get comprehensive SEO audit and optimization services',
-                'og_image': 'https://example.com/og-image.jpg',
-                'twitter_card': 'summary_large_image',
-                'twitter_title': 'Example Website SEO Services',
-                'twitter_description': 'Professional SEO audit and optimization'
+            {
+                'url': 'https://perfect-seo-example.org',
+                'meta': {
+                    'title': 'Perfect SEO Example - Complete Digital Marketing Guide',
+                    'description': 'Comprehensive digital marketing and SEO guide with expert tips, strategies, and best practices for improving your website\'s search engine rankings.',
+                    'keywords': 'SEO, digital marketing, search engine optimization, website ranking, content marketing',
+                    'author': 'SEO Expert Team',
+                    'robots': 'index, follow'
+                },
+                'content': {
+                    'h1': [{'text': 'Complete Guide to Search Engine Optimization and Digital Marketing Success'}],
+                    'h2': [
+                        {'text': 'Understanding SEO Fundamentals'},
+                        {'text': 'On-Page Optimization Strategies'},
+                        {'text': 'Technical SEO Best Practices'},
+                        {'text': 'Content Marketing Excellence'},
+                        {'text': 'Link Building Techniques'},
+                        {'text': 'Local SEO Optimization'}
+                    ],
+                    'h3': [
+                        {'text': 'Keyword Research Tools'},
+                        {'text': 'Meta Tag Optimization'},
+                        {'text': 'Internal Linking Strategy'},
+                        {'text': 'Page Speed Optimization'},
+                        {'text': 'Mobile-First Indexing'},
+                        {'text': 'Schema Markup Implementation'},
+                        {'text': 'Content Quality Guidelines'},
+                        {'text': 'User Experience Factors'}
+                    ],
+                    'text_content': 'Search engine optimization is a comprehensive digital marketing strategy that involves optimizing your website to improve its visibility and ranking in search engine results pages. This complete guide covers all aspects of SEO from technical implementation to content strategy. We explore keyword research methodologies, on-page optimization techniques, technical SEO requirements, and advanced strategies for building domain authority. Understanding user intent and creating valuable content that serves your audience while satisfying search engine algorithms is crucial for long-term success. Our team of SEO experts has compiled years of experience into this comprehensive resource.',
+                    'word_count': 1250
+                },
+                'resource': {
+                    'images': [
+                        {'alt': 'SEO Expert Team logo - Digital marketing professionals', 'src': 'logo.svg'},
+                        {'alt': 'Search engine optimization infographic showing ranking factors', 'src': 'seo-infographic.jpg'},
+                        {'alt': 'Keyword research tools comparison chart', 'src': 'keyword-tools.png'},
+                        {'alt': 'Website analytics dashboard showing SEO improvements', 'src': 'analytics.jpg'},
+                        {'alt': 'Mobile-first design example for better SEO', 'src': 'mobile-design.jpg'},
+                        {'alt': 'Content marketing strategy flowchart', 'src': 'content-strategy.png'},
+                        {'alt': 'Local SEO optimization checklist visual guide', 'src': 'local-seo.jpg'},
+                        {'alt': 'Technical SEO audit results graph', 'src': 'technical-audit.png'}
+                    ]
+                },
+                'links': [
+                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'perfect-seo-example.org', 'type': 'internal'},
+                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'perfect-seo-example.org', 'type': 'internal'},
+                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'perfect-seo-example.org', 'type': 'internal'},
+                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'perfect-seo-example.org', 'type': 'internal'},
+                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'perfect-seo-example.org', 'type': 'internal'},
+                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'perfect-seo-example.org', 'type': 'internal'},
+                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'perfect-seo-example.org', 'type': 'internal'},
+                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'google.com', 'type': 'external'},
+                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'moz.com', 'type': 'external'},
+                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'searchengineland.com', 'type': 'external'},
+                    {'domain_from': 'perfect-seo-example.org', 'domain_to': 'semrush.com', 'type': 'external'}
+                ],
+                'page_timing': {
+                    'time_to_interactive': 1800,
+                    'dom_complete': 1200,
+                    'first_contentful_paint': 800,
+                    'largest_contentful_paint': 1500,
+                    'cumulative_layout_shift': 0.05
+                },
+                'schema_markup': [
+                    {'type': 'Organization', 'found': True},
+                    {'type': 'WebSite', 'found': True},
+                    {'type': 'Article', 'found': True},
+                    {'type': 'BreadcrumbList', 'found': True},
+                    {'type': 'FAQ', 'found': True}
+                ],
+                'technical': {
+                    'ssl_certificate': True,
+                    'mobile_friendly': True,
+                    'page_size_kb': 950,
+                    'text_html_ratio': 0.25,
+                    'gzip_compression': True,
+                    'minified_css': True,
+                    'minified_js': True
+                },
+                'social_meta': {
+                    'og_title': 'Complete SEO Guide - Digital Marketing Excellence',
+                    'og_description': 'Master SEO with our comprehensive guide covering all aspects of search engine optimization',
+                    'og_image': 'https://perfect-seo-example.org/og-seo-guide.jpg',
+                    'twitter_card': 'summary_large_image',
+                    'twitter_title': 'Complete SEO Guide - Perfect Example',
+                    'twitter_description': 'Everything you need to know about SEO and digital marketing success'
+                }
             }
-        }]
+        ]
+        
+        # Randomly select one scenario to demonstrate different SEO conditions
+        selected_scenario = random.choice(scenarios)
+        return [selected_scenario]
     
     def analyze_seo_data(self, audit_data):
         """Analyze audit data and generate insights"""
