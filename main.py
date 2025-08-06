@@ -741,56 +741,116 @@ class PDFReportGenerator:
     
     
     
-    def get_metric_issues_list(self, analyzed_pages, metric):
-        """Get comprehensive list of issues found for a specific metric"""
-        issues = set()
+    def get_metric_issues_table_data(self, analyzed_pages, metric):
+        """Get detailed issues table data with current values and visual indicators"""
+        table_data = []
+        
+        # Define table headers based on metric
+        headers = {
+            'title': ['Page URL', 'Issue', 'Current Title Tag', 'Status'],
+            'meta_description': ['Page URL', 'Issue', 'Current Meta Description', 'Status'],
+            'headings': ['Page URL', 'Issue', 'Current Structure', 'Status'],
+            'images': ['Page URL', 'Issue', 'Image Details', 'Status'],
+            'content': ['Page URL', 'Issue', 'Content Stats', 'Status'],
+            'internal_links': ['Page URL', 'Issue', 'Link Count', 'Status']
+        }
+        
+        table_data.append(headers.get(metric, ['Page URL', 'Issue', 'Current Value', 'Status']))
         
         for url, analysis in analyzed_pages.items():
+            display_url = self.truncate_url(url, 40)
             score = analysis['scores'].get(metric, 0)
+            status = "✅" if score >= 80 else "❌"
             
             if metric == 'title':
-                if not analysis['title']:
-                    issues.add("Missing title tags on some pages")
-                elif len(analysis['title']) < 30:
-                    issues.add("Title tags that are too short (< 30 characters)")
-                elif len(analysis['title']) > 60:
-                    issues.add("Title tags that are too long (> 60 characters)")
+                title = analysis['title']
+                if not title:
+                    issue = "Missing title tag"
+                    current_value = "(No title tag found)"
+                elif len(title) < 30:
+                    issue = f"Too short ({len(title)} chars)"
+                    current_value = title[:50] + "..." if len(title) > 50 else title
+                elif len(title) > 60:
+                    issue = f"Too long ({len(title)} chars)"
+                    current_value = title[:50] + "..." if len(title) > 50 else title
+                else:
+                    issue = "Optimized"
+                    current_value = title[:50] + "..." if len(title) > 50 else title
                     
             elif metric == 'meta_description':
-                if not analysis['meta_description']:
-                    issues.add("Missing meta descriptions on some pages")
-                elif len(analysis['meta_description']) < 120:
-                    issues.add("Meta descriptions that are too short (< 120 characters)")
-                elif len(analysis['meta_description']) > 160:
-                    issues.add("Meta descriptions that are too long (> 160 characters)")
+                meta_desc = analysis['meta_description']
+                if not meta_desc:
+                    issue = "Missing meta description"
+                    current_value = "(No meta description found)"
+                elif len(meta_desc) < 120:
+                    issue = f"Too short ({len(meta_desc)} chars)"
+                    current_value = meta_desc[:60] + "..." if len(meta_desc) > 60 else meta_desc
+                elif len(meta_desc) > 160:
+                    issue = f"Too long ({len(meta_desc)} chars)"
+                    current_value = meta_desc[:60] + "..." if len(meta_desc) > 60 else meta_desc
+                else:
+                    issue = "Optimized"
+                    current_value = meta_desc[:60] + "..." if len(meta_desc) > 60 else meta_desc
                     
             elif metric == 'headings':
                 h1_count = len(analysis['h1_tags'])
                 h2_count = len(analysis['h2_tags'])
+                h3_count = len(analysis['h3_tags'])
+                
                 if h1_count == 0:
-                    issues.add("Pages missing H1 tags")
+                    issue = "Missing H1 tag"
                 elif h1_count > 1:
-                    issues.add("Pages with multiple H1 tags")
-                if h2_count == 0:
-                    issues.add("Pages lacking H2 tags for content structure")
+                    issue = f"Multiple H1 tags ({h1_count})"
+                elif h2_count == 0:
+                    issue = "No H2 tags"
+                else:
+                    issue = "Well structured"
+                
+                current_value = f"H1:{h1_count}, H2:{h2_count}, H3:{h3_count}"
                     
             elif metric == 'images':
-                if analysis['images_without_alt'] > 0:
-                    issues.add(f"Images missing alt text ({analysis['images_without_alt']} images found)")
-                if analysis['total_images'] == 0:
-                    issues.add("Pages with no images for visual engagement")
+                total_images = analysis['total_images']
+                missing_alt = analysis['images_without_alt']
+                
+                if total_images == 0:
+                    issue = "No images found"
+                    current_value = "0 images"
+                elif missing_alt > 0:
+                    issue = f"{missing_alt} missing alt text"
+                    current_value = f"{total_images} total, {missing_alt} without alt"
+                else:
+                    issue = "All images optimized"
+                    current_value = f"{total_images} images, all with alt text"
                     
             elif metric == 'content':
-                if analysis['word_count'] < 300:
-                    issues.add("Pages with insufficient content (< 300 words)")
-                elif analysis['word_count'] < 500:
-                    issues.add("Pages that could benefit from more comprehensive content")
+                word_count = analysis['word_count']
+                if word_count < 300:
+                    issue = f"Low content ({word_count} words)"
+                elif word_count < 500:
+                    issue = "Moderate content"
+                else:
+                    issue = "Comprehensive content"
+                
+                current_value = f"{word_count} words"
                     
             elif metric == 'internal_links':
-                if analysis['internal_links'] < 3:
-                    issues.add("Poor internal linking structure")
+                internal_links = analysis['internal_links']
+                if internal_links < 3:
+                    issue = f"Few internal links"
+                elif internal_links < 8:
+                    issue = "Good internal linking"
+                else:
+                    issue = "Excellent linking"
+                
+                current_value = f"{internal_links} internal links"
+            
+            else:
+                issue = "Unknown metric"
+                current_value = "N/A"
+            
+            table_data.append([display_url, issue, current_value, status])
         
-        return list(issues)
+        return table_data
     
     def get_metric_recommendations(self, metric):
         """Get actionable recommendations for a specific metric"""
@@ -890,6 +950,33 @@ class PDFReportGenerator:
         table.setStyle(TableStyle(table_style))
         return table
     
+    def create_issues_table(self, data):
+        """Create a detailed issues table with current values"""
+        table = Table(data, colWidths=[2.2*inch, 1.5*inch, 2.5*inch, 0.8*inch])
+        
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#A23B72')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('ALIGN', (3, 0), (3, -1), 'CENTER'),  # Status column centered
+            ('ALIGN', (0, 0), (2, -1), 'LEFT'),     # Other columns left-aligned
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('FONTSIZE', (3, 1), (3, -1), 14)  # Larger font for status symbols
+        ]
+        
+        # Alternate row backgrounds for readability
+        for i in range(1, len(data)):
+            if i % 2 == 0:
+                bg_color = HexColor('#f8f9fa')
+                table_style.append(('BACKGROUND', (0, i), (2, i), bg_color))
+        
+        table.setStyle(TableStyle(table_style))
+        return table
+    
     def add_metric_analysis(self, story, analyzed_pages, title, metric):
         """Add metric-by-metric analysis section"""
         story.append(Paragraph(title, self.heading_style))
@@ -908,13 +995,17 @@ class PDFReportGenerator:
         story.append(metric_table)
         story.append(Spacer(1, 15))
         
-        # Add Issues Found section
-        issues_found = self.get_metric_issues_list(analyzed_pages, metric)
-        if issues_found:
-            story.append(Paragraph("Issues Found:", self.subheading_style))
-            for issue in issues_found:
-                story.append(Paragraph(f"• {issue}", self.body_style))
-            story.append(Spacer(1, 10))
+        # Add detailed Issues Found section with current values
+        story.append(Paragraph("Issues Found:", self.subheading_style))
+        issues_table_data = self.get_metric_issues_table_data(analyzed_pages, metric)
+        
+        if len(issues_table_data) > 1:  # More than just headers
+            issues_table = self.create_issues_table(issues_table_data)
+            story.append(issues_table)
+        else:
+            story.append(Paragraph("• No issues found for this metric", self.body_style))
+        
+        story.append(Spacer(1, 15))
         
         # Add Actionable Recommendations section
         recommendations = self.get_metric_recommendations(metric)
