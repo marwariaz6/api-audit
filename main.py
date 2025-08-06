@@ -639,7 +639,7 @@ class PDFReportGenerator:
         doc.build(story)
     
     def truncate_url(self, url, max_length=50):
-        """Truncate URL for display in tables"""
+        """Truncate URL for display in tables with improved readability"""
         if len(url) <= max_length:
             return url
         
@@ -648,12 +648,20 @@ class PDFReportGenerator:
         domain = parsed.netloc
         path = parsed.path
         
+        # Remove www. prefix to save space
+        if domain.startswith('www.'):
+            domain = domain[4:]
+        
         if len(domain) > max_length - 3:
             return domain[:max_length-3] + "..."
         
         remaining = max_length - len(domain) - 3
         if len(path) > remaining:
-            return domain + path[:remaining] + "..."
+            # Try to show meaningful path parts
+            if remaining > 10:
+                return domain + path[:remaining] + "..."
+            else:
+                return domain + "/..."
         
         return domain + path
     
@@ -909,36 +917,53 @@ class PDFReportGenerator:
         return recommendations.get(metric, [])
     
     def create_metric_table(self, data, metric_type):
-        """Create a standardized metric table"""
-        if metric_type == 'overall':
-            table = Table(data, colWidths=[4*inch, 1.5*inch])
-        else:
-            table = Table(data, colWidths=[3*inch, 1*inch, 2.5*inch])
+        """Create a standardized metric table with proper text wrapping"""
+        # Wrap text in cells and ensure proper column widths
+        wrapped_data = []
+        for row in data:
+            wrapped_row = []
+            for cell in row:
+                # Wrap long text to prevent overflow
+                if isinstance(cell, str) and len(cell) > 50:
+                    wrapped_cell = Paragraph(cell, self.body_style)
+                else:
+                    wrapped_cell = cell
+                wrapped_row.append(wrapped_cell)
+            wrapped_data.append(wrapped_row)
         
-        # Basic table style
+        if metric_type == 'overall':
+            table = Table(wrapped_data, colWidths=[4.2*inch, 1.3*inch])
+        else:
+            table = Table(wrapped_data, colWidths=[2.8*inch, 0.8*inch, 2.9*inch])
+        
+        # Basic table style with text wrapping support
         table_style = [
             ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
             ('TEXTCOLOR', (0, 0), (-1, 0), white),
             ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
             ('ALIGN', (0, 0), (0, -1), 'LEFT'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 11),
-            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
             ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('WORDWRAP', (0, 0), (-1, -1), True)
         ]
         
         # Color code scores
         score_column = 1 if metric_type == 'overall' else 1
         for i, row in enumerate(data[1:], 1):
             score_text = row[score_column]
-            score_value = int(score_text.split('/')[0])
-            row_color = self.get_score_color(score_value)
-            
-            table_style.append(('BACKGROUND', (score_column, i), (score_column, i), row_color))
-            table_style.append(('TEXTCOLOR', (score_column, i), (score_column, i), white))
-            table_style.append(('FONTNAME', (score_column, i), (score_column, i), 'Helvetica-Bold'))
+            if isinstance(score_text, str) and '/' in score_text:
+                score_value = int(score_text.split('/')[0])
+                row_color = self.get_score_color(score_value)
+                
+                table_style.append(('BACKGROUND', (score_column, i), (score_column, i), row_color))
+                table_style.append(('TEXTCOLOR', (score_column, i), (score_column, i), white))
+                table_style.append(('FONTNAME', (score_column, i), (score_column, i), 'Helvetica-Bold'))
             
             # Alternate row background for readability
             if i % 2 == 0:
@@ -951,8 +976,44 @@ class PDFReportGenerator:
         return table
     
     def create_issues_table(self, data):
-        """Create a detailed issues table with current values"""
-        table = Table(data, colWidths=[2.2*inch, 1.5*inch, 2.5*inch, 0.8*inch])
+        """Create a detailed issues table with proper text wrapping and column management"""
+        # Wrap long text in cells to prevent overflow
+        wrapped_data = []
+        for row in data:
+            wrapped_row = []
+            for i, cell in enumerate(row):
+                if isinstance(cell, str):
+                    # Wrap long text content, especially for URLs and descriptions
+                    if i == 0 and len(cell) > 35:  # URL column
+                        wrapped_cell = Paragraph(cell, ParagraphStyle(
+                            'WrappedURL', 
+                            parent=self.body_style,
+                            fontSize=8,
+                            wordWrap='LTR'
+                        ))
+                    elif i == 1 and len(cell) > 20:  # Issue column
+                        wrapped_cell = Paragraph(cell, ParagraphStyle(
+                            'WrappedIssue',
+                            parent=self.body_style,
+                            fontSize=8,
+                            wordWrap='LTR'
+                        ))
+                    elif i == 2 and len(cell) > 40:  # Current value column
+                        wrapped_cell = Paragraph(cell, ParagraphStyle(
+                            'WrappedValue',
+                            parent=self.body_style,
+                            fontSize=8,
+                            wordWrap='LTR'
+                        ))
+                    else:
+                        wrapped_cell = cell
+                else:
+                    wrapped_cell = cell
+                wrapped_row.append(wrapped_cell)
+            wrapped_data.append(wrapped_row)
+        
+        # Optimize column widths to fit content better
+        table = Table(wrapped_data, colWidths=[2.0*inch, 1.3*inch, 2.4*inch, 0.8*inch])
         
         table_style = [
             ('BACKGROUND', (0, 0), (-1, 0), HexColor('#A23B72')),
@@ -960,12 +1021,15 @@ class PDFReportGenerator:
             ('ALIGN', (3, 0), (3, -1), 'CENTER'),  # Status column centered
             ('ALIGN', (0, 0), (2, -1), 'LEFT'),     # Other columns left-aligned
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
             ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('FONTSIZE', (3, 1), (3, -1), 14)  # Larger font for status symbols
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('FONTSIZE', (3, 1), (3, -1), 12),  # Status symbols
+            ('WORDWRAP', (0, 0), (-1, -1), True)
         ]
         
         # Alternate row backgrounds for readability
