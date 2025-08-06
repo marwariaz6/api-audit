@@ -1250,6 +1250,7 @@ class PDFReportGenerator:
             ['NoFollow Links', '306'],
             ['Redirects', '12'],
             ['Average Domain Rating', '54'],
+            ['Average Spam Score', '18.7%'],
             ['Toxic Links Detected', '7']
         ]
         
@@ -1280,6 +1281,7 @@ class PDFReportGenerator:
             ('BACKGROUND', (0, 4), (-1, 4), HexColor('#f8f9fa')),
             ('BACKGROUND', (0, 6), (-1, 6), HexColor('#f8f9fa')),
             ('BACKGROUND', (0, 8), (-1, 8), HexColor('#f8f9fa')),
+            ('BACKGROUND', (0, 10), (-1, 10), HexColor('#f8f9fa')),
         ]))
         
         story.append(backlink_table)
