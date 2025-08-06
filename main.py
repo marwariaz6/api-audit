@@ -329,9 +329,13 @@ class SEOAuditor:
         all_scores = {'title': [], 'meta_description': [], 'headings': [], 'images': [], 'content': [], 'technical': [], 'overall': []}
 
         for url, audit_data in multi_page_results.items():
-            page_analysis = self.analyze_seo_data(audit_data)
-            if page_analysis:
-                analyzed_pages[url] = page_analysis
+            try:
+                page_analysis = self.analyze_seo_data(audit_data)
+                if page_analysis:
+                    analyzed_pages[url] = page_analysis
+            except Exception as e:
+                logger.error(f"Error analyzing data for {url}: {e}")
+                continue
 
                 # Collect scores for averaging
                 for metric, score in page_analysis['scores'].items():
@@ -352,10 +356,10 @@ class SEOAuditor:
 
     def analyze_seo_data(self, audit_data):
         """Analyze audit data and generate insights"""
-        if not audit_data:
+        if not audit_data or len(audit_data) == 0:
             return None
 
-        page_data = audit_data[0] if audit_data else {}
+        page_data = audit_data[0] if isinstance(audit_data, list) and len(audit_data) > 0 else audit_data
 
         analysis = {
             'url': page_data.get('url', ''),
@@ -589,7 +593,10 @@ class PDFReportGenerator:
         story.append(Spacer(1, 20))
 
         # Overall statistics
-        homepage_url = list(analyzed_pages.keys())[0] if analyzed_pages else "Unknown"
+        if not analyzed_pages:
+            return None
+            
+        homepage_url = list(analyzed_pages.keys())[0]
         domain = urllib.parse.urlparse(homepage_url).netloc
 
         story.append(Paragraph(f"<b>Website:</b> {domain}", self.body_style))
@@ -1430,10 +1437,14 @@ def generate_pdf():
         logger.info(f"Retrieved results for {len(multi_page_results)} pages")
 
         # Analyze all pages
-        analyzed_pages, overall_stats = auditor.analyze_multi_page_data(multi_page_results)
+        try:
+            analyzed_pages, overall_stats = auditor.analyze_multi_page_data(multi_page_results)
+        except Exception as e:
+            logger.error(f"Error analyzing multi-page data: {e}")
+            return jsonify({'error': f'Failed to analyze pages: {str(e)}'}), 500
 
         if not analyzed_pages:
-            return jsonify({'error': 'Failed to analyze any pages'}), 500
+            return jsonify({'error': 'No pages could be analyzed successfully'}), 500
 
         # Generate filename
         domain = urllib.parse.urlparse(url).netloc
