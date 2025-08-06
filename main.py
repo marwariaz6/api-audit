@@ -936,9 +936,14 @@ class PDFReportGenerator:
 
     def create_metric_table(self, data, metric_type):
         """Create a standardized metric table with proper text wrapping"""
+        if not data or len(data) == 0:
+            return Table([['No data available']])
+            
         # Wrap text in cells and ensure proper column widths
         wrapped_data = []
         for row in data:
+            if not isinstance(row, (list, tuple)):
+                continue
             wrapped_row = []
             for cell in row:
                 # Wrap long text to prevent overflow
@@ -971,24 +976,29 @@ class PDFReportGenerator:
             ('WORDWRAP', (0, 0), (-1, -1), True)
         ]
 
-        # Color code scores
+        # Color code scores with error handling
         score_column = 1 if metric_type == 'overall' else 1
         for i, row in enumerate(data[1:], 1):
-            score_text = row[score_column]
-            if isinstance(score_text, str) and '/' in score_text:
-                score_value = int(score_text.split('/')[0])
-                row_color = self.get_score_color(score_value)
+            try:
+                if len(row) > score_column:
+                    score_text = row[score_column]
+                    if isinstance(score_text, str) and '/' in score_text:
+                        score_value = int(score_text.split('/')[0])
+                        row_color = self.get_score_color(score_value)
 
-                table_style.append(('BACKGROUND', (score_column, i), (score_column, i), row_color))
-                table_style.append(('TEXTCOLOR', (score_column, i), (score_column, i), white))
-                table_style.append(('FONTNAME', (score_column, i), (score_column, i), 'Helvetica-Bold'))
+                        table_style.append(('BACKGROUND', (score_column, i), (score_column, i), row_color))
+                        table_style.append(('TEXTCOLOR', (score_column, i), (score_column, i), white))
+                        table_style.append(('FONTNAME', (score_column, i), (score_column, i), 'Helvetica-Bold'))
 
-            # Alternate row background for readability
-            if i % 2 == 0:
-                bg_color = HexColor('#f8f9fa')
-                table_style.append(('BACKGROUND', (0, i), (0, i), bg_color))
-                if metric_type != 'overall':
-                    table_style.append(('BACKGROUND', (2, i), (2, i), bg_color))
+                # Alternate row background for readability
+                if i % 2 == 0:
+                    bg_color = HexColor('#f8f9fa')
+                    table_style.append(('BACKGROUND', (0, i), (0, i), bg_color))
+                    if metric_type != 'overall' and len(row) > 2:
+                        table_style.append(('BACKGROUND', (2, i), (2, i), bg_color))
+            except (IndexError, ValueError) as e:
+                logger.error(f"Error processing table row {i}: {e}")
+                continue
 
         table.setStyle(TableStyle(table_style))
         return table
@@ -1044,22 +1054,27 @@ class PDFReportGenerator:
             ('WORDWRAP', (0, 0), (-1, -1), True)
         ]
 
-        # Color code status column and alternate row backgrounds
+        # Color code status column and alternate row backgrounds with error handling
         for i in range(1, len(data)):
-            status_text = data[i][3] if len(data[i]) > 3 else ""
+            try:
+                row = data[i] if i < len(data) else []
+                status_text = row[3] if len(row) > 3 else ""
 
-            # Color code status column
-            if status_text == "PASS":
-                table_style.append(('BACKGROUND', (3, i), (3, i), HexColor('#4CAF50')))
-                table_style.append(('TEXTCOLOR', (3, i), (3, i), white))
-            elif status_text == "FAIL":
-                table_style.append(('BACKGROUND', (3, i), (3, i), HexColor('#F44336')))
-                table_style.append(('TEXTCOLOR', (3, i), (3, i), white))
+                # Color code status column
+                if status_text == "PASS":
+                    table_style.append(('BACKGROUND', (3, i), (3, i), HexColor('#4CAF50')))
+                    table_style.append(('TEXTCOLOR', (3, i), (3, i), white))
+                elif status_text == "FAIL":
+                    table_style.append(('BACKGROUND', (3, i), (3, i), HexColor('#F44336')))
+                    table_style.append(('TEXTCOLOR', (3, i), (3, i), white))
 
-            # Alternate row backgrounds for other columns
-            if i % 2 == 0:
-                bg_color = HexColor('#f8f9fa')
-                table_style.append(('BACKGROUND', (0, i), (2, i), bg_color))
+                # Alternate row backgrounds for other columns
+                if i % 2 == 0 and len(row) > 2:
+                    bg_color = HexColor('#f8f9fa')
+                    table_style.append(('BACKGROUND', (0, i), (2, i), bg_color))
+            except (IndexError, ValueError) as e:
+                logger.error(f"Error processing issues table row {i}: {e}")
+                continue
 
         table.setStyle(TableStyle(table_style))
         return table
@@ -1257,7 +1272,7 @@ class PDFReportGenerator:
         story.append(Paragraph(intro_text, self.body_style))
         story.append(Spacer(1, 20))
 
-        # Create backlink metrics table
+        # Create backlink metrics table with safe placeholder data
         backlink_data = [
             ['Metric', 'Value'],
             ['Total Backlinks', '1,284'],
