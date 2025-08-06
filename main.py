@@ -768,7 +768,7 @@ class PDFReportGenerator:
         for url, analysis in analyzed_pages.items():
             display_url = self.truncate_url(url, 40)
             score = analysis['scores'].get(metric, 0)
-            status = "✅" if score >= 80 else "❌"
+            status = "PASS" if score >= 80 else "FAIL"
             
             if metric == 'title':
                 title = analysis['title']
@@ -1028,12 +1028,24 @@ class PDFReportGenerator:
             ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
             ('GRID', (0, 0), (-1, -1), 1, black),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('FONTSIZE', (3, 1), (3, -1), 12),  # Status symbols
+            ('FONTSIZE', (3, 1), (3, -1), 9),  # Status text
+            ('FONTNAME', (3, 1), (3, -1), 'Helvetica-Bold'),  # Bold status text
             ('WORDWRAP', (0, 0), (-1, -1), True)
         ]
         
-        # Alternate row backgrounds for readability
+        # Color code status column and alternate row backgrounds
         for i in range(1, len(data)):
+            status_text = data[i][3] if len(data[i]) > 3 else ""
+            
+            # Color code status column
+            if status_text == "PASS":
+                table_style.append(('BACKGROUND', (3, i), (3, i), HexColor('#4CAF50')))
+                table_style.append(('TEXTCOLOR', (3, i), (3, i), white))
+            elif status_text == "FAIL":
+                table_style.append(('BACKGROUND', (3, i), (3, i), HexColor('#F44336')))
+                table_style.append(('TEXTCOLOR', (3, i), (3, i), white))
+            
+            # Alternate row backgrounds for other columns
             if i % 2 == 0:
                 bg_color = HexColor('#f8f9fa')
                 table_style.append(('BACKGROUND', (0, i), (2, i), bg_color))
