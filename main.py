@@ -333,7 +333,7 @@ class SEOAuditor:
                 page_analysis = self.analyze_seo_data(audit_data)
                 if page_analysis:
                     analyzed_pages[url] = page_analysis
-                    
+
                     # Collect scores for averaging
                     for metric, score in page_analysis['scores'].items():
                         if metric in all_scores:
@@ -429,87 +429,100 @@ class SEOAuditor:
 
     def calculate_scores(self, analysis):
         """Calculate SEO scores for different aspects"""
-        scores = {}
+        try:
+            scores = {}
 
-        # Title score
-        title = analysis['title']
-        title_score = 100
-        if not title:
-            title_score = 0
-        elif len(title) < 30 or len(title) > 60:
-            title_score = 70
-        scores['title'] = title_score
+            # Title score
+            title = analysis.get('title', '')
+            title_score = 100
+            if not title:
+                title_score = 0
+            elif len(title) < 30 or len(title) > 60:
+                title_score = 70
+            scores['title'] = title_score
 
-        # Meta description score
-        meta_desc = analysis['meta_description']
-        meta_score = 100
-        if not meta_desc:
-            meta_score = 0
-        elif len(meta_desc) < 120 or len(meta_desc) > 160:
-            meta_score = 75
-        scores['meta_description'] = meta_score
+            # Meta description score
+            meta_desc = analysis.get('meta_description', '')
+            meta_score = 100
+            if not meta_desc:
+                meta_score = 0
+            elif len(meta_desc) < 120 or len(meta_desc) > 160:
+                meta_score = 75
+            scores['meta_description'] = meta_score
 
-        # Headings score
-        h1_count = len(analysis['h1_tags'])
-        h2_count = len(analysis['h2_tags'])
-        headings_score = 100
-        if h1_count == 0:
-            headings_score = 20
-        elif h1_count > 1:
-            headings_score = 60
-        elif h2_count == 0:
-            headings_score = 70
-        scores['headings'] = headings_score
+            # Headings score
+            h1_tags = analysis.get('h1_tags', [])
+            h2_tags = analysis.get('h2_tags', [])
+            h1_count = len(h1_tags) if isinstance(h1_tags, list) else 0
+            h2_count = len(h2_tags) if isinstance(h2_tags, list) else 0
 
-        # Images score
-        if analysis['total_images'] > 0:
-            alt_ratio = (analysis['total_images'] - analysis['images_without_alt']) / analysis['total_images']
-            images_score = int(alt_ratio * 100)
-        else:
-            images_score = 100
-        scores['images'] = images_score
+            headings_score = 100
+            if h1_count == 0:
+                headings_score = 20
+            elif h1_count > 1:
+                headings_score = 60
+            elif h2_count == 0:
+                headings_score = 70
+            scores['headings'] = headings_score
 
-        # Content score
-        word_count = analysis['word_count']
-        content_score = 100
-        if word_count < 300:
-            content_score = 50
-        elif word_count < 500:
-            content_score = 75
-        scores['content'] = content_score
+            # Images score
+            total_images = analysis.get('total_images', 0)
+            images_without_alt = analysis.get('images_without_alt', 0)
 
+            if total_images > 0:
+                alt_ratio = (total_images - images_without_alt) / total_images
+                images_score = int(alt_ratio * 100)
+            else:
+                images_score = 100
+            scores['images'] = images_score
 
+            # Content score
+            word_count = analysis.get('word_count', 0)
+            content_score = 100
+            if word_count < 300:
+                content_score = 50
+            elif word_count < 500:
+                content_score = 75
+            scores['content'] = content_score
 
+            # Technical score (placeholder)
+            scores['technical'] = 85
 
+            # Overall score
+            if scores:
+                scores['overall'] = int(sum(scores.values()) / len(scores))
+            else:
+                scores['overall'] = 0
 
-        # Overall score
-        scores['overall'] = int(sum(scores.values()) / len(scores))
+            return scores
 
-        return scores
+        except Exception as e:
+            logger.error(f"Error calculating scores: {e}")
+            return {'title': 0, 'meta_description': 0, 'headings': 0, 'images': 0, 'content': 0, 'technical': 0, 'overall': 0}
 
     def generate_recommendations(self, analysis):
         """Generate actionable SEO recommendations"""
         issues = []
 
         # Title issues
-        if not analysis['title']:
+        if not analysis.get('title'):
             issues.append("Add a title tag to your page")
-        elif len(analysis['title']) < 30:
+        elif len(analysis.get('title', '')) < 30:
             issues.append("Title tag is too short (should be 30-60 characters)")
-        elif len(analysis['title']) > 60:
+        elif len(analysis.get('title', '')) > 60:
             issues.append("Title tag is too long (should be 30-60 characters)")
 
         # Meta description issues
-        if not analysis['meta_description']:
+        if not analysis.get('meta_description'):
             issues.append("Add a meta description to your page")
-        elif len(analysis['meta_description']) < 120:
+        elif len(analysis.get('meta_description', '')) < 120:
             issues.append("Meta description is too short (should be 120-160 characters)")
-        elif len(analysis['meta_description']) > 160:
+        elif len(analysis.get('meta_description', '')) > 160:
             issues.append("Meta description is too long (should be 120-160 characters)")
 
         # Heading issues
-        h1_count = len(analysis['h1_tags'])
-        h2_count = len(analysis['h2_tags'])
+        h1_count = len(analysis.get('h1_tags', []))
+        h2_count = len(analysis.get('h2_tags', []))
         if h1_count == 0:
             issues.append("Add an H1 tag to your page")
         elif h1_count > 1:
@@ -518,20 +531,16 @@ class SEOAuditor:
             issues.append("Add H2 tags to structure your content better")
 
         # Content issues
-        if analysis['word_count'] < 300:
+        if analysis.get('word_count', 0) < 300:
             issues.append("Add more content - pages should have at least 300 words")
 
         # Image issues
-        if analysis['images_without_alt'] > 0:
+        if analysis.get('images_without_alt', 0) > 0:
             issues.append(f"Add alt text to {analysis['images_without_alt']} images")
 
         # Link issues
-        if analysis['internal_links'] < 3:
+        if analysis.get('internal_links', 0) < 3:
             issues.append("Add more internal links to improve site navigation")
-
-
-
-
 
         return issues
 
@@ -595,7 +604,7 @@ class PDFReportGenerator:
         # Overall statistics
         if not analyzed_pages:
             return None
-            
+
         homepage_url = list(analyzed_pages.keys())[0]
         domain = urllib.parse.urlparse(homepage_url).netloc
 
@@ -649,7 +658,7 @@ class PDFReportGenerator:
 
         # Add comprehensive missing images page at the end
         self.add_missing_images_page(story, analyzed_pages)
-        
+
         # Add backlink audit pages
         self.add_backlink_title_page(story)
         self.add_backlink_summary_page(story)
@@ -690,7 +699,7 @@ class PDFReportGenerator:
 
     def get_title_issues(self, analysis):
         """Get title-specific issues"""
-        title = analysis['title']
+        title = analysis.get('title', '')
         if not title:
             return "Missing title tag"
         elif len(title) < 30:
@@ -702,7 +711,7 @@ class PDFReportGenerator:
 
     def get_meta_issues(self, analysis):
         """Get meta description issues"""
-        meta_desc = analysis['meta_description']
+        meta_desc = analysis.get('meta_description', '')
         if not meta_desc:
             return "Missing meta description"
         elif len(meta_desc) < 120:
@@ -714,8 +723,8 @@ class PDFReportGenerator:
 
     def get_heading_issues(self, analysis):
         """Get heading structure issues"""
-        h1_count = len(analysis['h1_tags'])
-        h2_count = len(analysis['h2_tags'])
+        h1_count = len(analysis.get('h1_tags', []))
+        h2_count = len(analysis.get('h2_tags', []))
 
         if h1_count == 0:
             return "Missing H1 tag"
@@ -728,18 +737,21 @@ class PDFReportGenerator:
 
     def get_image_issues(self, analysis):
         """Get image optimization issues"""
-        if analysis['total_images'] == 0:
+        total_images = analysis.get('total_images', 0)
+        missing_alt = analysis.get('images_without_alt', 0)
+
+        if total_images == 0:
             return "No images found"
-        elif analysis['images_without_alt'] > 0:
-            return f"{analysis['images_without_alt']} missing alt text"
+        elif missing_alt > 0:
+            return f"{missing_alt} missing alt text"
         else:
             return "All images optimized"
 
     def get_content_issues(self, analysis):
         """Get content quality issues"""
-        word_count = analysis['word_count']
+        word_count = analysis.get('word_count', 0)
         if word_count < 300:
-            return f"Low word count ({word_count} words)"
+            return f"Low content ({word_count} words)"
         elif word_count < 500:
             return "Good content length"
         else:
@@ -747,17 +759,13 @@ class PDFReportGenerator:
 
     def get_internal_link_issues(self, analysis):
         """Get internal linking issues"""
-        internal_links = analysis['internal_links']
+        internal_links = analysis.get('internal_links', 0)
         if internal_links < 3:
             return f"Few internal links ({internal_links})"
         elif internal_links < 10:
             return "Good internal linking"
         else:
             return "Excellent internal linking"
-
-
-
-
 
     def get_metric_issues_table_data(self, analyzed_pages, metric):
         """Get detailed issues table data with current values and visual indicators"""
@@ -781,7 +789,7 @@ class PDFReportGenerator:
             status = "PASS" if score >= 80 else "FAIL"
 
             if metric == 'title':
-                title = analysis['title']
+                title = analysis.get('title', '')
                 if not title:
                     issue = "Missing title tag"
                     current_value = "(No title tag found)"
@@ -796,7 +804,7 @@ class PDFReportGenerator:
                     current_value = title[:50] + "..." if len(title) > 50 else title
 
             elif metric == 'meta_description':
-                meta_desc = analysis['meta_description']
+                meta_desc = analysis.get('meta_description', '')
                 if not meta_desc:
                     issue = "Missing meta description"
                     current_value = "(No meta description found)"
@@ -811,9 +819,9 @@ class PDFReportGenerator:
                     current_value = meta_desc[:60] + "..." if len(meta_desc) > 60 else meta_desc
 
             elif metric == 'headings':
-                h1_count = len(analysis['h1_tags'])
-                h2_count = len(analysis['h2_tags'])
-                h3_count = len(analysis['h3_tags'])
+                h1_count = len(analysis.get('h1_tags', []))
+                h2_count = len(analysis.get('h2_tags', []))
+                h3_count = len(analysis.get('h3_tags', []))
 
                 if h1_count == 0:
                     issue = "Missing H1 tag"
@@ -827,8 +835,8 @@ class PDFReportGenerator:
                 current_value = f"H1:{h1_count}, H2:{h2_count}, H3:{h3_count}"
 
             elif metric == 'images':
-                total_images = analysis['total_images']
-                missing_alt = analysis['images_without_alt']
+                total_images = analysis.get('total_images', 0)
+                missing_alt = analysis.get('images_without_alt', 0)
 
                 if total_images == 0:
                     issue = "No images found"
@@ -841,7 +849,7 @@ class PDFReportGenerator:
                     current_value = f"{total_images} images, all with alt text"
 
             elif metric == 'content':
-                word_count = analysis['word_count']
+                word_count = analysis.get('word_count', 0)
                 if word_count < 300:
                     issue = f"Low content ({word_count} words)"
                 elif word_count < 500:
@@ -852,7 +860,7 @@ class PDFReportGenerator:
                 current_value = f"{word_count} words"
 
             elif metric == 'internal_links':
-                internal_links = analysis['internal_links']
+                internal_links = analysis.get('internal_links', 0)
                 if internal_links < 3:
                     issue = f"Few internal links"
                 elif internal_links < 8:
@@ -1105,6 +1113,7 @@ class PDFReportGenerator:
 
         if has_additional_images:
             story.append(Paragraph("Additional Missing Alt Text Images:", self.subheading_style))
+            story.append(Spacer(1, 10))
 
             for url, analysis in analyzed_pages.items():
                 missing_images = analysis.get('missing_alt_images', [])
@@ -1143,11 +1152,11 @@ class PDFReportGenerator:
         """Add Details page with additional missing images"""
         # Always add the Details page
         story.append(PageBreak())
-        
+
         # Page title
         story.append(Paragraph("Details", self.title_style))
         story.append(Spacer(1, 20))
-        
+
         # Check if there are additional missing images to show
         has_additional_images = False
         for url, analysis in analyzed_pages.items():
@@ -1196,7 +1205,7 @@ class PDFReportGenerator:
     def add_backlink_title_page(self, story):
         """Add backlink audit title page"""
         story.append(PageBreak())
-        
+
         # Create title style for backlink report
         backlink_title_style = ParagraphStyle(
             'BacklinkTitle',
@@ -1207,7 +1216,7 @@ class PDFReportGenerator:
             alignment=TA_CENTER,
             spaceBefore=80
         )
-        
+
         # Create intro paragraph style
         backlink_intro_style = ParagraphStyle(
             'BacklinkIntro',
@@ -1219,35 +1228,35 @@ class PDFReportGenerator:
             rightIndent=50,
             leading=18
         )
-        
+
         # Title
         story.append(Paragraph("🔗 Backlink Audit Report", backlink_title_style))
-        
+
         # Add some white space
         story.append(Spacer(1, 30))
-        
+
         # Intro paragraph
         intro_text = ("This report provides a comprehensive audit of the backlink profile for your website. "
                      "It includes a high-level summary and detailed metrics for each link pointing to your domain.")
         story.append(Paragraph(intro_text, backlink_intro_style))
-        
+
         # Add plenty of white space for clean look
         story.append(Spacer(1, 200))
 
     def add_backlink_summary_page(self, story):
         """Add backlink profile summary page"""
         story.append(PageBreak())
-        
+
         # Section title
         story.append(Paragraph("📊 Backlink Profile Summary", self.heading_style))
         story.append(Spacer(1, 15))
-        
+
         # Intro paragraph
         intro_text = ("This section summarizes the key metrics of your website's backlink profile, "
                      "giving you a quick overview of link quantity, quality, and potential issues.")
         story.append(Paragraph(intro_text, self.body_style))
         story.append(Spacer(1, 20))
-        
+
         # Create backlink metrics table
         backlink_data = [
             ['Metric', 'Value'],
@@ -1260,10 +1269,10 @@ class PDFReportGenerator:
             ['Average Spam Score', '18.7%'],
             ['Toxic Links Detected', '7']
         ]
-        
+
         # Create table with two columns
         backlink_table = Table(backlink_data, colWidths=[3*inch, 2*inch])
-        
+
         # Style the table
         backlink_table.setStyle(TableStyle([
             # Header row
@@ -1273,7 +1282,7 @@ class PDFReportGenerator:
             ('FONTSIZE', (0, 0), (-1, 0), 12),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('ALIGN', (1, 0), (1, -1), 'CENTER'),
-            
+
             # Data rows
             ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),  # Bold metric names
             ('FONTNAME', (1, 1), (1, -1), 'Helvetica'),
@@ -1282,7 +1291,7 @@ class PDFReportGenerator:
             ('TOPPADDING', (0, 0), (-1, -1), 8),
             ('GRID', (0, 0), (-1, -1), 1, black),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            
+
             # Alternate row backgrounds
             ('BACKGROUND', (0, 2), (-1, 2), HexColor('#f8f9fa')),
             ('BACKGROUND', (0, 4), (-1, 4), HexColor('#f8f9fa')),
@@ -1290,14 +1299,14 @@ class PDFReportGenerator:
             ('BACKGROUND', (0, 8), (-1, 8), HexColor('#f8f9fa')),
             ('BACKGROUND', (0, 10), (-1, 10), HexColor('#f8f9fa')),
         ]))
-        
+
         story.append(backlink_table)
         story.append(Spacer(1, 30))
-        
+
         # Add Backlink Types Distribution section
         story.append(Paragraph("Backlink Types Distribution", self.subheading_style))
         story.append(Spacer(1, 10))
-        
+
         backlink_types_data = [
             ['Link Type', 'Count', 'Percentage'],
             ['DoFollow Links', '978', '76.2%'],
@@ -1306,7 +1315,7 @@ class PDFReportGenerator:
             ['Image Links', '134', '10.4%'],
             ['Redirects', '12', '0.9%']
         ]
-        
+
         backlink_types_table = Table(backlink_types_data, colWidths=[2.5*inch, 1.5*inch, 1.5*inch])
         backlink_types_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
@@ -1325,21 +1334,21 @@ class PDFReportGenerator:
             ('BACKGROUND', (0, 4), (-1, 4), HexColor('#f8f9fa')),
             ('BACKGROUND', (0, 6), (-1, 6), HexColor('#f8f9fa')),
         ]))
-        
+
         story.append(backlink_types_table)
         story.append(Spacer(1, 25))
-        
+
         # Add Link Source Quality Analysis section
         story.append(Paragraph("Link Source Quality Analysis", self.subheading_style))
         story.append(Spacer(1, 10))
-        
+
         quality_analysis_data = [
             ['Quality Level', 'Count', 'Percentage', 'Description'],
             ['High Authority (DR 60+)', '98', '7.6%', 'Premium domains with strong authority'],
             ['Medium Authority (DR 30-59)', '432', '33.6%', 'Good quality domains with decent authority'],
             ['Low Authority (DR <30)', '754', '58.8%', 'Lower authority domains']
         ]
-        
+
         quality_table = Table(quality_analysis_data, colWidths=[2.0*inch, 1.0*inch, 1.0*inch, 2.5*inch])
         quality_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
@@ -1357,12 +1366,12 @@ class PDFReportGenerator:
             ('BACKGROUND', (0, 2), (-1, 2), HexColor('#f8f9fa')),
             ('WORDWRAP', (3, 0), (3, -1), True),
         ]))
-        
+
         story.append(quality_table)
         story.append(Spacer(1, 15))
-        
+
         # Add Average Domain Rating
-        story.append(Paragraph("<b>Average Domain Rating:</b> 42.3 - Overall quality indicator of linking domains", 
+        story.append(Paragraph("<b>Average Domain Rating:</b> 42.3 - Overall quality indicator of linking domains",
                               ParagraphStyle(
                                   'DomainRating',
                                   parent=self.body_style,
@@ -1370,11 +1379,11 @@ class PDFReportGenerator:
                                   spaceAfter=20
                               )))
         story.append(Spacer(1, 10))
-        
+
         # Add Anchor Text Distribution section
         story.append(Paragraph("Anchor Text Distribution", self.subheading_style))
         story.append(Spacer(1, 10))
-        
+
         anchor_text_data = [
             ['Anchor Type', 'Percentage'],
             ['Branded Anchors', '45.2%'],
@@ -1382,7 +1391,7 @@ class PDFReportGenerator:
             ['Generic Anchors', '28.1%'],
             ['URL Anchors', '13.9%']
         ]
-        
+
         anchor_table = Table(anchor_text_data, colWidths=[3.0*inch, 2.0*inch])
         anchor_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
@@ -1400,7 +1409,7 @@ class PDFReportGenerator:
             ('BACKGROUND', (0, 2), (-1, 2), HexColor('#f8f9fa')),
             ('BACKGROUND', (0, 4), (-1, 4), HexColor('#f8f9fa')),
         ]))
-        
+
         story.append(anchor_table)
         story.append(Spacer(1, 30))
 
