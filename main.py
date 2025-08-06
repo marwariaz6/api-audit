@@ -642,6 +642,10 @@ class PDFReportGenerator:
 
         # Add comprehensive missing images page at the end
         self.add_missing_images_page(story, analyzed_pages)
+        
+        # Add backlink audit pages
+        self.add_backlink_title_page(story)
+        self.add_backlink_summary_page(story)
 
         doc.build(story)
 
@@ -1181,6 +1185,105 @@ class PDFReportGenerator:
                     story.append(Spacer(1, 8))
 
             story.append(Spacer(1, 10))
+
+    def add_backlink_title_page(self, story):
+        """Add backlink audit title page"""
+        story.append(PageBreak())
+        
+        # Create title style for backlink report
+        backlink_title_style = ParagraphStyle(
+            'BacklinkTitle',
+            parent=self.styles['Heading1'],
+            fontSize=28,
+            spaceAfter=40,
+            textColor=HexColor('#2E86AB'),
+            alignment=TA_CENTER,
+            spaceBefore=80
+        )
+        
+        # Create intro paragraph style
+        backlink_intro_style = ParagraphStyle(
+            'BacklinkIntro',
+            parent=self.body_style,
+            fontSize=12,
+            spaceAfter=20,
+            alignment=TA_CENTER,
+            leftIndent=50,
+            rightIndent=50,
+            leading=18
+        )
+        
+        # Title
+        story.append(Paragraph("🔗 Backlink Audit Report", backlink_title_style))
+        
+        # Add some white space
+        story.append(Spacer(1, 30))
+        
+        # Intro paragraph
+        intro_text = ("This report provides a comprehensive audit of the backlink profile for your website. "
+                     "It includes a high-level summary and detailed metrics for each link pointing to your domain.")
+        story.append(Paragraph(intro_text, backlink_intro_style))
+        
+        # Add plenty of white space for clean look
+        story.append(Spacer(1, 200))
+
+    def add_backlink_summary_page(self, story):
+        """Add backlink profile summary page"""
+        story.append(PageBreak())
+        
+        # Section title
+        story.append(Paragraph("📊 Backlink Profile Summary", self.heading_style))
+        story.append(Spacer(1, 15))
+        
+        # Intro paragraph
+        intro_text = ("This section summarizes the key metrics of your website's backlink profile, "
+                     "giving you a quick overview of link quantity, quality, and potential issues.")
+        story.append(Paragraph(intro_text, self.body_style))
+        story.append(Spacer(1, 20))
+        
+        # Create backlink metrics table
+        backlink_data = [
+            ['Metric', 'Value'],
+            ['Total Backlinks', '1,284'],
+            ['Unique Referring Domains', '432'],
+            ['DoFollow Links', '978'],
+            ['NoFollow Links', '306'],
+            ['Redirects', '12'],
+            ['Average Domain Rating', '54'],
+            ['Toxic Links Detected', '7']
+        ]
+        
+        # Create table with two columns
+        backlink_table = Table(backlink_data, colWidths=[3*inch, 2*inch])
+        
+        # Style the table
+        backlink_table.setStyle(TableStyle([
+            # Header row
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#E0E0E0')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), black),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+            
+            # Data rows
+            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),  # Bold metric names
+            ('FONTNAME', (1, 1), (1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 11),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            
+            # Alternate row backgrounds
+            ('BACKGROUND', (0, 2), (-1, 2), HexColor('#f8f9fa')),
+            ('BACKGROUND', (0, 4), (-1, 4), HexColor('#f8f9fa')),
+            ('BACKGROUND', (0, 6), (-1, 6), HexColor('#f8f9fa')),
+            ('BACKGROUND', (0, 8), (-1, 8), HexColor('#f8f9fa')),
+        ]))
+        
+        story.append(backlink_table)
+        story.append(Spacer(1, 30))
 
 # Initialize components
 auditor = SEOAuditor()
