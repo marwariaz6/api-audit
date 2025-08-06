@@ -819,13 +819,19 @@ class PDFReportGenerator:
             elif metric == 'images':
                 total_images = analysis['total_images']
                 missing_alt = analysis['images_without_alt']
+                missing_images = analysis.get('missing_alt_images', [])
 
                 if total_images == 0:
                     issue = "No images found"
                     current_value = "0 images"
                 elif missing_alt > 0:
                     issue = f"{missing_alt} missing alt text"
-                    current_value = f"{total_images} total, {missing_alt} without alt"
+                    # Show up to 3 missing image URLs
+                    displayed_images = missing_images[:3]
+                    if len(missing_images) > 3:
+                        current_value = "\n".join(displayed_images) + f"\n+{len(missing_images) - 3} more..."
+                    else:
+                        current_value = "\n".join(displayed_images) if displayed_images else f"{total_images} total, {missing_alt} without alt"
                 else:
                     issue = "All images optimized"
                     current_value = f"{total_images} images, all with alt text"
