@@ -1273,20 +1273,20 @@ class PDFReportGenerator:
 
     def add_backlink_summary_page(self, story):
         """Add backlink profile summary page"""
-        story.append(PageBreak())
-
-        # Section title
-        story.append(Paragraph("📊 Backlink Profile Summary", self.heading_style))
-        story.append(Spacer(1, 15))
-
-        # Intro paragraph
-        intro_text = ("This section summarizes the key metrics of your website's backlink profile, "
-                     "giving you a quick overview of link quantity, quality, and potential issues.")
-        story.append(Paragraph(intro_text, self.body_style))
-        story.append(Spacer(1, 20))
-
-        # Create backlink metrics table with safe placeholder data
         try:
+            story.append(PageBreak())
+
+            # Section title
+            story.append(Paragraph("📊 Backlink Profile Summary", self.heading_style))
+            story.append(Spacer(1, 15))
+
+            # Intro paragraph
+            intro_text = ("This section summarizes the key metrics of your website's backlink profile, "
+                         "giving you a quick overview of link quantity, quality, and potential issues.")
+            story.append(Paragraph(intro_text, self.body_style))
+            story.append(Spacer(1, 20))
+
+            # Create backlink metrics table with safe placeholder data
             backlink_data = [
                 ['Metric', 'Value'],
                 ['Total Backlinks', '1,284'],
@@ -1298,58 +1298,42 @@ class PDFReportGenerator:
                 ['Average Spam Score', '18.7%'],
                 ['Toxic Links Detected', '7']
             ]
-        except Exception as e:
-            logger.error(f"Error creating backlink data: {e}")
-            backlink_data = [
-                ['Metric', 'Value'],
-                ['Total Backlinks', 'N/A'],
-                ['Unique Referring Domains', 'N/A'],
-                ['DoFollow Links', 'N/A'],
-                ['NoFollow Links', 'N/A'],
-                ['Redirects', 'N/A'],
-                ['Average Domain Rating', 'N/A'],
-                ['Average Spam Score', 'N/A'],
-                ['Toxic Links Detected', 'N/A']
+
+            # Create table with two columns
+            backlink_table = Table(backlink_data, colWidths=[3*inch, 2*inch])
+
+            # Style the table with safe indexing
+            table_style = [
+                # Header row
+                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#E0E0E0')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), black),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+                # Data rows
+                ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
+                ('FONTNAME', (1, 1), (1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 11),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 1, black),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ]
 
-        # Create table with two columns
-        backlink_table = Table(backlink_data, colWidths=[3*inch, 2*inch])
+            # Add alternate row backgrounds safely
+            for i in range(2, len(backlink_data), 2):
+                if i < len(backlink_data):
+                    table_style.append(('BACKGROUND', (0, i), (-1, i), HexColor('#f8f9fa')))
 
-        # Style the table
-        backlink_table.setStyle(TableStyle([
-            # Header row
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#E0E0E0')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), black),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 12),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+            backlink_table.setStyle(TableStyle(table_style))
+            story.append(backlink_table)
+            story.append(Spacer(1, 30))
 
-            # Data rows
-            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),  # Bold metric names
-            ('FONTNAME', (1, 1), (1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 11),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            # Add Backlink Types Distribution section
+            story.append(Paragraph("Backlink Types Distribution", self.subheading_style))
+            story.append(Spacer(1, 10))
 
-            # Alternate row backgrounds
-            ('BACKGROUND', (0, 2), (-1, 2), HexColor('#f8f9fa')),
-            ('BACKGROUND', (0, 4), (-1, 4), HexColor('#f8f9fa')),
-            ('BACKGROUND', (0, 6), (-1, 6), HexColor('#f8f9fa')),
-            ('BACKGROUND', (0, 8), (-1, 8), HexColor('#f8f9fa')),
-            ('BACKGROUND', (0, 10), (-1, 10), HexColor('#f8f9fa')),
-        ]))
-
-        story.append(backlink_table)
-        story.append(Spacer(1, 30))
-
-        # Add Backlink Types Distribution section
-        story.append(Paragraph("Backlink Types Distribution", self.subheading_style))
-        story.append(Spacer(1, 10))
-
-        try:
             backlink_types_data = [
                 ['Link Type', 'Count', 'Percentage'],
                 ['DoFollow Links', '978', '76.2%'],
@@ -1358,95 +1342,85 @@ class PDFReportGenerator:
                 ['Image Links', '134', '10.4%'],
                 ['Redirects', '12', '0.9%']
             ]
-        except Exception as e:
-            logger.error(f"Error creating backlink types data: {e}")
-            backlink_types_data = [
-                ['Link Type', 'Count', 'Percentage'],
-                ['DoFollow Links', 'N/A', 'N/A'],
-                ['NoFollow Links', 'N/A', 'N/A'],
-                ['Text Links', 'N/A', 'N/A'],
-                ['Image Links', 'N/A', 'N/A'],
-                ['Redirects', 'N/A', 'N/A']
+
+            backlink_types_table = Table(backlink_types_data, colWidths=[2.5*inch, 1.5*inch, 1.5*inch])
+            
+            types_table_style = [
+                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 11),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 1), (0, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('GRID', (0, 0), (-1, -1), 1, black),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ]
 
-        backlink_types_table = Table(backlink_types_data, colWidths=[2.5*inch, 1.5*inch, 1.5*inch])
-        backlink_types_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 11),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 1), (0, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('BACKGROUND', (0, 2), (-1, 2), HexColor('#f8f9fa')),
-            ('BACKGROUND', (0, 4), (-1, 4), HexColor('#f8f9fa')),
-            ('BACKGROUND', (0, 6), (-1, 6), HexColor('#f8f9fa')),
-        ]))
+            # Add alternate backgrounds safely
+            for i in range(2, len(backlink_types_data), 2):
+                if i < len(backlink_types_data):
+                    types_table_style.append(('BACKGROUND', (0, i), (-1, i), HexColor('#f8f9fa')))
 
-        story.append(backlink_types_table)
-        story.append(Spacer(1, 25))
+            backlink_types_table.setStyle(TableStyle(types_table_style))
+            story.append(backlink_types_table)
+            story.append(Spacer(1, 25))
 
-        # Add Link Source Quality Analysis section
-        story.append(Paragraph("Link Source Quality Analysis", self.subheading_style))
-        story.append(Spacer(1, 10))
+            # Add Link Source Quality Analysis section
+            story.append(Paragraph("Link Source Quality Analysis", self.subheading_style))
+            story.append(Spacer(1, 10))
 
-        try:
             quality_analysis_data = [
                 ['Quality Level', 'Count', 'Percentage', 'Description'],
                 ['High Authority (DR 60+)', '98', '7.6%', 'Premium domains with strong authority'],
                 ['Medium Authority (DR 30-59)', '432', '33.6%', 'Good quality domains with decent authority'],
                 ['Low Authority (DR <30)', '754', '58.8%', 'Lower authority domains']
             ]
-        except Exception as e:
-            logger.error(f"Error creating quality analysis data: {e}")
-            quality_analysis_data = [
-                ['Quality Level', 'Count', 'Percentage', 'Description'],
-                ['High Authority (DR 60+)', 'N/A', 'N/A', 'Premium domains with strong authority'],
-                ['Medium Authority (DR 30-59)', 'N/A', 'N/A', 'Good quality domains with decent authority'],
-                ['Low Authority (DR <30)', 'N/A', 'N/A', 'Lower authority domains']
+
+            quality_table = Table(quality_analysis_data, colWidths=[2.0*inch, 1.0*inch, 1.0*inch, 2.5*inch])
+            
+            quality_table_style = [
+                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (1, 0), (2, -1), 'CENTER'),
+                ('FONTNAME', (0, 1), (0, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('GRID', (0, 0), (-1, -1), 1, black),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('WORDWRAP', (3, 0), (3, -1), True),
             ]
 
-        quality_table = Table(quality_analysis_data, colWidths=[2.0*inch, 1.0*inch, 1.0*inch, 2.5*inch])
-        quality_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (2, -1), 'CENTER'),
-            ('FONTNAME', (0, 1), (0, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('BACKGROUND', (0, 2), (-1, 2), HexColor('#f8f9fa')),
-            ('WORDWRAP', (3, 0), (3, -1), True),
-        ]))
+            # Add alternate backgrounds safely
+            for i in range(2, len(quality_analysis_data), 2):
+                if i < len(quality_analysis_data):
+                    quality_table_style.append(('BACKGROUND', (0, i), (-1, i), HexColor('#f8f9fa')))
 
-        story.append(quality_table)
-        story.append(Spacer(1, 15))
+            quality_table.setStyle(TableStyle(quality_table_style))
+            story.append(quality_table)
+            story.append(Spacer(1, 15))
 
-        # Add Average Domain Rating
-        story.append(Paragraph("<b>Average Domain Rating:</b> 42.3 - Overall quality indicator of linking domains",
-                              ParagraphStyle(
-                                  'DomainRating',
-                                  parent=self.body_style,
-                                  fontSize=11,
-                                  spaceAfter=20
-                              )))
-        story.append(Spacer(1, 10))
+            # Add Average Domain Rating
+            story.append(Paragraph("<b>Average Domain Rating:</b> 42.3 - Overall quality indicator of linking domains",
+                                  ParagraphStyle(
+                                      'DomainRating',
+                                      parent=self.body_style,
+                                      fontSize=11,
+                                      spaceAfter=20
+                                  )))
+            story.append(Spacer(1, 10))
 
-        # Add Anchor Text Distribution section
-        story.append(Paragraph("Anchor Text Distribution", self.subheading_style))
-        story.append(Spacer(1, 10))
+            # Add Anchor Text Distribution section
+            story.append(Paragraph("Anchor Text Distribution", self.subheading_style))
+            story.append(Spacer(1, 10))
 
-        try:
             anchor_text_data = [
                 ['Anchor Type', 'Percentage'],
                 ['Branded Anchors', '45.2%'],
@@ -1454,36 +1428,37 @@ class PDFReportGenerator:
                 ['Generic Anchors', '28.1%'],
                 ['URL Anchors', '13.9%']
             ]
-        except Exception as e:
-            logger.error(f"Error creating anchor text data: {e}")
-            anchor_text_data = [
-                ['Anchor Type', 'Percentage'],
-                ['Branded Anchors', 'N/A'],
-                ['Exact Match Keywords', 'N/A'],
-                ['Generic Anchors', 'N/A'],
-                ['URL Anchors', 'N/A']
+
+            anchor_table = Table(anchor_text_data, colWidths=[3.0*inch, 2.0*inch])
+            
+            anchor_table_style = [
+                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 11),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+                ('FONTNAME', (0, 1), (0, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('GRID', (0, 0), (-1, -1), 1, black),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ]
 
-        anchor_table = Table(anchor_text_data, colWidths=[3.0*inch, 2.0*inch])
-        anchor_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 11),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
-            ('FONTNAME', (0, 1), (0, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('BACKGROUND', (0, 2), (-1, 2), HexColor('#f8f9fa')),
-            ('BACKGROUND', (0, 4), (-1, 4), HexColor('#f8f9fa')),
-        ]))
+            # Add alternate backgrounds safely
+            for i in range(2, len(anchor_text_data), 2):
+                if i < len(anchor_text_data):
+                    anchor_table_style.append(('BACKGROUND', (0, i), (-1, i), HexColor('#f8f9fa')))
 
-        story.append(anchor_table)
-        story.append(Spacer(1, 30))
+            anchor_table.setStyle(TableStyle(anchor_table_style))
+            story.append(anchor_table)
+            story.append(Spacer(1, 30))
+
+        except Exception as e:
+            logger.error(f"Error in add_backlink_summary_page: {e}")
+            # Add fallback content
+            story.append(Paragraph("Backlink audit data temporarily unavailable", self.body_style))
 
 # Initialize components
 auditor = SEOAuditor()
