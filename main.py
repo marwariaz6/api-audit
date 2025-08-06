@@ -1,4 +1,3 @@
-
 from flask import Flask, render_template, request, jsonify, send_file
 import requests
 import json
@@ -31,18 +30,18 @@ class PageCollector:
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
-    
+
     def get_navigation_links(self, url, max_links=10):
         """Extract navigation menu links from a website"""
         try:
             logger.info(f"Fetching navigation links from: {url}")
             response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
-            
+
             soup = BeautifulSoup(response.content, 'html.parser')
             base_domain = urllib.parse.urlparse(url).netloc
             navigation_links = set()
-            
+
             # Common navigation selectors
             nav_selectors = [
                 'nav a',
@@ -57,7 +56,7 @@ class PageCollector:
                 'ul.menu a',
                 'ul.nav a'
             ]
-            
+
             # Find navigation links
             for selector in nav_selectors:
                 nav_elements = soup.select(selector)
@@ -77,17 +76,17 @@ class PageCollector:
                         else:
                             # Relative path
                             full_url = urllib.parse.urljoin(url, href)
-                        
+
                         # Clean URL and add to set
                         clean_url = full_url.split('#')[0].split('?')[0]
                         if clean_url != url:  # Don't include the same homepage
                             navigation_links.add(clean_url)
-            
+
             # Convert to list and limit
             nav_list = list(navigation_links)[:max_links]
             logger.info(f"Found {len(nav_list)} navigation links")
             return nav_list
-            
+
         except Exception as e:
             logger.error(f"Error fetching navigation links: {e}")
             return []
@@ -98,24 +97,24 @@ class SEOAuditor:
         self.password = os.getenv('DATAFORSEO_PASSWORD')
         self.base_url = "https://api.dataforseo.com/v3"
         self.page_collector = PageCollector()
-        
+
     def make_request(self, endpoint, data=None, method='GET'):
         """Make authenticated request to DataForSEO API"""
         url = f"{self.base_url}{endpoint}"
         auth = (self.login, self.password)
-        
+
         # Check credentials
         if not self.login or not self.password:
             logger.warning("DataForSEO credentials not configured. Using placeholder data.")
             return None
-        
+
         try:
             logger.info(f"Making {method} request to: {url}")
             if method == 'POST':
                 response = requests.post(url, json=data, auth=auth, timeout=30)
             else:
                 response = requests.get(url, auth=auth, timeout=30)
-            
+
             logger.info(f"Response status: {response.status_code}")
             response.raise_for_status()
             result = response.json()
@@ -123,23 +122,23 @@ class SEOAuditor:
         except requests.exceptions.RequestException as e:
             logger.error(f"API request failed: {e}")
             return None
-    
+
     def start_multi_page_audit(self, homepage_url, max_pages=5):
         """Start audit for homepage and navigation pages"""
         # Get navigation links
         nav_links = self.page_collector.get_navigation_links(homepage_url, max_pages)
-        
+
         # Include homepage in the list
         all_urls = [homepage_url] + nav_links
-        
+
         # If no credentials, return placeholder task IDs
         if not self.login or not self.password:
             return {url: f"placeholder_task_{i}" for i, url in enumerate(all_urls)}
-        
+
         # Start audit tasks for all URLs
         task_ids = {}
         endpoint = "/on_page/task_post"
-        
+
         for url in all_urls:
             data = [{
                 "target": url,
@@ -150,19 +149,19 @@ class SEOAuditor:
                 "custom_js": "meta",
                 "browser_preset": "desktop"
             }]
-            
+
             result = self.make_request(endpoint, data, 'POST')
             if result and result.get('status_code') == 20000:
                 task_ids[url] = result['tasks'][0]['id']
             else:
                 task_ids[url] = None
-        
+
         return task_ids
-    
+
     def get_multi_page_results(self, task_ids):
         """Get audit results for multiple pages"""
         results = {}
-        
+
         for url, task_id in task_ids.items():
             if task_id and task_id.startswith("placeholder_task_"):
                 # Generate varied placeholder data for each page
@@ -176,18 +175,18 @@ class SEOAuditor:
                     results[url] = self.get_placeholder_data_for_url(url)
             else:
                 results[url] = self.get_placeholder_data_for_url(url)
-        
+
         return results
-    
+
     def get_placeholder_data_for_url(self, url):
         """Generate placeholder data customized for specific URL"""
         import random
-        
+
         # Parse URL for customization
         parsed_url = urllib.parse.urlparse(url)
         domain = parsed_url.netloc
         path = parsed_url.path.strip('/')
-        
+
         # Determine page type from path
         if not path or path == '':
             page_type = 'homepage'
@@ -207,10 +206,10 @@ class SEOAuditor:
         else:
             page_type = 'general'
             title_base = f"{path.replace('-', ' ').title()} - {domain.replace('www.', '').title()}"
-        
+
         # Generate variable quality scores based on random factors
         quality_factor = random.choice(['excellent', 'good', 'poor'])
-        
+
         if quality_factor == 'excellent':
             base_scores = {'title': 95, 'meta': 90, 'headings': 95, 'images': 85, 'content': 90, 'technical': 95}
             word_count = random.randint(800, 1500)
@@ -226,7 +225,7 @@ class SEOAuditor:
             word_count = random.randint(150, 400)
             images_with_alt = 2
             images_without_alt = 6
-        
+
         # Create comprehensive placeholder data
         placeholder_data = {
             'url': url,
@@ -293,16 +292,16 @@ class SEOAuditor:
                 'twitter_description': f"{page_type.title()} page description" if quality_factor != 'poor' else ''
             }
         }
-        
+
         return [placeholder_data]
-    
+
     def get_audit_results(self, task_id):
         """Get audit results by task ID"""
         if task_id.startswith("placeholder_task_"):
             return self.get_placeholder_data_for_url("https://example.com")
-            
+
         endpoint = f"/on_page/task_get/{task_id}"
-        
+
         # Poll for results
         max_retries = 10
         for attempt in range(max_retries):
@@ -312,9 +311,9 @@ class SEOAuditor:
                 if tasks and tasks[0].get('status_message') == 'Ok':
                     return tasks[0].get('result', [])
             time.sleep(5)
-        
+
         return None
-    
+
     def analyze_multi_page_data(self, multi_page_results):
         """Analyze audit data for multiple pages"""
         analyzed_pages = {}
@@ -324,38 +323,38 @@ class SEOAuditor:
             'total_issues': 0,
             'pages_with_issues': 0
         }
-        
+
         all_scores = {'title': [], 'meta_description': [], 'headings': [], 'images': [], 'content': [], 'technical': [], 'overall': []}
-        
+
         for url, audit_data in multi_page_results.items():
             page_analysis = self.analyze_seo_data(audit_data)
             if page_analysis:
                 analyzed_pages[url] = page_analysis
-                
+
                 # Collect scores for averaging
                 for metric, score in page_analysis['scores'].items():
                     if metric in all_scores:
                         all_scores[metric].append(score)
-                
+
                 # Count issues
                 overall_stats['total_issues'] += len(page_analysis['issues'])
                 if page_analysis['issues']:
                     overall_stats['pages_with_issues'] += 1
-        
+
         # Calculate average scores
         for metric, scores in all_scores.items():
             if scores:
                 overall_stats['avg_scores'][metric] = round(sum(scores) / len(scores))
-        
+
         return analyzed_pages, overall_stats
-    
+
     def analyze_seo_data(self, audit_data):
         """Analyze audit data and generate insights"""
         if not audit_data:
             return None
-            
+
         page_data = audit_data[0] if audit_data else {}
-        
+
         analysis = {
             'url': page_data.get('url', ''),
             'title': page_data.get('meta', {}).get('title', ''),
@@ -376,24 +375,28 @@ class SEOAuditor:
             'social_meta': page_data.get('social_meta', {}),
             'page_timing': page_data.get('page_timing', {}),
             'issues': [],
-            'scores': {}
+            'scores': {},
+            'missing_alt_images': [] # Add this to store missing image URLs
         }
-        
+
         # Extract heading tags
         content = page_data.get('content', {})
         if content:
             analysis['h1_tags'] = [h.get('text', '') for h in content.get('h1', [])]
             analysis['h2_tags'] = [h.get('text', '') for h in content.get('h2', [])]
             analysis['h3_tags'] = [h.get('text', '') for h in content.get('h3', [])]
-            
+
             if content.get('word_count'):
                 analysis['word_count'] = content['word_count']
-        
+
         # Analyze images
         images = page_data.get('resource', {}).get('images', [])
         analysis['total_images'] = len(images)
-        analysis['images_without_alt'] = sum(1 for img in images if not img.get('alt'))
-        
+        for img in images:
+            if not img.get('alt'):
+                analysis['images_without_alt'] += 1
+                analysis['missing_alt_images'].append(img.get('src', '')) # Store missing image URL
+
         # Analyze links
         links = page_data.get('links', [])
         for link in links:
@@ -401,11 +404,11 @@ class SEOAuditor:
                 analysis['internal_links'] += 1
             else:
                 analysis['external_links'] += 1
-        
+
         # Calculate scores and generate recommendations
         analysis['scores'] = self.calculate_scores(analysis)
         analysis['issues'] = self.generate_recommendations(analysis)
-        
+
         # Add internal links as a separate metric score
         if analysis['internal_links'] < 3:
             internal_link_score = 40
@@ -413,15 +416,15 @@ class SEOAuditor:
             internal_link_score = 70
         else:
             internal_link_score = 95
-        
+
         analysis['scores']['internal_links'] = internal_link_score
-        
+
         return analysis
-    
+
     def calculate_scores(self, analysis):
         """Calculate SEO scores for different aspects"""
         scores = {}
-        
+
         # Title score
         title = analysis['title']
         title_score = 100
@@ -430,7 +433,7 @@ class SEOAuditor:
         elif len(title) < 30 or len(title) > 60:
             title_score = 70
         scores['title'] = title_score
-        
+
         # Meta description score
         meta_desc = analysis['meta_description']
         meta_score = 100
@@ -439,7 +442,7 @@ class SEOAuditor:
         elif len(meta_desc) < 120 or len(meta_desc) > 160:
             meta_score = 75
         scores['meta_description'] = meta_score
-        
+
         # Headings score
         h1_count = len(analysis['h1_tags'])
         h2_count = len(analysis['h2_tags'])
@@ -451,7 +454,7 @@ class SEOAuditor:
         elif h2_count == 0:
             headings_score = 70
         scores['headings'] = headings_score
-        
+
         # Images score
         if analysis['total_images'] > 0:
             alt_ratio = (analysis['total_images'] - analysis['images_without_alt']) / analysis['total_images']
@@ -459,7 +462,7 @@ class SEOAuditor:
         else:
             images_score = 100
         scores['images'] = images_score
-        
+
         # Content score
         word_count = analysis['word_count']
         content_score = 100
@@ -468,20 +471,20 @@ class SEOAuditor:
         elif word_count < 500:
             content_score = 75
         scores['content'] = content_score
-        
-        
-        
-        
-        
+
+
+
+
+
         # Overall score
         scores['overall'] = int(sum(scores.values()) / len(scores))
-        
+
         return scores
-    
+
     def generate_recommendations(self, analysis):
         """Generate actionable SEO recommendations"""
         issues = []
-        
+
         # Title issues
         if not analysis['title']:
             issues.append("Add a title tag to your page")
@@ -489,7 +492,7 @@ class SEOAuditor:
             issues.append("Title tag is too short (should be 30-60 characters)")
         elif len(analysis['title']) > 60:
             issues.append("Title tag is too long (should be 30-60 characters)")
-        
+
         # Meta description issues
         if not analysis['meta_description']:
             issues.append("Add a meta description to your page")
@@ -497,7 +500,7 @@ class SEOAuditor:
             issues.append("Meta description is too short (should be 120-160 characters)")
         elif len(analysis['meta_description']) > 160:
             issues.append("Meta description is too long (should be 120-160 characters)")
-        
+
         # Heading issues
         h1_count = len(analysis['h1_tags'])
         h2_count = len(analysis['h2_tags'])
@@ -507,30 +510,30 @@ class SEOAuditor:
             issues.append("Use only one H1 tag per page")
         if h2_count == 0:
             issues.append("Add H2 tags to structure your content better")
-        
+
         # Content issues
         if analysis['word_count'] < 300:
             issues.append("Add more content - pages should have at least 300 words")
-        
+
         # Image issues
         if analysis['images_without_alt'] > 0:
             issues.append(f"Add alt text to {analysis['images_without_alt']} images")
-        
+
         # Link issues
         if analysis['internal_links'] < 3:
             issues.append("Add more internal links to improve site navigation")
-        
-        
-        
-        
-        
+
+
+
+
+
         return issues
 
 class PDFReportGenerator:
     def __init__(self):
         self.styles = getSampleStyleSheet()
         self.setup_custom_styles()
-    
+
     def setup_custom_styles(self):
         """Setup custom paragraph styles"""
         self.title_style = ParagraphStyle(
@@ -541,7 +544,7 @@ class PDFReportGenerator:
             textColor=HexColor('#2E86AB'),
             alignment=TA_CENTER
         )
-        
+
         self.heading_style = ParagraphStyle(
             'CustomHeading',
             parent=self.styles['Heading2'],
@@ -549,7 +552,7 @@ class PDFReportGenerator:
             spaceAfter=12,
             textColor=HexColor('#A23B72')
         )
-        
+
         self.subheading_style = ParagraphStyle(
             'CustomSubHeading',
             parent=self.styles['Heading3'],
@@ -557,14 +560,14 @@ class PDFReportGenerator:
             spaceAfter=8,
             textColor=HexColor('#2E86AB')
         )
-        
+
         self.body_style = ParagraphStyle(
             'CustomBody',
             parent=self.styles['Normal'],
             fontSize=11,
             spaceAfter=6
         )
-    
+
     def get_score_color(self, score):
         """Get color based on score"""
         if score >= 80:
@@ -573,32 +576,32 @@ class PDFReportGenerator:
             return HexColor('#FF9800')  # Orange
         else:
             return HexColor('#F44336')  # Red
-    
+
     def generate_multi_page_report(self, analyzed_pages, overall_stats, filename):
         """Generate comprehensive metric-by-metric PDF report"""
         doc = SimpleDocTemplate(filename, pagesize=A4)
         story = []
-        
+
         # Title page
         story.append(Paragraph("Multi-Page SEO Audit Report", self.title_style))
         story.append(Spacer(1, 20))
-        
+
         # Overall statistics
         homepage_url = list(analyzed_pages.keys())[0] if analyzed_pages else "Unknown"
         domain = urllib.parse.urlparse(homepage_url).netloc
-        
+
         story.append(Paragraph(f"<b>Website:</b> {domain}", self.body_style))
         story.append(Paragraph(f"<b>Pages Audited:</b> {overall_stats['total_pages']}", self.body_style))
         story.append(Paragraph(f"<b>Total Issues Found:</b> {overall_stats['total_issues']}", self.body_style))
         story.append(Paragraph(f"<b>Pages with Issues:</b> {overall_stats['pages_with_issues']}", self.body_style))
         story.append(Paragraph(f"<b>Report Date:</b> {datetime.now().strftime('%Y-%m-%d %H:%M')}", self.body_style))
         story.append(Spacer(1, 30))
-        
+
         # Overall site score
         overall_score = overall_stats['avg_scores'].get('overall', 0)
         score_color = self.get_score_color(overall_score)
         story.append(Paragraph("Overall Site SEO Score", self.heading_style))
-        
+
         overall_table = Table([[f"{overall_score}/100"]], colWidths=[3*inch])
         overall_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), score_color),
@@ -612,21 +615,21 @@ class PDFReportGenerator:
         ]))
         story.append(overall_table)
         story.append(Spacer(1, 30))
-        
+
         # Overall Page Scores Summary
         story.append(Paragraph("🔹 Overall Page Scores", self.heading_style))
         overall_page_data = [['Page URL', 'Overall Score']]
-        
+
         for url, analysis in analyzed_pages.items():
             # Create clickable URL
             clickable_url = self.create_clickable_url(url)
             page_score = analysis['scores']['overall']
             overall_page_data.append([clickable_url, f"{page_score}/100"])
-        
+
         overall_page_table = self.create_metric_table(overall_page_data, 'overall')
         story.append(overall_page_table)
         story.append(Spacer(1, 30))
-        
+
         # Metric-by-metric analysis
         self.add_metric_analysis(story, analyzed_pages, "🔹 Title Tag Optimization", "title")
         self.add_metric_analysis(story, analyzed_pages, "🔹 Meta Description", "meta_description")
@@ -634,10 +637,13 @@ class PDFReportGenerator:
         self.add_metric_analysis(story, analyzed_pages, "🔹 Image Optimization", "images")
         self.add_metric_analysis(story, analyzed_pages, "🔹 Content Quality", "content")
         self.add_metric_analysis(story, analyzed_pages, "🔹 Internal Linking", "internal_links")
-        
-        
+
+        # Add the new section for additional missing images
+        self.add_additional_missing_images(story, analyzed_pages)
+
+
         doc.build(story)
-    
+
     def create_clickable_url(self, url, max_width=2.0):
         """Create a clickable URL paragraph with proper wrapping"""
         # Create a custom style for URLs with smaller font and wrapping
@@ -652,11 +658,11 @@ class PDFReportGenerator:
             spaceAfter=2,
             spaceBefore=2
         )
-        
+
         # Create clickable link with proper HTML formatting
         clickable_url = f'<link href="{url}" color="blue">{url}</link>'
         return Paragraph(clickable_url, url_style)
-    
+
     def get_metric_issue(self, analysis, metric):
         """Get specific issue description for a metric"""
         issues_map = {
@@ -667,9 +673,9 @@ class PDFReportGenerator:
             'content': self.get_content_issues(analysis),
             'internal_links': self.get_internal_link_issues(analysis)
         }
-        
+
         return issues_map.get(metric, "No specific issues")
-    
+
     def get_title_issues(self, analysis):
         """Get title-specific issues"""
         title = analysis['title']
@@ -681,7 +687,7 @@ class PDFReportGenerator:
             return "Too long (> 60 chars)"
         else:
             return "Optimized"
-    
+
     def get_meta_issues(self, analysis):
         """Get meta description issues"""
         meta_desc = analysis['meta_description']
@@ -693,12 +699,12 @@ class PDFReportGenerator:
             return "Too long (> 160 chars)"
         else:
             return "Optimized"
-    
+
     def get_heading_issues(self, analysis):
         """Get heading structure issues"""
         h1_count = len(analysis['h1_tags'])
         h2_count = len(analysis['h2_tags'])
-        
+
         if h1_count == 0:
             return "Missing H1 tag"
         elif h1_count > 1:
@@ -707,7 +713,7 @@ class PDFReportGenerator:
             return "No H2 tags for structure"
         else:
             return "Well structured"
-    
+
     def get_image_issues(self, analysis):
         """Get image optimization issues"""
         if analysis['total_images'] == 0:
@@ -716,7 +722,7 @@ class PDFReportGenerator:
             return f"{analysis['images_without_alt']} missing alt text"
         else:
             return "All images optimized"
-    
+
     def get_content_issues(self, analysis):
         """Get content quality issues"""
         word_count = analysis['word_count']
@@ -726,7 +732,7 @@ class PDFReportGenerator:
             return "Good content length"
         else:
             return "Comprehensive content"
-    
+
     def get_internal_link_issues(self, analysis):
         """Get internal linking issues"""
         internal_links = analysis['internal_links']
@@ -736,15 +742,15 @@ class PDFReportGenerator:
             return "Good internal linking"
         else:
             return "Excellent internal linking"
-    
-    
-    
-    
-    
+
+
+
+
+
     def get_metric_issues_table_data(self, analyzed_pages, metric):
         """Get detailed issues table data with current values and visual indicators"""
         table_data = []
-        
+
         # Define table headers based on metric
         headers = {
             'title': ['Page URL', 'Issue', 'Current Title Tag', 'Status'],
@@ -754,14 +760,14 @@ class PDFReportGenerator:
             'content': ['Page URL', 'Issue', 'Content Stats', 'Status'],
             'internal_links': ['Page URL', 'Issue', 'Link Count', 'Status']
         }
-        
+
         table_data.append(headers.get(metric, ['Page URL', 'Issue', 'Current Value', 'Status']))
-        
+
         for url, analysis in analyzed_pages.items():
             clickable_url = self.create_clickable_url(url)
             score = analysis['scores'].get(metric, 0)
             status = "PASS" if score >= 80 else "FAIL"
-            
+
             if metric == 'title':
                 title = analysis['title']
                 if not title:
@@ -776,7 +782,7 @@ class PDFReportGenerator:
                 else:
                     issue = "Optimized"
                     current_value = title[:50] + "..." if len(title) > 50 else title
-                    
+
             elif metric == 'meta_description':
                 meta_desc = analysis['meta_description']
                 if not meta_desc:
@@ -791,12 +797,12 @@ class PDFReportGenerator:
                 else:
                     issue = "Optimized"
                     current_value = meta_desc[:60] + "..." if len(meta_desc) > 60 else meta_desc
-                    
+
             elif metric == 'headings':
                 h1_count = len(analysis['h1_tags'])
                 h2_count = len(analysis['h2_tags'])
                 h3_count = len(analysis['h3_tags'])
-                
+
                 if h1_count == 0:
                     issue = "Missing H1 tag"
                 elif h1_count > 1:
@@ -805,13 +811,13 @@ class PDFReportGenerator:
                     issue = "No H2 tags"
                 else:
                     issue = "Well structured"
-                
+
                 current_value = f"H1:{h1_count}, H2:{h2_count}, H3:{h3_count}"
-                    
+
             elif metric == 'images':
                 total_images = analysis['total_images']
                 missing_alt = analysis['images_without_alt']
-                
+
                 if total_images == 0:
                     issue = "No images found"
                     current_value = "0 images"
@@ -821,7 +827,7 @@ class PDFReportGenerator:
                 else:
                     issue = "All images optimized"
                     current_value = f"{total_images} images, all with alt text"
-                    
+
             elif metric == 'content':
                 word_count = analysis['word_count']
                 if word_count < 300:
@@ -830,9 +836,9 @@ class PDFReportGenerator:
                     issue = "Moderate content"
                 else:
                     issue = "Comprehensive content"
-                
+
                 current_value = f"{word_count} words"
-                    
+
             elif metric == 'internal_links':
                 internal_links = analysis['internal_links']
                 if internal_links < 3:
@@ -840,18 +846,18 @@ class PDFReportGenerator:
                 elif internal_links < 8:
                     issue = "Good internal linking"
                 else:
-                    issue = "Excellent linking"
-                
+                    issue = "Excellent internal linking"
+
                 current_value = f"{internal_links} internal links"
-            
+
             else:
                 issue = "Unknown metric"
                 current_value = "N/A"
-            
+
             table_data.append([clickable_url, issue, current_value, status])
-        
+
         return table_data
-    
+
     def get_metric_recommendations(self, metric):
         """Get actionable recommendations for a specific metric"""
         recommendations = {
@@ -905,9 +911,9 @@ class PDFReportGenerator:
                 "Keep up with SEO best practices and algorithm updates"
             ]
         }
-        
+
         return recommendations.get(metric, [])
-    
+
     def create_metric_table(self, data, metric_type):
         """Create a standardized metric table with proper text wrapping"""
         # Wrap text in cells and ensure proper column widths
@@ -922,12 +928,12 @@ class PDFReportGenerator:
                     wrapped_cell = cell
                 wrapped_row.append(wrapped_cell)
             wrapped_data.append(wrapped_row)
-        
+
         if metric_type == 'overall':
             table = Table(wrapped_data, colWidths=[4.2*inch, 1.3*inch])
         else:
             table = Table(wrapped_data, colWidths=[2.8*inch, 0.8*inch, 2.9*inch])
-        
+
         # Basic table style with text wrapping support
         table_style = [
             ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
@@ -944,7 +950,7 @@ class PDFReportGenerator:
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('WORDWRAP', (0, 0), (-1, -1), True)
         ]
-        
+
         # Color code scores
         score_column = 1 if metric_type == 'overall' else 1
         for i, row in enumerate(data[1:], 1):
@@ -952,21 +958,21 @@ class PDFReportGenerator:
             if isinstance(score_text, str) and '/' in score_text:
                 score_value = int(score_text.split('/')[0])
                 row_color = self.get_score_color(score_value)
-                
+
                 table_style.append(('BACKGROUND', (score_column, i), (score_column, i), row_color))
                 table_style.append(('TEXTCOLOR', (score_column, i), (score_column, i), white))
                 table_style.append(('FONTNAME', (score_column, i), (score_column, i), 'Helvetica-Bold'))
-            
+
             # Alternate row background for readability
             if i % 2 == 0:
                 bg_color = HexColor('#f8f9fa')
                 table_style.append(('BACKGROUND', (0, i), (0, i), bg_color))
                 if metric_type != 'overall':
                     table_style.append(('BACKGROUND', (2, i), (2, i), bg_color))
-        
+
         table.setStyle(TableStyle(table_style))
         return table
-    
+
     def create_issues_table(self, data):
         """Create a detailed issues table with proper text wrapping and column management"""
         # Wrap long text in cells to prevent overflow (URLs are already wrapped as clickable paragraphs)
@@ -996,10 +1002,10 @@ class PDFReportGenerator:
                     wrapped_cell = cell
                 wrapped_row.append(wrapped_cell)
             wrapped_data.append(wrapped_row)
-        
+
         # Optimize column widths to fit content better with more space for URLs
         table = Table(wrapped_data, colWidths=[2.2*inch, 1.2*inch, 2.3*inch, 0.8*inch])
-        
+
         table_style = [
             ('BACKGROUND', (0, 0), (-1, 0), HexColor('#A23B72')),
             ('TEXTCOLOR', (0, 0), (-1, 0), white),
@@ -1017,11 +1023,11 @@ class PDFReportGenerator:
             ('FONTNAME', (3, 1), (3, -1), 'Helvetica-Bold'),  # Bold status text
             ('WORDWRAP', (0, 0), (-1, -1), True)
         ]
-        
+
         # Color code status column and alternate row backgrounds
         for i in range(1, len(data)):
             status_text = data[i][3] if len(data[i]) > 3 else ""
-            
+
             # Color code status column
             if status_text == "PASS":
                 table_style.append(('BACKGROUND', (3, i), (3, i), HexColor('#4CAF50')))
@@ -1029,51 +1035,97 @@ class PDFReportGenerator:
             elif status_text == "FAIL":
                 table_style.append(('BACKGROUND', (3, i), (3, i), HexColor('#F44336')))
                 table_style.append(('TEXTCOLOR', (3, i), (3, i), white))
-            
+
             # Alternate row backgrounds for other columns
             if i % 2 == 0:
                 bg_color = HexColor('#f8f9fa')
                 table_style.append(('BACKGROUND', (0, i), (2, i), bg_color))
-        
+
         table.setStyle(TableStyle(table_style))
         return table
-    
+
     def add_metric_analysis(self, story, analyzed_pages, title, metric):
         """Add metric-by-metric analysis section"""
         story.append(Paragraph(title, self.heading_style))
-        
+
         # Create metric-specific table
         table_data = [['Page URL', 'Score', 'Issue/Status']]
-        
+
         for url, analysis in analyzed_pages.items():
             clickable_url = self.create_clickable_url(url)
             score = analysis['scores'].get(metric, 0)
             issue = self.get_metric_issue(analysis, metric)
-            
+
             table_data.append([clickable_url, f"{score}/100", issue])
-        
+
         metric_table = self.create_metric_table(table_data, metric)
         story.append(metric_table)
         story.append(Spacer(1, 15))
-        
+
         # Add detailed Issues Found section with current values
         story.append(Paragraph("Issues Found:", self.subheading_style))
         issues_table_data = self.get_metric_issues_table_data(analyzed_pages, metric)
-        
+
         if len(issues_table_data) > 1:  # More than just headers
             issues_table = self.create_issues_table(issues_table_data)
             story.append(issues_table)
         else:
             story.append(Paragraph("• No issues found for this metric", self.body_style))
-        
+
         story.append(Spacer(1, 15))
-        
+
         # Add Actionable Recommendations section
         recommendations = self.get_metric_recommendations(metric)
         story.append(Paragraph("Actionable Recommendations:", self.subheading_style))
         for recommendation in recommendations:
             story.append(Paragraph(f"• {recommendation}", self.body_style))
         story.append(Spacer(1, 20))
+
+    def add_additional_missing_images(self, story, analyzed_pages):
+        """Add additional missing image URLs that weren't shown in the main table"""
+        has_additional_images = False
+
+        for url, analysis in analyzed_pages.items():
+            missing_images = analysis.get('missing_alt_images', [])
+            if len(missing_images) > 3:
+                has_additional_images = True
+                break
+
+        if has_additional_images:
+            story.append(Paragraph("Additional Missing Alt Text Images:", self.subheading_style))
+
+            for url, analysis in analyzed_pages.items():
+                missing_images = analysis.get('missing_alt_images', [])
+                if len(missing_images) > 3:
+                    additional_images = missing_images[3:]  # Skip first 3 already shown
+
+                    # Create shortened URL for display
+                    domain = urllib.parse.urlparse(url).netloc
+                    path = urllib.parse.urlparse(url).path
+                    if len(path) > 30:
+                        display_path = path[:15] + "..." + path[-12:]
+                    else:
+                        display_path = path if path else "/"
+
+                    page_display = f"{domain}{display_path}"
+                    story.append(Paragraph(f"<b>{page_display}</b> (+{len(additional_images)} more images):", self.body_style))
+
+                    # Show additional missing images
+                    for img_url in additional_images:
+                        if len(img_url) > 80:
+                            truncated_img = img_url[:40] + "..." + img_url[-37:]
+                        else:
+                            truncated_img = img_url
+                        story.append(Paragraph(f"• {truncated_img}", ParagraphStyle(
+                            'AdditionalImage',
+                            parent=self.body_style,
+                            fontSize=8,
+                            leftIndent=20
+                        )))
+
+                    story.append(Spacer(1, 8))
+
+            story.append(Spacer(1, 10))
 
 # Initialize components
 auditor = SEOAuditor()
@@ -1089,45 +1141,45 @@ def generate_pdf():
         data = request.get_json()
         url = data.get('url', 'https://example.com')
         max_pages = data.get('max_pages', 5)
-        
+
         # Validate URL format
         if not url.startswith(('http://', 'https://')):
             url = 'https://' + url
-        
+
         logger.info(f"Starting multi-page audit for: {url}")
-        
+
         # Start multi-page audit
         task_ids = auditor.start_multi_page_audit(url, max_pages)
         logger.info(f"Started audit for {len(task_ids)} pages")
-        
+
         # Wait a moment for tasks to process
         time.sleep(2)
-        
+
         # Get results for all pages
         multi_page_results = auditor.get_multi_page_results(task_ids)
         logger.info(f"Retrieved results for {len(multi_page_results)} pages")
-        
+
         # Analyze all pages
         analyzed_pages, overall_stats = auditor.analyze_multi_page_data(multi_page_results)
-        
+
         if not analyzed_pages:
             return jsonify({'error': 'Failed to analyze any pages'}), 500
-        
+
         # Generate filename
         domain = urllib.parse.urlparse(url).netloc
         domain = re.sub(r'[^\w\-_\.]', '_', domain)
         filename = f"seo_audit_{domain}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
         filepath = os.path.join('reports', filename)
-        
+
         # Create reports directory if it doesn't exist
         os.makedirs('reports', exist_ok=True)
-        
+
         # Generate comprehensive multi-page PDF report
         pdf_generator.generate_multi_page_report(analyzed_pages, overall_stats, filepath)
-        
+
         logger.info(f"Generated report: {filename}")
         return send_file(filepath, as_attachment=True, download_name=filename)
-    
+
     except Exception as e:
         logger.error(f"Error generating PDF: {e}")
         return jsonify({'error': str(e)}), 500
