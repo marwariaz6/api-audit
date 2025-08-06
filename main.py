@@ -594,12 +594,16 @@ class PDFReportGenerator:
 
     def generate_multi_page_report(self, analyzed_pages, overall_stats, filename):
         """Generate comprehensive metric-by-metric PDF report"""
-        doc = SimpleDocTemplate(filename, pagesize=A4)
-        story = []
+        try:
+            doc = SimpleDocTemplate(filename, pagesize=A4)
+            story = []
 
-        # Title page
-        story.append(Paragraph("Multi-Page SEO Audit Report", self.title_style))
-        story.append(Spacer(1, 20))
+            # Title page
+            story.append(Paragraph("Multi-Page SEO Audit Report", self.title_style))
+            story.append(Spacer(1, 20))
+        except Exception as e:
+            logger.error(f"Error initializing PDF report: {e}")
+            return None
 
         # Overall statistics
         if not analyzed_pages:
@@ -660,10 +664,19 @@ class PDFReportGenerator:
         self.add_missing_images_page(story, analyzed_pages)
 
         # Add backlink audit pages
-        self.add_backlink_title_page(story)
-        self.add_backlink_summary_page(story)
+        try:
+            self.add_backlink_title_page(story)
+            self.add_backlink_summary_page(story)
+        except Exception as e:
+            logger.error(f"Error adding backlink pages: {e}")
+            # Add fallback message
+            story.append(Paragraph("Backlink audit data temporarily unavailable", self.body_style))
 
-        doc.build(story)
+        try:
+            doc.build(story)
+        except Exception as e:
+            logger.error(f"Error building PDF document: {e}")
+            return None
 
     def create_clickable_url(self, url, max_width=2.0):
         """Create a clickable URL paragraph with proper wrapping"""
@@ -1273,17 +1286,31 @@ class PDFReportGenerator:
         story.append(Spacer(1, 20))
 
         # Create backlink metrics table with safe placeholder data
-        backlink_data = [
-            ['Metric', 'Value'],
-            ['Total Backlinks', '1,284'],
-            ['Unique Referring Domains', '432'],
-            ['DoFollow Links', '978'],
-            ['NoFollow Links', '306'],
-            ['Redirects', '12'],
-            ['Average Domain Rating', '54'],
-            ['Average Spam Score', '18.7%'],
-            ['Toxic Links Detected', '7']
-        ]
+        try:
+            backlink_data = [
+                ['Metric', 'Value'],
+                ['Total Backlinks', '1,284'],
+                ['Unique Referring Domains', '432'],
+                ['DoFollow Links', '978'],
+                ['NoFollow Links', '306'],
+                ['Redirects', '12'],
+                ['Average Domain Rating', '54'],
+                ['Average Spam Score', '18.7%'],
+                ['Toxic Links Detected', '7']
+            ]
+        except Exception as e:
+            logger.error(f"Error creating backlink data: {e}")
+            backlink_data = [
+                ['Metric', 'Value'],
+                ['Total Backlinks', 'N/A'],
+                ['Unique Referring Domains', 'N/A'],
+                ['DoFollow Links', 'N/A'],
+                ['NoFollow Links', 'N/A'],
+                ['Redirects', 'N/A'],
+                ['Average Domain Rating', 'N/A'],
+                ['Average Spam Score', 'N/A'],
+                ['Toxic Links Detected', 'N/A']
+            ]
 
         # Create table with two columns
         backlink_table = Table(backlink_data, colWidths=[3*inch, 2*inch])
@@ -1322,14 +1349,25 @@ class PDFReportGenerator:
         story.append(Paragraph("Backlink Types Distribution", self.subheading_style))
         story.append(Spacer(1, 10))
 
-        backlink_types_data = [
-            ['Link Type', 'Count', 'Percentage'],
-            ['DoFollow Links', '978', '76.2%'],
-            ['NoFollow Links', '306', '23.8%'],
-            ['Text Links', '1,150', '89.6%'],
-            ['Image Links', '134', '10.4%'],
-            ['Redirects', '12', '0.9%']
-        ]
+        try:
+            backlink_types_data = [
+                ['Link Type', 'Count', 'Percentage'],
+                ['DoFollow Links', '978', '76.2%'],
+                ['NoFollow Links', '306', '23.8%'],
+                ['Text Links', '1,150', '89.6%'],
+                ['Image Links', '134', '10.4%'],
+                ['Redirects', '12', '0.9%']
+            ]
+        except Exception as e:
+            logger.error(f"Error creating backlink types data: {e}")
+            backlink_types_data = [
+                ['Link Type', 'Count', 'Percentage'],
+                ['DoFollow Links', 'N/A', 'N/A'],
+                ['NoFollow Links', 'N/A', 'N/A'],
+                ['Text Links', 'N/A', 'N/A'],
+                ['Image Links', 'N/A', 'N/A'],
+                ['Redirects', 'N/A', 'N/A']
+            ]
 
         backlink_types_table = Table(backlink_types_data, colWidths=[2.5*inch, 1.5*inch, 1.5*inch])
         backlink_types_table.setStyle(TableStyle([
@@ -1357,12 +1395,21 @@ class PDFReportGenerator:
         story.append(Paragraph("Link Source Quality Analysis", self.subheading_style))
         story.append(Spacer(1, 10))
 
-        quality_analysis_data = [
-            ['Quality Level', 'Count', 'Percentage', 'Description'],
-            ['High Authority (DR 60+)', '98', '7.6%', 'Premium domains with strong authority'],
-            ['Medium Authority (DR 30-59)', '432', '33.6%', 'Good quality domains with decent authority'],
-            ['Low Authority (DR <30)', '754', '58.8%', 'Lower authority domains']
-        ]
+        try:
+            quality_analysis_data = [
+                ['Quality Level', 'Count', 'Percentage', 'Description'],
+                ['High Authority (DR 60+)', '98', '7.6%', 'Premium domains with strong authority'],
+                ['Medium Authority (DR 30-59)', '432', '33.6%', 'Good quality domains with decent authority'],
+                ['Low Authority (DR <30)', '754', '58.8%', 'Lower authority domains']
+            ]
+        except Exception as e:
+            logger.error(f"Error creating quality analysis data: {e}")
+            quality_analysis_data = [
+                ['Quality Level', 'Count', 'Percentage', 'Description'],
+                ['High Authority (DR 60+)', 'N/A', 'N/A', 'Premium domains with strong authority'],
+                ['Medium Authority (DR 30-59)', 'N/A', 'N/A', 'Good quality domains with decent authority'],
+                ['Low Authority (DR <30)', 'N/A', 'N/A', 'Lower authority domains']
+            ]
 
         quality_table = Table(quality_analysis_data, colWidths=[2.0*inch, 1.0*inch, 1.0*inch, 2.5*inch])
         quality_table.setStyle(TableStyle([
@@ -1399,13 +1446,23 @@ class PDFReportGenerator:
         story.append(Paragraph("Anchor Text Distribution", self.subheading_style))
         story.append(Spacer(1, 10))
 
-        anchor_text_data = [
-            ['Anchor Type', 'Percentage'],
-            ['Branded Anchors', '45.2%'],
-            ['Exact Match Keywords', '12.8%'],
-            ['Generic Anchors', '28.1%'],
-            ['URL Anchors', '13.9%']
-        ]
+        try:
+            anchor_text_data = [
+                ['Anchor Type', 'Percentage'],
+                ['Branded Anchors', '45.2%'],
+                ['Exact Match Keywords', '12.8%'],
+                ['Generic Anchors', '28.1%'],
+                ['URL Anchors', '13.9%']
+            ]
+        except Exception as e:
+            logger.error(f"Error creating anchor text data: {e}")
+            anchor_text_data = [
+                ['Anchor Type', 'Percentage'],
+                ['Branded Anchors', 'N/A'],
+                ['Exact Match Keywords', 'N/A'],
+                ['Generic Anchors', 'N/A'],
+                ['URL Anchors', 'N/A']
+            ]
 
         anchor_table = Table(anchor_text_data, colWidths=[3.0*inch, 2.0*inch])
         anchor_table.setStyle(TableStyle([
