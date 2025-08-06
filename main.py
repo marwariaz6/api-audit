@@ -618,10 +618,10 @@ class PDFReportGenerator:
         overall_page_data = [['Page URL', 'Overall Score']]
         
         for url, analysis in analyzed_pages.items():
-            # Truncate URL for display
-            display_url = self.truncate_url(url, 60)
+            # Create clickable URL
+            clickable_url = self.create_clickable_url(url)
             page_score = analysis['scores']['overall']
-            overall_page_data.append([display_url, f"{page_score}/100"])
+            overall_page_data.append([clickable_url, f"{page_score}/100"])
         
         overall_page_table = self.create_metric_table(overall_page_data, 'overall')
         story.append(overall_page_table)
@@ -638,32 +638,24 @@ class PDFReportGenerator:
         
         doc.build(story)
     
-    def truncate_url(self, url, max_length=50):
-        """Truncate URL for display in tables with improved readability"""
-        if len(url) <= max_length:
-            return url
+    def create_clickable_url(self, url, max_width=2.0):
+        """Create a clickable URL paragraph with proper wrapping"""
+        # Create a custom style for URLs with smaller font and wrapping
+        url_style = ParagraphStyle(
+            'ClickableURL',
+            parent=self.body_style,
+            fontSize=8,
+            leading=10,
+            wordWrap='LTR',
+            allowWidows=1,
+            allowOrphans=1,
+            spaceAfter=2,
+            spaceBefore=2
+        )
         
-        # Try to show domain + path intelligently
-        parsed = urllib.parse.urlparse(url)
-        domain = parsed.netloc
-        path = parsed.path
-        
-        # Remove www. prefix to save space
-        if domain.startswith('www.'):
-            domain = domain[4:]
-        
-        if len(domain) > max_length - 3:
-            return domain[:max_length-3] + "..."
-        
-        remaining = max_length - len(domain) - 3
-        if len(path) > remaining:
-            # Try to show meaningful path parts
-            if remaining > 10:
-                return domain + path[:remaining] + "..."
-            else:
-                return domain + "/..."
-        
-        return domain + path
+        # Create clickable link with proper HTML formatting
+        clickable_url = f'<link href="{url}" color="blue">{url}</link>'
+        return Paragraph(clickable_url, url_style)
     
     def get_metric_issue(self, analysis, metric):
         """Get specific issue description for a metric"""
@@ -766,7 +758,7 @@ class PDFReportGenerator:
         table_data.append(headers.get(metric, ['Page URL', 'Issue', 'Current Value', 'Status']))
         
         for url, analysis in analyzed_pages.items():
-            display_url = self.truncate_url(url, 40)
+            clickable_url = self.create_clickable_url(url)
             score = analysis['scores'].get(metric, 0)
             status = "PASS" if score >= 80 else "FAIL"
             
@@ -856,7 +848,7 @@ class PDFReportGenerator:
                 issue = "Unknown metric"
                 current_value = "N/A"
             
-            table_data.append([display_url, issue, current_value, status])
+            table_data.append([clickable_url, issue, current_value, status])
         
         return table_data
     
@@ -977,21 +969,14 @@ class PDFReportGenerator:
     
     def create_issues_table(self, data):
         """Create a detailed issues table with proper text wrapping and column management"""
-        # Wrap long text in cells to prevent overflow
+        # Wrap long text in cells to prevent overflow (URLs are already wrapped as clickable paragraphs)
         wrapped_data = []
         for row in data:
             wrapped_row = []
             for i, cell in enumerate(row):
                 if isinstance(cell, str):
-                    # Wrap long text content, especially for URLs and descriptions
-                    if i == 0 and len(cell) > 35:  # URL column
-                        wrapped_cell = Paragraph(cell, ParagraphStyle(
-                            'WrappedURL', 
-                            parent=self.body_style,
-                            fontSize=8,
-                            wordWrap='LTR'
-                        ))
-                    elif i == 1 and len(cell) > 20:  # Issue column
+                    # Wrap long text content for non-URL columns
+                    if i == 1 and len(cell) > 20:  # Issue column
                         wrapped_cell = Paragraph(cell, ParagraphStyle(
                             'WrappedIssue',
                             parent=self.body_style,
@@ -1012,8 +997,8 @@ class PDFReportGenerator:
                 wrapped_row.append(wrapped_cell)
             wrapped_data.append(wrapped_row)
         
-        # Optimize column widths to fit content better
-        table = Table(wrapped_data, colWidths=[2.0*inch, 1.3*inch, 2.4*inch, 0.8*inch])
+        # Optimize column widths to fit content better with more space for URLs
+        table = Table(wrapped_data, colWidths=[2.2*inch, 1.2*inch, 2.3*inch, 0.8*inch])
         
         table_style = [
             ('BACKGROUND', (0, 0), (-1, 0), HexColor('#A23B72')),
@@ -1061,11 +1046,11 @@ class PDFReportGenerator:
         table_data = [['Page URL', 'Score', 'Issue/Status']]
         
         for url, analysis in analyzed_pages.items():
-            display_url = self.truncate_url(url, 50)
+            clickable_url = self.create_clickable_url(url)
             score = analysis['scores'].get(metric, 0)
             issue = self.get_metric_issue(analysis, metric)
             
-            table_data.append([display_url, f"{score}/100", issue])
+            table_data.append([clickable_url, f"{score}/100", issue])
         
         metric_table = self.create_metric_table(table_data, metric)
         story.append(metric_table)
