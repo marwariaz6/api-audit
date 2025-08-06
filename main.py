@@ -640,9 +640,6 @@ class PDFReportGenerator:
         self.add_metric_analysis(story, analyzed_pages, "🔹 Content Quality", "content")
         self.add_metric_analysis(story, analyzed_pages, "🔹 Internal Linking", "internal_links")
 
-        # Add the new section for additional missing images
-        self.add_additional_missing_images(story, analyzed_pages)
-
         # Add comprehensive missing images page at the end
         self.add_missing_images_page(story, analyzed_pages)
 
@@ -1132,12 +1129,58 @@ class PDFReportGenerator:
             story.append(Spacer(1, 10))
 
     def add_missing_images_page(self, story, analyzed_pages):
-        """Add an empty Details page"""
-        # Always add the Details page (empty)
+        """Add Details page with additional missing images"""
+        # Always add the Details page
         story.append(PageBreak())
         
-        # Page title only
+        # Page title
         story.append(Paragraph("Details", self.title_style))
+        story.append(Spacer(1, 20))
+        
+        # Check if there are additional missing images to show
+        has_additional_images = False
+        for url, analysis in analyzed_pages.items():
+            missing_images = analysis.get('missing_alt_images', [])
+            if len(missing_images) > 3:
+                has_additional_images = True
+                break
+
+        if has_additional_images:
+            story.append(Paragraph("Additional Missing Alt Text Images:", self.subheading_style))
+            story.append(Spacer(1, 10))
+
+            for url, analysis in analyzed_pages.items():
+                missing_images = analysis.get('missing_alt_images', [])
+                if len(missing_images) > 3:
+                    additional_images = missing_images[3:]  # Skip first 3 already shown
+
+                    # Create shortened URL for display
+                    domain = urllib.parse.urlparse(url).netloc
+                    path = urllib.parse.urlparse(url).path
+                    if len(path) > 30:
+                        display_path = path[:15] + "..." + path[-12:]
+                    else:
+                        display_path = path if path else "/"
+
+                    page_display = f"{domain}{display_path}"
+                    story.append(Paragraph(f"<b>{page_display}</b> (+{len(additional_images)} more images):", self.body_style))
+
+                    # Show additional missing images
+                    for img_url in additional_images:
+                        if len(img_url) > 80:
+                            truncated_img = img_url[:40] + "..." + img_url[-37:]
+                        else:
+                            truncated_img = img_url
+                        story.append(Paragraph(f"• {truncated_img}", ParagraphStyle(
+                            'AdditionalImage',
+                            parent=self.body_style,
+                            fontSize=8,
+                            leftIndent=20
+                        )))
+
+                    story.append(Spacer(1, 8))
+
+            story.append(Spacer(1, 10))
 
 # Initialize components
 auditor = SEOAuditor()
