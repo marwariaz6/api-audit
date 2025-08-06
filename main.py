@@ -1132,7 +1132,7 @@ class PDFReportGenerator:
             story.append(Spacer(1, 10))
 
     def add_missing_images_page(self, story, analyzed_pages):
-        """Add a comprehensive page listing all missing alt text images"""
+        """Add a single-page verdict section with all missing alt text images"""
         # Check if there are any missing images across all pages
         total_missing_images = 0
         pages_with_missing = {}
@@ -1148,135 +1148,137 @@ class PDFReportGenerator:
             story.append(PageBreak())
             
             # Page title
-            story.append(Paragraph("Missing Alt Text Images URLs", self.title_style))
-            story.append(Spacer(1, 20))
+            story.append(Paragraph("Verdict", self.title_style))
+            story.append(Spacer(1, 12))
             
-            # Summary information
-            story.append(Paragraph(f"<b>Total Images Missing Alt Text:</b> {total_missing_images}", self.body_style))
-            story.append(Paragraph(f"<b>Pages Affected:</b> {len(pages_with_missing)}", self.body_style))
-            story.append(Spacer(1, 20))
+            # Compact summary
+            story.append(Paragraph(f"<b>Missing Alt Text Images:</b> {total_missing_images} | <b>Pages Affected:</b> {len(pages_with_missing)}", self.body_style))
+            story.append(Spacer(1, 10))
             
-            # Instructions
+            # Compact instructions
             instructions_style = ParagraphStyle(
                 'Instructions',
                 parent=self.body_style,
-                fontSize=10,
+                fontSize=9,
                 textColor=HexColor('#666666'),
-                spaceAfter=15,
+                spaceAfter=8,
                 borderWidth=1,
                 borderColor=HexColor('#cccccc'),
-                borderPadding=10,
+                borderPadding=6,
                 backColor=HexColor('#f8f9fa')
             )
             
             story.append(Paragraph(
-                "<b>Instructions:</b> The following images need alt text added to improve accessibility and SEO. "
-                "Add descriptive alt attributes to each image tag that accurately describes the image content.",
+                "<b>Action Required:</b> Add descriptive alt attributes to improve accessibility and SEO.",
                 instructions_style
             ))
             
-            # List images by page
-            for page_num, (url, missing_images) in enumerate(pages_with_missing.items(), 1):
-                # Page header
+            # Compact table with all missing images from all pages
+            table_data = [['Page', 'Missing Alt Images']]
+            
+            for url, missing_images in pages_with_missing.items():
+                # Compact page identifier
                 domain = urllib.parse.urlparse(url).netloc
                 path = urllib.parse.urlparse(url).path
-                page_title = f"Page {page_num}: {domain}{path if path else '/'}"
+                page_display = f"{domain}{path[:15] + '...' if len(path) > 15 else path}"
                 
-                story.append(Paragraph(page_title, self.heading_style))
-                story.append(Paragraph(f"<b>URL:</b> <link href='{url}' color='blue'>{url}</link>", self.body_style))
-                story.append(Paragraph(f"<b>Missing Alt Images:</b> {len(missing_images)}", self.body_style))
-                story.append(Spacer(1, 10))
+                # Format missing images compactly
+                img_list = []
+                for i, img_url in enumerate(missing_images[:5]):  # Limit to 5 per page to save space
+                    filename = img_url.split('/')[-1] if '/' in img_url else img_url
+                    if len(filename) > 25:
+                        filename = filename[:12] + '...' + filename[-10:]
+                    img_list.append(f"{i+1}. {filename}")
                 
-                # Create table for missing images
-                table_data = [['#', 'Image URL', 'File Name', 'Directory']]
+                if len(missing_images) > 5:
+                    img_list.append(f"... +{len(missing_images) - 5} more")
                 
-                for img_num, img_url in enumerate(missing_images, 1):
-                    # Extract filename and directory for easier identification
-                    if img_url:
-                        parsed_path = urllib.parse.urlparse(img_url).path
-                        filename = parsed_path.split('/')[-1] if '/' in parsed_path else img_url
-                        directory = '/'.join(parsed_path.split('/')[:-1]) if '/' in parsed_path else 'Root'
-                        
-                        # Wrap long URLs
-                        if len(img_url) > 60:
-                            wrapped_url = Paragraph(img_url, ParagraphStyle(
-                                'WrappedURL',
-                                parent=self.body_style,
-                                fontSize=8,
-                                wordWrap='LTR'
-                            ))
-                        else:
-                            wrapped_url = img_url
-                        
-                        table_data.append([
-                            str(img_num),
-                            wrapped_url,
-                            filename,
-                            directory
-                        ])
+                img_text = '\n'.join(img_list)
                 
-                # Create and style the table
-                images_table = Table(table_data, colWidths=[0.5*inch, 3.5*inch, 1.5*inch, 1*inch])
-                images_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), HexColor('#A23B72')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), white),
-                    ('ALIGN', (0, 0), (0, -1), 'CENTER'),  # Number column centered
-                    ('ALIGN', (1, 0), (-1, -1), 'LEFT'),   # Other columns left-aligned
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, 0), 9),
-                    ('FONTSIZE', (0, 1), (-1, -1), 8),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-                    ('TOPPADDING', (0, 0), (-1, -1), 4),
-                    ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
-                    ('GRID', (0, 0), (-1, -1), 1, black),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('WORDWRAP', (0, 0), (-1, -1), True)
-                ]))
-                
-                # Alternate row backgrounds
-                for i in range(1, len(table_data)):
-                    if i % 2 == 0:
-                        images_table.setStyle(TableStyle([
-                            ('BACKGROUND', (0, i), (-1, i), HexColor('#f8f9fa'))
-                        ]))
-                
-                story.append(images_table)
-                story.append(Spacer(1, 20))
+                table_data.append([
+                    Paragraph(f"<link href='{url}' color='blue'>{page_display}</link>", ParagraphStyle(
+                        'CompactURL',
+                        parent=self.body_style,
+                        fontSize=8
+                    )),
+                    Paragraph(img_text, ParagraphStyle(
+                        'CompactImages',
+                        parent=self.body_style,
+                        fontSize=7,
+                        leading=8
+                    ))
+                ])
             
-            # Add implementation guidance
-            story.append(Paragraph("Implementation Guidance", self.heading_style))
+            # Create compact table
+            images_table = Table(table_data, colWidths=[2.2*inch, 4.3*inch])
+            images_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#A23B72')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), white),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 1), (-1, -1), 3),
+                ('GRID', (0, 0), (-1, -1), 1, black),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('WORDWRAP', (0, 0), (-1, -1), True)
+            ]))
             
-            guidance_points = [
-                "Add meaningful alt text that describes the image content, not just the filename",
-                "Keep alt text concise but descriptive (typically 50-125 characters)",
-                "For decorative images, use empty alt=\"\" to indicate they're decorative",
-                "For images with text, include the text content in the alt attribute",
-                "For complex images (charts, graphs), consider longer descriptions or captions",
-                "Test with screen readers to ensure alt text provides good user experience"
+            # Alternate row backgrounds
+            for i in range(1, len(table_data)):
+                if i % 2 == 0:
+                    images_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, i), (-1, i), HexColor('#f8f9fa'))
+                    ]))
+            
+            story.append(images_table)
+            story.append(Spacer(1, 12))
+            
+            # Compact implementation guidance
+            story.append(Paragraph("Quick Implementation Guide:", self.subheading_style))
+            
+            compact_guidance = [
+                "• Write descriptive alt text (50-125 characters recommended)",
+                "• Include key content details, not just filenames",
+                "• Use empty alt=\"\" for purely decorative images",
+                "• Test accessibility with screen readers"
             ]
             
-            for point in guidance_points:
-                story.append(Paragraph(f"• {point}", self.body_style))
+            for point in compact_guidance:
+                story.append(Paragraph(point, ParagraphStyle(
+                    'CompactGuidance',
+                    parent=self.body_style,
+                    fontSize=9,
+                    spaceAfter=3
+                )))
             
-            story.append(Spacer(1, 15))
+            story.append(Spacer(1, 8))
             
-            # Add code example
-            story.append(Paragraph("Example Implementation:", self.subheading_style))
+            # Compact code example
             code_style = ParagraphStyle(
                 'CodeExample',
                 parent=self.body_style,
-                fontSize=9,
+                fontSize=8,
                 fontName='Courier',
                 backColor=HexColor('#f4f4f4'),
                 borderWidth=1,
                 borderColor=HexColor('#cccccc'),
-                borderPadding=10,
-                spaceAfter=10
+                borderPadding=6,
+                spaceAfter=5
             )
             
+            story.append(Paragraph("Example:", ParagraphStyle(
+                'ExampleHeader',
+                parent=self.body_style,
+                fontSize=10,
+                fontName='Helvetica-Bold',
+                spaceAfter=3
+            )))
+            
             story.append(Paragraph(
-                'Before: &lt;img src="/images/product1.jpg"&gt;<br/>'
-                'After: &lt;img src="/images/product1.jpg" alt="Red leather sofa with wooden legs in modern living room"&gt;',
+                'Before: &lt;img src="/hero.jpg"&gt;<br/>'
+                'After: &lt;img src="/hero.jpg" alt="Modern office building at sunset"&gt;',
                 code_style
             ))
 
