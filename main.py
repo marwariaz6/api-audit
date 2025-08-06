@@ -211,20 +211,20 @@ class SEOAuditor:
         quality_factor = random.choice(['excellent', 'good', 'poor'])
 
         if quality_factor == 'excellent':
-            base_scores = {'title': 95, 'meta': 90, 'headings': 95, 'images': 85, 'content': 90, 'technical': 95}
+            base_scores = {'title': 95, 'meta': 90, 'headings': 95, 'images': 75, 'content': 90, 'technical': 95}
             word_count = random.randint(800, 1500)
             images_with_alt = 8
-            images_without_alt = 1
+            images_without_alt = 5  # Increased to test additional images section
         elif quality_factor == 'good':
-            base_scores = {'title': 75, 'meta': 70, 'headings': 80, 'images': 65, 'content': 75, 'technical': 80}
+            base_scores = {'title': 75, 'meta': 70, 'headings': 80, 'images': 60, 'content': 75, 'technical': 80}
             word_count = random.randint(400, 800)
             images_with_alt = 5
-            images_without_alt = 3
+            images_without_alt = 6  # Increased to test additional images section
         else:
-            base_scores = {'title': 45, 'meta': 30, 'headings': 50, 'images': 25, 'content': 40, 'technical': 55}
+            base_scores = {'title': 45, 'meta': 30, 'headings': 50, 'images': 20, 'content': 40, 'technical': 55}
             word_count = random.randint(150, 400)
             images_with_alt = 2
-            images_without_alt = 6
+            images_without_alt = 8  # Increased to test additional images section
 
         # Create comprehensive placeholder data
         placeholder_data = {
@@ -253,8 +253,10 @@ class SEOAuditor:
             },
             'resource': {
                 'images': (
-                    [{'alt': f'{page_type} image {i}', 'src': f'image{i}.jpg'} for i in range(images_with_alt)] +
-                    [{'alt': '', 'src': f'missing-alt{i}.jpg'} for i in range(images_without_alt)]
+                    [{'alt': f'{page_type} image {i}', 'src': f'/images/{page_type}/hero-image-{i}.jpg'} for i in range(images_with_alt)] +
+                    [{'alt': '', 'src': f'/wp-content/uploads/2024/gallery/missing-alt-image-{i}.jpg'} for i in range(min(3, images_without_alt))] +
+                    [{'alt': '', 'src': f'/assets/images/products/product-showcase-{i}.png'} for i in range(3, min(6, images_without_alt))] +
+                    [{'alt': '', 'src': f'/media/banners/promotional-banner-{i}-very-long-filename.jpg'} for i in range(6, images_without_alt)]
                 )
             },
             'links': [
