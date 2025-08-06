@@ -333,19 +333,19 @@ class SEOAuditor:
                 page_analysis = self.analyze_seo_data(audit_data)
                 if page_analysis:
                     analyzed_pages[url] = page_analysis
+                    
+                    # Collect scores for averaging
+                    for metric, score in page_analysis['scores'].items():
+                        if metric in all_scores:
+                            all_scores[metric].append(score)
+
+                    # Count issues
+                    overall_stats['total_issues'] += len(page_analysis['issues'])
+                    if page_analysis['issues']:
+                        overall_stats['pages_with_issues'] += 1
             except Exception as e:
                 logger.error(f"Error analyzing data for {url}: {e}")
                 continue
-
-                # Collect scores for averaging
-                for metric, score in page_analysis['scores'].items():
-                    if metric in all_scores:
-                        all_scores[metric].append(score)
-
-                # Count issues
-                overall_stats['total_issues'] += len(page_analysis['issues'])
-                if page_analysis['issues']:
-                    overall_stats['pages_with_issues'] += 1
 
         # Calculate average scores
         for metric, scores in all_scores.items():
