@@ -664,6 +664,9 @@ class PDFReportGenerator:
         # Add comprehensive missing images page at the end
         self.add_missing_images_page(story, analyzed_pages)
 
+        # Add Technical SEO Audit introduction page
+        self.add_technical_seo_intro_page(story)
+
         # Add backlink audit pages
         try:
             self.add_backlink_title_page(story)
@@ -1239,6 +1242,49 @@ class PDFReportGenerator:
                     story.append(Spacer(1, 8))
 
             story.append(Spacer(1, 10))
+
+    def add_technical_seo_intro_page(self, story):
+        """Add Technical SEO Audit introduction page"""
+        story.append(PageBreak())
+
+        # Create custom centered title style for Technical SEO
+        tech_seo_title_style = ParagraphStyle(
+            'TechnicalSEOTitle',
+            parent=self.styles['Heading1'],
+            fontSize=32,
+            spaceAfter=50,
+            textColor=HexColor('#2E86AB'),
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold',
+            spaceBefore=150
+        )
+
+        # Create centered intro paragraph style
+        tech_seo_intro_style = ParagraphStyle(
+            'TechnicalSEOIntro',
+            parent=self.body_style,
+            fontSize=12,
+            spaceAfter=20,
+            alignment=TA_CENTER,
+            leftIndent=80,
+            rightIndent=80,
+            leading=20,
+            spaceBefore=30
+        )
+
+        # Add centered title
+        story.append(Paragraph("🛠️ Technical SEO Audit", tech_seo_title_style))
+
+        # Add introduction paragraph
+        intro_text = ("This section analyzes the technical aspects of your website that directly impact "
+                     "crawlability, indexation, and user experience. Ensuring your website follows "
+                     "technical SEO best practices is crucial for long-term organic growth and "
+                     "visibility in search engines.")
+        
+        story.append(Paragraph(intro_text, tech_seo_intro_style))
+
+        # Add plenty of white space for clean look
+        story.append(Spacer(1, 200))
 
     def add_backlink_title_page(self, story):
         """Add backlink audit title page"""
