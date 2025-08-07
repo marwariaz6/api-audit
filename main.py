@@ -1603,8 +1603,12 @@ class PDFReportGenerator:
         import csv
         import os
         
-        # Create CSV filename
-        csv_filename = f"{filename_base}_referring_domains.csv"
+        # Clean filename base to ensure valid filename
+        clean_filename_base = re.sub(r'[^\w\-_]', '_', filename_base)
+        
+        # Create CSV filename with timestamp to ensure uniqueness
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        csv_filename = f"{clean_filename_base}_referring_domains_{timestamp}.csv"
         csv_filepath = os.path.join('reports', csv_filename)
         
         # Ensure reports directory exists
@@ -1724,7 +1728,7 @@ class PDFReportGenerator:
             if additional_domains:
                 # Create CSV file
                 domain = urllib.parse.urlparse(homepage_url).netloc
-                domain_clean = re.sub(r'[^\w\-_\.]', '_', domain)
+                domain_clean = re.sub(r'[^\w\-_]', '_', domain.replace('.', '_'))
                 csv_filename = self.create_csv_file(all_domains, f"additional_{domain_clean}")
                 
                 # Add download note
