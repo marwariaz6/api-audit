@@ -1847,5 +1847,15 @@ def generate_pdf():
         logger.error(f"Error generating PDF: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/reports/<filename>')
+def serve_report(filename):
+    """Serve report files from the reports directory"""
+    try:
+        reports_dir = os.path.join(os.getcwd(), 'reports')
+        return send_file(os.path.join(reports_dir, filename), as_attachment=True)
+    except Exception as e:
+        logger.error(f"Error serving file {filename}: {e}")
+        return "File not found", 404
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
