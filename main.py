@@ -668,7 +668,15 @@ class PDFReportGenerator:
         try:
             self.add_backlink_title_page(story)
             self.add_backlink_summary_page(story)
-            self.add_referring_domains_page(story, homepage_url)
+            # Get server URL from request context if available
+            server_url = ""
+            try:
+                from flask import request
+                if request:
+                    server_url = request.url_root.rstrip('/')
+            except:
+                pass
+            self.add_referring_domains_page(story, homepage_url, server_url)
         except Exception as e:
             logger.error(f"Error adding backlink pages: {e}")
             # Add fallback message
@@ -1629,7 +1637,7 @@ class PDFReportGenerator:
         
         return csv_filename
 
-    def add_referring_domains_page(self, story, homepage_url):
+    def add_referring_domains_page(self, story, homepage_url, server_url=""):
         """Add Top 20 Referring Domains page with CSV export for additional domains"""
         try:
             story.append(PageBreak())
@@ -1735,9 +1743,15 @@ class PDFReportGenerator:
                 story.append(Paragraph("📁 Complete Domain List", self.subheading_style))
                 story.append(Spacer(1, 8))
                 
+                # Create absolute URL for CSV download  
+                if server_url:
+                    download_url = f"{server_url}/reports/{csv_filename}"
+                else:
+                    download_url = f"/reports/{csv_filename}"
+                
                 download_text = (f"For a complete list of referring domains beyond the top 20 "
                                f"({len(additional_domains)} additional domains), "
-                               f'<link href="/reports/{csv_filename}" color="blue">click here to download the full CSV report</link>.')
+                               f'<link href="{download_url}" color="blue">click here to download the full CSV report</link>.')
                 
                 story.append(Paragraph(download_text, self.body_style))
                 story.append(Spacer(1, 15))
