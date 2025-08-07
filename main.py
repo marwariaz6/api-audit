@@ -1316,16 +1316,7 @@ class PDFReportGenerator:
             ['HTTPS/SSL Validity', '[PASS]', 'Secure certificate installed'],
             ['Canonicalization', '[WARNING]', 'Both www and non-www versions are accessible'],
             ['Redirect Chains', '[PASS]', 'No redirect chains detected'],
-            ['Page Speed (Mobile)', '[WARNING]', 'Loading time exceeds 3 seconds'],
-            ['Page Speed (Desktop)', '[PASS]', 'Good loading performance'],
-            ['Mobile Friendliness', '[PASS]', 'Responsive design implemented'],
-            ['Core Web Vitals', '[WARNING]', 'Largest Contentful Paint needs improvement'],
-            ['Schema Markup', '[FAIL]', 'No structured data detected'],
-            ['Meta Robots Tags', '[PASS]', 'Properly configured for indexing'],
-            ['XML Sitemap Format', '[FAIL]', 'Sitemap contains formatting errors'],
-            ['URL Structure', '[PASS]', 'Clean and SEO-friendly URLs'],
-            ['Duplicate Content', '[WARNING]', 'Some duplicate title tags detected'],
-            ['Internal Link Structure', '[PASS]', 'Good internal linking hierarchy']
+            ['CDN Usage', 'Yes (Cloudflare)', 'Improves speed and global delivery']
         ]
 
         # Create table with proper column widths
@@ -1404,12 +1395,9 @@ class PDFReportGenerator:
         recommendations = [
             "• Create and submit an XML sitemap to Google Search Console and declare it in robots.txt",
             "• Implement proper canonical tags to prevent www/non-www duplicate content issues",
-            "• Add structured data markup (JSON-LD) for better search engine understanding",
-            "• Optimize images and enable compression to improve Core Web Vitals performance",
-            "• Fix XML sitemap formatting errors and ensure all URLs are valid",
-            "• Review and fix duplicate title tags across pages to improve content uniqueness",
-            "• Consider implementing AMP or other performance optimization techniques for mobile",
-            "• Monitor Core Web Vitals regularly and address Largest Contentful Paint issues"
+            "• Consider setting up 301 redirects to consolidate www/non-www versions for better SEO",
+            "• Continue leveraging CDN benefits for improved page load times and user experience",
+            "• Monitor robots.txt file regularly to ensure it remains accessible and properly configured"
         ]
 
         # Create recommendation style
