@@ -1776,27 +1776,26 @@ class PDFReportGenerator:
             
             story.append(Spacer(1, 20))
             
-            # Add domain quality insights
-            story.append(Paragraph("🔍 Domain Quality Insights", self.subheading_style))
+            # Add actionable recommendations
+            story.append(Paragraph("📋 Actionable Recommendations", self.subheading_style))
             story.append(Spacer(1, 8))
             
-            # Calculate statistics
+            # Calculate statistics for context
             dofollow_count = sum(1 for d in top_20_domains if d['type'] == 'DoFollow')
-            nofollow_count = len(top_20_domains) - dofollow_count
-            low_spam = sum(1 for d in top_20_domains if int(d['spam_score'].replace('%', '')) <= 10)
-            medium_spam = sum(1 for d in top_20_domains if 10 < int(d['spam_score'].replace('%', '')) <= 20)
             high_spam = sum(1 for d in top_20_domains if int(d['spam_score'].replace('%', '')) > 20)
             
-            insights = [
-                f"• <b>DoFollow vs NoFollow:</b> {dofollow_count} DoFollow links ({dofollow_count/len(top_20_domains)*100:.1f}%) provide direct SEO value",
-                f"• <b>Low Risk Domains:</b> {low_spam} domains have spam scores ≤10% (excellent quality)",
-                f"• <b>Medium Risk Domains:</b> {medium_spam} domains have spam scores 11-20% (monitor regularly)",
-                f"• <b>High Risk Domains:</b> {high_spam} domains have spam scores >20% (consider disavowing)",
-                "• <b>Recommendation:</b> Focus on building relationships with low-risk, high-authority domains"
+            recommendations = [
+                "• <b>Monitor High-Risk Links:</b> Review domains with spam scores >20% and consider disavowing toxic links",
+                "• <b>Build Quality Relationships:</b> Focus outreach efforts on domains with low spam scores (≤10%)",
+                "• <b>Diversify Link Sources:</b> Seek backlinks from different industries and geographic regions",
+                "• <b>Regular Audits:</b> Conduct monthly backlink audits to identify new toxic links early",
+                "• <b>Content Strategy:</b> Create linkable assets like guides, tools, or research to earn natural backlinks",
+                "• <b>Competitor Analysis:</b> Study competitors' backlink profiles to identify link building opportunities",
+                "• <b>Disavow File:</b> Maintain an updated disavow file for Google Search Console with toxic domains"
             ]
             
-            for insight in insights:
-                story.append(Paragraph(insight, self.body_style))
+            for recommendation in recommendations:
+                story.append(Paragraph(recommendation, self.body_style))
             
             story.append(Spacer(1, 30))
             
