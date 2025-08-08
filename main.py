@@ -3240,4 +3240,6 @@ def serve_report(filename):
         return "File not found", 404
 
 if __name__ == '__main__':
+    # Ensure the reports directory exists
+    os.makedirs('reports', exist_ok=True)
     app.run(host='0.0.0.0', port=5000, debug=True)

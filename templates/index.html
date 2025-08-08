@@ -319,13 +319,21 @@
         document.getElementById('auditForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const url = document.getElementById('urlInput').value;
+            const url = document.getElementById('urlInput').value.trim();
             const maxPages = parseInt(document.getElementById('maxPages').value);
             const submitBtn = document.getElementById('submitBtn');
             const originalText = submitBtn.textContent;
             const loading = document.getElementById('loading');
             const error = document.getElementById('error');
             const results = document.getElementById('resultsSection');
+
+            // Validate URL
+            if (!url) {
+                alert('Please enter a valid URL');
+                return;
+            }
+
+            console.log('Starting audit for:', url, 'with max pages:', maxPages);
 
             // Reset UI
             error.style.display = 'none';
@@ -337,6 +345,7 @@
             submitBtn.disabled = true;
 
             try {
+                console.log('Making request to /generate-pdf');
                 const response = await fetch('/generate-pdf', {
                     method: 'POST',
                     headers: {
@@ -347,6 +356,8 @@
                         max_pages: maxPages
                     })
                 });
+
+                console.log('Response status:', response.status);
 
                 if (response.ok) {
                     // Download the PDF
@@ -382,19 +393,26 @@
                         </div>
                     `;
                 } else {
-                    const data = await response.json();
-                    console.error('PDF generation failed:', data);
+                    let errorMessage = 'Unknown error occurred';
+                    try {
+                        const data = await response.json();
+                        console.error('PDF generation failed:', data);
+                        errorMessage = data.error || errorMessage;
+                    } catch (parseError) {
+                        console.error('Error parsing response:', parseError);
+                        errorMessage = `Server error (${response.status}): ${response.statusText}`;
+                    }
                     
                     loading.style.display = 'none';
                     error.style.display = 'block';
-                    document.getElementById('errorMessage').textContent = data.error || 'Unknown error occurred';
+                    document.getElementById('errorMessage').textContent = errorMessage;
                 }
             } catch (err) {
                 console.error('PDF generation failed:', err);
                 
                 loading.style.display = 'none';
                 error.style.display = 'block';
-                document.getElementById('errorMessage').textContent = 'Network error or server unavailable';
+                document.getElementById('errorMessage').textContent = `Network error: ${err.message}`;
             } finally {
                 // Reset button
                 submitBtn.textContent = originalText;
