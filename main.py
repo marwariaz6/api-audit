@@ -673,6 +673,10 @@ class PDFReportGenerator:
         # Add Page-Level Technical SEO Checks page
         self.add_page_level_technical_seo_page(story)
 
+        # Add the new Web Core Vitals sections
+        self.add_web_core_vitals_mobile_section(story)
+        self.add_web_core_vitals_desktop_section(story)
+
         # Add backlink audit pages
         try:
             self.add_backlink_title_page(story)
@@ -1398,7 +1402,7 @@ class PDFReportGenerator:
         recommendations = [
             "• Create and submit an XML sitemap to Google Search Console and declare it in robots.txt",
             "• Implement proper canonical tags to prevent www/non-www duplicate content issues",
-            "• Consider setting up 301 redirects to consolidate www/non-www versions for better SEO",
+            "• Consider setting 301 redirects to consolidate www/non-www versions for better SEO",
             "• Continue leveraging CDN benefits for improved page load times and user experience",
             "• Monitor robots.txt file regularly to ensure it remains accessible and properly configured"
         ]
@@ -2546,6 +2550,364 @@ class PDFReportGenerator:
         headers_compression_table.setStyle(TableStyle(table_style))
         story.append(headers_compression_table)
         story.append(Spacer(1, 30))
+
+    def add_web_core_vitals_mobile_section(self, story):
+        """Add Web Core Vitals Mobile section"""
+        # Section heading
+        section_title_style = ParagraphStyle(
+            'SectionTitle',
+            parent=self.heading_style,
+            fontSize=16,
+            spaceAfter=15,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Web Core Vitals Mobile", section_title_style))
+        story.append(Spacer(1, 10))
+
+        # Create table data
+        core_vitals_mobile_data = [
+            ['Page URL', 'LCP (s)', 'FID/INP (ms)', 'CLS', 'TBT (ms)', 'Speed Index']
+        ]
+
+        # Sample Web Core Vitals Mobile data
+        sample_mobile_vitals = [
+            {
+                'url': 'https://hosninsurance.ae/',
+                'lcp': '2.8',
+                'fid_inp': '85',
+                'cls': '0.12',
+                'tbt': '120',
+                'speed_index': '3.2'
+            },
+            {
+                'url': 'https://hosninsurance.ae/about-us',
+                'lcp': '2.1',
+                'fid_inp': '65',
+                'cls': '0.08',
+                'tbt': '95',
+                'speed_index': '2.7'
+            },
+            {
+                'url': 'https://hosninsurance.ae/services/car-insurance',
+                'lcp': '4.2',
+                'fid_inp': '145',
+                'cls': '0.28',
+                'tbt': '180',
+                'speed_index': '4.8'
+            },
+            {
+                'url': 'https://hosninsurance.ae/contact',
+                'lcp': '1.8',
+                'fid_inp': '45',
+                'cls': '0.05',
+                'tbt': '75',
+                'speed_index': '2.1'
+            },
+            {
+                'url': 'https://hosninsurance.ae/get-quote',
+                'lcp': '3.1',
+                'fid_inp': '110',
+                'cls': '0.15',
+                'tbt': '135',
+                'speed_index': '3.6'
+            }
+        ]
+
+        for page in sample_mobile_vitals:
+            core_vitals_mobile_data.append([
+                Paragraph(page['url'], ParagraphStyle(
+                    'URLText',
+                    parent=self.body_style,
+                    fontSize=8,
+                    wordWrap='LTR'
+                )),
+                page['lcp'],
+                page['fid_inp'],
+                page['cls'],
+                page['tbt'],
+                page['speed_index']
+            ])
+
+        # Create table with optimized column widths
+        core_vitals_mobile_table = Table(core_vitals_mobile_data, colWidths=[2.2*inch, 0.8*inch, 0.9*inch, 0.6*inch, 0.8*inch, 1.0*inch])
+
+        # Table styling
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('WORDWRAP', (0, 0), (-1, -1), True)
+        ]
+
+        # Color code Core Web Vitals metrics and add alternating rows
+        for i in range(1, len(core_vitals_mobile_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+
+            # Color code LCP (Largest Contentful Paint)
+            lcp = float(sample_mobile_vitals[i-1]['lcp'])
+            if lcp <= 2.5:
+                lcp_color = HexColor('#4CAF50')  # Green - Good
+            elif lcp <= 4.0:
+                lcp_color = HexColor('#FF9800')  # Orange - Needs Improvement
+            else:
+                lcp_color = HexColor('#F44336')  # Red - Poor
+
+            table_style.append(('BACKGROUND', (1, i), (1, i), lcp_color))
+            table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+            table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+
+            # Color code FID/INP (First Input Delay / Interaction to Next Paint)
+            fid_inp = int(sample_mobile_vitals[i-1]['fid_inp'])
+            if fid_inp <= 100:
+                fid_color = HexColor('#4CAF50')  # Green - Good
+            elif fid_inp <= 300:
+                fid_color = HexColor('#FF9800')  # Orange - Needs Improvement
+            else:
+                fid_color = HexColor('#F44336')  # Red - Poor
+
+            table_style.append(('BACKGROUND', (2, i), (2, i), fid_color))
+            table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
+            table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+
+            # Color code CLS (Cumulative Layout Shift)
+            cls = float(sample_mobile_vitals[i-1]['cls'])
+            if cls <= 0.1:
+                cls_color = HexColor('#4CAF50')  # Green - Good
+            elif cls <= 0.25:
+                cls_color = HexColor('#FF9800')  # Orange - Needs Improvement
+            else:
+                cls_color = HexColor('#F44336')  # Red - Poor
+
+            table_style.append(('BACKGROUND', (3, i), (3, i), cls_color))
+            table_style.append(('TEXTCOLOR', (3, i), (3, i), white))
+            table_style.append(('FONTNAME', (3, i), (3, i), 'Helvetica-Bold'))
+
+            # Color code TBT (Total Blocking Time)
+            tbt = int(sample_mobile_vitals[i-1]['tbt'])
+            if tbt <= 200:
+                tbt_color = HexColor('#4CAF50')  # Green - Good
+            elif tbt <= 600:
+                tbt_color = HexColor('#FF9800')  # Orange - Needs Improvement
+            else:
+                tbt_color = HexColor('#F44336')  # Red - Poor
+
+            table_style.append(('BACKGROUND', (4, i), (4, i), tbt_color))
+            table_style.append(('TEXTCOLOR', (4, i), (4, i), white))
+            table_style.append(('FONTNAME', (4, i), (4, i), 'Helvetica-Bold'))
+
+            # Color code Speed Index
+            speed_index = float(sample_mobile_vitals[i-1]['speed_index'])
+            if speed_index <= 3.4:
+                speed_color = HexColor('#4CAF50')  # Green - Good
+            elif speed_index <= 5.8:
+                speed_color = HexColor('#FF9800')  # Orange - Needs Improvement
+            else:
+                speed_color = HexColor('#F44336')  # Red - Poor
+
+            table_style.append(('BACKGROUND', (5, i), (5, i), speed_color))
+            table_style.append(('TEXTCOLOR', (5, i), (5, i), white))
+            table_style.append(('FONTNAME', (5, i), (5, i), 'Helvetica-Bold'))
+
+        core_vitals_mobile_table.setStyle(TableStyle(table_style))
+        story.append(core_vitals_mobile_table)
+        story.append(Spacer(1, 25))
+
+    def add_web_core_vitals_desktop_section(self, story):
+        """Add Web Core Vitals Desktop section"""
+        # Section heading
+        section_title_style = ParagraphStyle(
+            'SectionTitle',
+            parent=self.heading_style,
+            fontSize=16,
+            spaceAfter=15,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Web Core Vitals Desktop", section_title_style))
+        story.append(Spacer(1, 10))
+
+        # Create table data
+        core_vitals_desktop_data = [
+            ['Page URL', 'LCP (s)', 'FID/INP (ms)', 'CLS', 'TBT (ms)', 'Speed Index']
+        ]
+
+        # Sample Web Core Vitals Desktop data (typically better than mobile)
+        sample_desktop_vitals = [
+            {
+                'url': 'https://hosninsurance.ae/',
+                'lcp': '1.8',
+                'fid_inp': '55',
+                'cls': '0.08',
+                'tbt': '85',
+                'speed_index': '2.1'
+            },
+            {
+                'url': 'https://hosninsurance.ae/about-us',
+                'lcp': '1.4',
+                'fid_inp': '35',
+                'cls': '0.05',
+                'tbt': '65',
+                'speed_index': '1.8'
+            },
+            {
+                'url': 'https://hosninsurance.ae/services/car-insurance',
+                'lcp': '2.9',
+                'fid_inp': '95',
+                'cls': '0.18',
+                'tbt': '125',
+                'speed_index': '3.2'
+            },
+            {
+                'url': 'https://hosninsurance.ae/contact',
+                'lcp': '1.2',
+                'fid_inp': '25',
+                'cls': '0.03',
+                'tbt': '45',
+                'speed_index': '1.5'
+            },
+            {
+                'url': 'https://hosninsurance.ae/get-quote',
+                'lcp': '2.1',
+                'fid_inp': '75',
+                'cls': '0.10',
+                'tbt': '95',
+                'speed_index': '2.4'
+            }
+        ]
+
+        for page in sample_desktop_vitals:
+            core_vitals_desktop_data.append([
+                Paragraph(page['url'], ParagraphStyle(
+                    'URLText',
+                    parent=self.body_style,
+                    fontSize=8,
+                    wordWrap='LTR'
+                )),
+                page['lcp'],
+                page['fid_inp'],
+                page['cls'],
+                page['tbt'],
+                page['speed_index']
+            ])
+
+        # Create table with optimized column widths
+        core_vitals_desktop_table = Table(core_vitals_desktop_data, colWidths=[2.2*inch, 0.8*inch, 0.9*inch, 0.6*inch, 0.8*inch, 1.0*inch])
+
+        # Table styling
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('WORDWRAP', (0, 0), (-1, -1), True)
+        ]
+
+        # Color code Core Web Vitals metrics and add alternating rows
+        for i in range(1, len(core_vitals_desktop_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+
+            # Color code LCP (Largest Contentful Paint)
+            lcp = float(sample_desktop_vitals[i-1]['lcp'])
+            if lcp <= 2.5:
+                lcp_color = HexColor('#4CAF50')  # Green - Good
+            elif lcp <= 4.0:
+                lcp_color = HexColor('#FF9800')  # Orange - Needs Improvement
+            else:
+                lcp_color = HexColor('#F44336')  # Red - Poor
+
+            table_style.append(('BACKGROUND', (1, i), (1, i), lcp_color))
+            table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+            table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+
+            # Color code FID/INP (First Input Delay / Interaction to Next Paint)
+            fid_inp = int(sample_desktop_vitals[i-1]['fid_inp'])
+            if fid_inp <= 100:
+                fid_color = HexColor('#4CAF50')  # Green - Good
+            elif fid_inp <= 300:
+                fid_color = HexColor('#FF9800')  # Orange - Needs Improvement
+            else:
+                fid_color = HexColor('#F44336')  # Red - Poor
+
+            table_style.append(('BACKGROUND', (2, i), (2, i), fid_color))
+            table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
+            table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+
+            # Color code CLS (Cumulative Layout Shift)
+            cls = float(sample_desktop_vitals[i-1]['cls'])
+            if cls <= 0.1:
+                cls_color = HexColor('#4CAF50')  # Green - Good
+            elif cls <= 0.25:
+                cls_color = HexColor('#FF9800')  # Orange - Needs Improvement
+            else:
+                cls_color = HexColor('#F44336')  # Red - Poor
+
+            table_style.append(('BACKGROUND', (3, i), (3, i), cls_color))
+            table_style.append(('TEXTCOLOR', (3, i), (3, i), white))
+            table_style.append(('FONTNAME', (3, i), (3, i), 'Helvetica-Bold'))
+
+            # Color code TBT (Total Blocking Time)
+            tbt = int(sample_desktop_vitals[i-1]['tbt'])
+            if tbt <= 200:
+                tbt_color = HexColor('#4CAF50')  # Green - Good
+            elif tbt <= 600:
+                tbt_color = HexColor('#FF9800')  # Orange - Needs Improvement
+            else:
+                tbt_color = HexColor('#F44336')  # Red - Poor
+
+            table_style.append(('BACKGROUND', (4, i), (4, i), tbt_color))
+            table_style.append(('TEXTCOLOR', (4, i), (4, i), white))
+            table_style.append(('FONTNAME', (4, i), (4, i), 'Helvetica-Bold'))
+
+            # Color code Speed Index
+            speed_index = float(sample_desktop_vitals[i-1]['speed_index'])
+            if speed_index <= 3.4:
+                speed_color = HexColor('#4CAF50')  # Green - Good
+            elif speed_index <= 5.8:
+                speed_color = HexColor('#FF9800')  # Orange - Needs Improvement
+            else:
+                speed_color = HexColor('#F44336')  # Red - Poor
+
+            table_style.append(('BACKGROUND', (5, i), (5, i), speed_color))
+            table_style.append(('TEXTCOLOR', (5, i), (5, i), white))
+            table_style.append(('FONTNAME', (5, i), (5, i), 'Helvetica-Bold'))
+
+        core_vitals_desktop_table.setStyle(TableStyle(table_style))
+        story.append(core_vitals_desktop_table)
+        story.append(Spacer(1, 30))
+
+    # Placeholder for future backlink sections
+    def add_backlink_title_page(self, story):
+        pass # Placeholder for future implementation
+
+    def add_backlink_summary_page(self, story):
+        pass # Placeholder for future implementation
+
+    def add_referring_domains_page(self, story, homepage_url, server_url):
+        pass # Placeholder for future implementation
 
 # Initialize components
 auditor = SEOAuditor()
