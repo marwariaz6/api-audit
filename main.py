@@ -661,10 +661,23 @@ class PDFReportGenerator:
         self.add_metric_analysis(story, analyzed_pages, "🔹 Content Quality", "content")
         self.add_metric_analysis(story, analyzed_pages, "🔹 Internal Linking", "internal_links")
 
-        # Add comprehensive missing images page at the end
+        # Add comprehensive missing images page at the end of On Page section
         self.add_missing_images_page(story, analyzed_pages)
 
-        # Add backlink audit pages (before technical SEO)
+        # Add Technical SEO Audit section
+        self.add_technical_seo_intro_page(story)
+
+        # Add Domain-Level Technical SEO Summary page
+        self.add_domain_level_audit_page(story)
+
+        # Add Page-Level Technical SEO Checks page
+        self.add_page_level_technical_seo_page(story)
+
+        # Add the Web Core Vitals sections
+        self.add_web_core_vitals_mobile_section(story)
+        self.add_web_core_vitals_desktop_section(story)
+
+        # Add Backlink Audit Report section (last)
         try:
             self.add_backlink_title_page(story)
             self.add_backlink_summary_page(story)
@@ -681,19 +694,6 @@ class PDFReportGenerator:
             logger.error(f"Error adding backlink pages: {e}")
             # Add fallback message
             story.append(Paragraph("Backlink audit data temporarily unavailable", self.body_style))
-
-        # Add Technical SEO Audit introduction page
-        self.add_technical_seo_intro_page(story)
-
-        # Add Domain-Level Technical SEO Summary page
-        self.add_domain_level_audit_page(story)
-
-        # Add Page-Level Technical SEO Checks page
-        self.add_page_level_technical_seo_page(story)
-
-        # Add the new Web Core Vitals sections
-        self.add_web_core_vitals_mobile_section(story)
-        self.add_web_core_vitals_desktop_section(story)
 
         try:
             doc.build(story)
