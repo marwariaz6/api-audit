@@ -2942,7 +2942,7 @@ class PDFReportGenerator:
         story.append(Spacer(1, 200))
 
     def add_backlink_summary_page(self, story):
-        """Add backlink audit summary page"""
+        """Add comprehensive backlink audit summary page with original structure"""
         story.append(PageBreak())
 
         # Create title for backlink summary
@@ -2960,7 +2960,7 @@ class PDFReportGenerator:
         # Add title
         story.append(Paragraph("Backlink Profile Summary", backlink_summary_title_style))
 
-        # Create summary metrics table
+        # Create comprehensive summary metrics table
         summary_data = [
             ['Metric', 'Value', 'Status'],
             ['Total Backlinks', '2,847', 'Good'],
@@ -2970,7 +2970,11 @@ class PDFReportGenerator:
             ['Spam Score', '2%', 'Excellent'],
             ['Follow Links', '2,156 (76%)', 'Good'],
             ['NoFollow Links', '691 (24%)', 'Normal'],
-            ['Anchor Text Diversity', '78%', 'Excellent']
+            ['Anchor Text Diversity', '78%', 'Excellent'],
+            ['New vs Lost Links (30 days)', '+24 / -8', 'Good'],
+            ['Toxic Links', '12 (0.4%)', 'Excellent'],
+            ['Brand Mentions', '156', 'Good'],
+            ['Link Velocity', '+18/month', 'Normal']
         ]
 
         # Create table
@@ -3018,6 +3022,18 @@ class PDFReportGenerator:
         story.append(summary_table)
         story.append(Spacer(1, 30))
 
+        # Add Anchor Text Distribution section
+        self.add_anchor_text_distribution_section(story)
+        
+        # Add Backlink Types Distribution section
+        self.add_backlink_types_distribution_section(story)
+        
+        # Add Link Quality Analysis section
+        self.add_link_quality_analysis_section(story)
+        
+        # Add Competitor Backlink Comparison section
+        self.add_competitor_backlink_comparison_section(story)
+
         # Add key insights section
         insights_style = ParagraphStyle(
             'InsightsTitle',
@@ -3028,17 +3044,347 @@ class PDFReportGenerator:
             fontName='Helvetica-Bold'
         )
 
-        story.append(Paragraph("Key Insights", insights_style))
+        story.append(Paragraph("Key Insights & Recommendations", insights_style))
 
         insights = [
-            "• Strong referring domain count indicates good link diversity",
+            "• Strong referring domain count (284) indicates good link diversity",
             "• Low spam score (2%) shows healthy link profile quality",
             "• Good balance of follow vs. nofollow links for natural link profile",
-            "• High anchor text diversity reduces over-optimization risk",
-            "• Domain authority of 45 has room for improvement through quality link building"
+            "• High anchor text diversity (78%) reduces over-optimization risk",
+            "• Domain authority of 45 has room for improvement through quality link building",
+            "• Positive link velocity shows growing backlink profile",
+            "• Focus on acquiring more high-authority editorial links",
+            "• Monitor and disavow the 12 identified toxic links"
         ]
 
         for insight in insights:
+            story.append(Paragraph(insight, self.body_style))
+
+        story.append(Spacer(1, 30))
+
+    def add_anchor_text_distribution_section(self, story):
+        """Add Anchor Text Distribution section"""
+        story.append(PageBreak())
+        
+        # Section heading
+        anchor_text_title_style = ParagraphStyle(
+            'AnchorTextTitle',
+            parent=self.heading_style,
+            fontSize=16,
+            spaceAfter=15,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Anchor Text Distribution", anchor_text_title_style))
+        story.append(Spacer(1, 10))
+
+        # Create anchor text distribution table
+        anchor_text_data = [
+            ['Anchor Text Type', 'Count', 'Percentage', 'Risk Level'],
+            ['Brand/Exact Match', '1,142', '40.1%', 'Low'],
+            ['Partial Match', '569', '20.0%', 'Medium'],
+            ['Generic (Click Here, More)', '427', '15.0%', 'Low'],
+            ['Naked URL', '341', '12.0%', 'Low'],
+            ['Long Tail Keywords', '228', '8.0%', 'Low'],
+            ['Over-optimized Keywords', '85', '3.0%', 'High'],
+            ['Random/Other', '55', '1.9%', 'Low']
+        ]
+
+        # Create table
+        anchor_text_table = Table(anchor_text_data, colWidths=[2.2*inch, 1.0*inch, 1.2*inch, 1.0*inch])
+
+        # Table styling
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('WORDWRAP', (0, 0), (-1, -1), True)
+        ]
+
+        # Color code risk levels
+        risk_colors = {
+            'Low': HexColor('#4CAF50'),
+            'Medium': HexColor('#FF9800'),
+            'High': HexColor('#F44336')
+        }
+
+        for i in range(1, len(anchor_text_data)):
+            risk_level = anchor_text_data[i][3]
+            if risk_level in risk_colors:
+                color = risk_colors[risk_level]
+                table_style.append(('BACKGROUND', (3, i), (3, i), color))
+                table_style.append(('TEXTCOLOR', (3, i), (3, i), white))
+                table_style.append(('FONTNAME', (3, i), (3, i), 'Helvetica-Bold'))
+
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                bg_color = HexColor('#f8f9fa')
+                table_style.append(('BACKGROUND', (0, i), (2, i), bg_color))
+
+        anchor_text_table.setStyle(TableStyle(table_style))
+        story.append(anchor_text_table)
+        story.append(Spacer(1, 20))
+
+        # Add recommendations
+        story.append(Paragraph("Anchor Text Recommendations:", self.subheading_style))
+        anchor_recommendations = [
+            "• Reduce over-optimized keyword anchors (currently 3%) to avoid penalties",
+            "• Maintain healthy brand/exact match ratio (40.1% is optimal)",
+            "• Increase long-tail keyword anchors for better keyword diversity",
+            "• Continue using natural, generic anchors for link naturalness"
+        ]
+
+        for rec in anchor_recommendations:
+            story.append(Paragraph(rec, self.body_style))
+
+        story.append(Spacer(1, 20))
+
+    def add_backlink_types_distribution_section(self, story):
+        """Add Backlink Types Distribution section"""
+        # Section heading
+        backlink_types_title_style = ParagraphStyle(
+            'BacklinkTypesTitle',
+            parent=self.heading_style,
+            fontSize=16,
+            spaceAfter=15,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Backlink Types Distribution", backlink_types_title_style))
+        story.append(Spacer(1, 10))
+
+        # Create backlink types table
+        backlink_types_data = [
+            ['Link Type', 'Count', 'Percentage', 'Quality Score'],
+            ['Editorial Links', '1,138', '40.0%', 'Excellent'],
+            ['Directory Listings', '569', '20.0%', 'Good'],
+            ['Resource Page Links', '427', '15.0%', 'Good'],
+            ['Guest Post Links', '341', '12.0%', 'Medium'],
+            ['Forum/Comment Links', '228', '8.0%', 'Low'],
+            ['Social Media Links', '114', '4.0%', 'Low'],
+            ['Footer/Sidebar Links', '30', '1.0%', 'Low']
+        ]
+
+        # Create table
+        backlink_types_table = Table(backlink_types_data, colWidths=[2.0*inch, 1.0*inch, 1.2*inch, 1.2*inch])
+
+        # Table styling
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('WORDWRAP', (0, 0), (-1, -1), True)
+        ]
+
+        # Color code quality scores
+        quality_colors = {
+            'Excellent': HexColor('#4CAF50'),
+            'Good': HexColor('#8BC34A'),
+            'Medium': HexColor('#FF9800'),
+            'Low': HexColor('#FFC107')
+        }
+
+        for i in range(1, len(backlink_types_data)):
+            quality = backlink_types_data[i][3]
+            if quality in quality_colors:
+                color = quality_colors[quality]
+                table_style.append(('BACKGROUND', (3, i), (3, i), color))
+                table_style.append(('TEXTCOLOR', (3, i), (3, i), white))
+                table_style.append(('FONTNAME', (3, i), (3, i), 'Helvetica-Bold'))
+
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                bg_color = HexColor('#f8f9fa')
+                table_style.append(('BACKGROUND', (0, i), (2, i), bg_color))
+
+        backlink_types_table.setStyle(TableStyle(table_style))
+        story.append(backlink_types_table)
+        story.append(Spacer(1, 20))
+
+        # Add recommendations
+        story.append(Paragraph("Link Building Strategy:", self.subheading_style))
+        strategy_recommendations = [
+            "• Excellent editorial link ratio (40%) - maintain this through quality content",
+            "• Focus on acquiring more resource page links for sustainable growth",
+            "• Reduce reliance on forum/comment links (8%) - focus on higher quality sources",
+            "• Continue guest posting but ensure high-quality, relevant publications only"
+        ]
+
+        for rec in strategy_recommendations:
+            story.append(Paragraph(rec, self.body_style))
+
+        story.append(Spacer(1, 20))
+
+    def add_link_quality_analysis_section(self, story):
+        """Add Link Quality Analysis section"""
+        # Section heading
+        quality_title_style = ParagraphStyle(
+            'QualityTitle',
+            parent=self.heading_style,
+            fontSize=16,
+            spaceAfter=15,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Link Quality Analysis", quality_title_style))
+        story.append(Spacer(1, 10))
+
+        # Create quality metrics table
+        quality_data = [
+            ['Quality Metric', 'Count', 'Percentage', 'Assessment'],
+            ['High Authority Links (DA 60+)', '456', '16.0%', 'Good'],
+            ['Medium Authority Links (DA 30-59)', '1,707', '60.0%', 'Excellent'],
+            ['Low Authority Links (DA <30)', '684', '24.0%', 'Normal'],
+            ['Links from Relevant Industries', '1,993', '70.0%', 'Excellent'],
+            ['Links from Different Countries', '142', '5.0%', 'Good'],
+            ['Links with Good Page Context', '2,278', '80.0%', 'Excellent'],
+            ['Recently Acquired Links (30 days)', '24', '0.8%', 'Normal']
+        ]
+
+        # Create table
+        quality_table = Table(quality_data, colWidths=[2.5*inch, 1.0*inch, 1.2*inch, 1.0*inch])
+
+        # Table styling
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('WORDWRAP', (0, 0), (-1, -1), True)
+        ]
+
+        # Color code assessments
+        assessment_colors = {
+            'Excellent': HexColor('#4CAF50'),
+            'Good': HexColor('#8BC34A'),
+            'Normal': HexColor('#FF9800'),
+            'Poor': HexColor('#F44336')
+        }
+
+        for i in range(1, len(quality_data)):
+            assessment = quality_data[i][3]
+            if assessment in assessment_colors:
+                color = assessment_colors[assessment]
+                table_style.append(('BACKGROUND', (3, i), (3, i), color))
+                table_style.append(('TEXTCOLOR', (3, i), (3, i), white))
+                table_style.append(('FONTNAME', (3, i), (3, i), 'Helvetica-Bold'))
+
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                bg_color = HexColor('#f8f9fa')
+                table_style.append(('BACKGROUND', (0, i), (2, i), bg_color))
+
+        quality_table.setStyle(TableStyle(table_style))
+        story.append(quality_table)
+        story.append(Spacer(1, 20))
+
+    def add_competitor_backlink_comparison_section(self, story):
+        """Add Competitor Backlink Comparison section"""
+        # Section heading
+        competitor_title_style = ParagraphStyle(
+            'CompetitorTitle',
+            parent=self.heading_style,
+            fontSize=16,
+            spaceAfter=15,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Competitor Backlink Comparison", competitor_title_style))
+        story.append(Spacer(1, 10))
+
+        # Create competitor comparison table
+        competitor_data = [
+            ['Website', 'Total Backlinks', 'Referring Domains', 'Domain Authority', 'Gap Analysis'],
+            ['Your Website', '2,847', '284', '45', 'Baseline'],
+            ['competitor1-insurance.ae', '4,256', '398', '52', '+114 domains ahead'],
+            ['uae-insurance-leader.com', '3,124', '341', '48', '+57 domains ahead'],
+            ['insurance-expert.ae', '1,893', '201', '41', '-83 domains behind'],
+            ['gulf-insurance.net', '2,156', '245', '43', '-39 domains behind']
+        ]
+
+        # Create table
+        competitor_table = Table(competitor_data, colWidths=[2.0*inch, 1.2*inch, 1.2*inch, 1.0*inch, 1.4*inch])
+
+        # Table styling
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('WORDWRAP', (0, 0), (-1, -1), True)
+        ]
+
+        # Highlight your website row
+        table_style.append(('BACKGROUND', (0, 1), (-1, 1), HexColor('#E3F2FD')))
+        table_style.append(('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'))
+
+        # Color code gap analysis
+        for i in range(2, len(competitor_data)):
+            gap_text = competitor_data[i][4]
+            if 'ahead' in gap_text:
+                gap_color = HexColor('#F44336')  # Red - competitors ahead
+            elif 'behind' in gap_text:
+                gap_color = HexColor('#4CAF50')  # Green - competitors behind
+            else:
+                gap_color = HexColor('#E0E0E0')  # Gray - baseline
+
+            table_style.append(('BACKGROUND', (4, i), (4, i), gap_color))
+            table_style.append(('TEXTCOLOR', (4, i), (4, i), white))
+            table_style.append(('FONTNAME', (4, i), (4, i), 'Helvetica-Bold'))
+
+        competitor_table.setStyle(TableStyle(table_style))
+        story.append(competitor_table)
+        story.append(Spacer(1, 20))
+
+        # Add competitive insights
+        story.append(Paragraph("Competitive Insights:", self.subheading_style))
+        competitive_insights = [
+            "• Two main competitors have significantly more referring domains",
+            "• Opportunity to close the gap with competitor1-insurance.ae (+114 domains)",
+            "• Your domain authority (45) is competitive but has room for improvement",
+            "• Focus on acquiring links from sources your competitors are missing",
+            "• Analyze competitor backlink profiles to identify link building opportunities"
+        ]
+
+        for insight in competitive_insights:
             story.append(Paragraph(insight, self.body_style))
 
         story.append(Spacer(1, 30))
