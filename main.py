@@ -1452,6 +1452,8 @@ class PDFReportGenerator:
         self.add_https_security_section(story)
         self.add_structured_data_section(story)
         self.add_canonicalization_section(story)
+        self.add_images_media_section(story)
+        self.add_http_headers_compression_section(story)
 
     def add_crawlability_indexability_section(self, story):
         """Add Page Crawlability & Indexability section"""
@@ -2252,6 +2254,297 @@ class PDFReportGenerator:
 
         canonical_table.setStyle(TableStyle(table_style))
         story.append(canonical_table)
+        story.append(Spacer(1, 30))
+
+    def add_images_media_section(self, story):
+        """Add Images & Media section"""
+        # Section heading
+        section_title_style = ParagraphStyle(
+            'SectionTitle',
+            parent=self.heading_style,
+            fontSize=16,
+            spaceAfter=15,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Images & Media", section_title_style))
+        story.append(Spacer(1, 10))
+
+        # Create table data
+        images_media_data = [
+            ['Page URL', 'Missing ALT Attributes', 'Broken Images', 'Image File Size Optimization', 'Next-Gen Formats (WebP/AVIF)']
+        ]
+
+        # Sample images & media data
+        sample_images_media = [
+            {
+                'url': 'https://hosninsurance.ae/',
+                'missing_alt': '3',
+                'broken_images': 'None',
+                'file_size_optimization': 'Pass',
+                'next_gen_formats': 'Yes'
+            },
+            {
+                'url': 'https://hosninsurance.ae/about-us',
+                'missing_alt': '1',
+                'broken_images': 'None',
+                'file_size_optimization': 'Pass',
+                'next_gen_formats': 'No'
+            },
+            {
+                'url': 'https://hosninsurance.ae/services/car-insurance',
+                'missing_alt': '5',
+                'broken_images': '2',
+                'file_size_optimization': 'Fail',
+                'next_gen_formats': 'No'
+            },
+            {
+                'url': 'https://hosninsurance.ae/contact',
+                'missing_alt': 'None',
+                'broken_images': 'None',
+                'file_size_optimization': 'Pass',
+                'next_gen_formats': 'Yes'
+            },
+            {
+                'url': 'https://hosninsurance.ae/get-quote',
+                'missing_alt': '2',
+                'broken_images': '1',
+                'file_size_optimization': 'Fail',
+                'next_gen_formats': 'No'
+            }
+        ]
+
+        for page in sample_images_media:
+            images_media_data.append([
+                Paragraph(page['url'], ParagraphStyle(
+                    'URLText',
+                    parent=self.body_style,
+                    fontSize=8,
+                    wordWrap='LTR'
+                )),
+                page['missing_alt'],
+                page['broken_images'],
+                page['file_size_optimization'],
+                page['next_gen_formats']
+            ])
+
+        # Create table with optimized column widths
+        images_media_table = Table(images_media_data, colWidths=[2.2*inch, 1.2*inch, 1.0*inch, 1.3*inch, 1.1*inch])
+
+        # Table styling
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('WORDWRAP', (0, 0), (-1, -1), True)
+        ]
+
+        # Color code image metrics and add alternating rows
+        for i in range(1, len(images_media_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+
+            # Color code missing alt attributes
+            missing_alt = sample_images_media[i-1]['missing_alt']
+            if missing_alt == 'None':
+                alt_color = HexColor('#4CAF50')  # Green
+                text_color = white
+            else:
+                alt_color = HexColor('#F44336')  # Red
+                text_color = white
+
+            table_style.append(('BACKGROUND', (1, i), (1, i), alt_color))
+            table_style.append(('TEXTCOLOR', (1, i), (1, i), text_color))
+            table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+
+            # Color code broken images
+            broken_images = sample_images_media[i-1]['broken_images']
+            if broken_images == 'None':
+                broken_color = HexColor('#4CAF50')  # Green
+                text_color = white
+            else:
+                broken_color = HexColor('#F44336')  # Red
+                text_color = white
+
+            table_style.append(('BACKGROUND', (2, i), (2, i), broken_color))
+            table_style.append(('TEXTCOLOR', (2, i), (2, i), text_color))
+            table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+
+            # Color code file size optimization
+            file_size_opt = sample_images_media[i-1]['file_size_optimization']
+            if file_size_opt == 'Pass':
+                size_color = HexColor('#4CAF50')  # Green
+                text_color = white
+            else:
+                size_color = HexColor('#F44336')  # Red
+                text_color = white
+
+            table_style.append(('BACKGROUND', (3, i), (3, i), size_color))
+            table_style.append(('TEXTCOLOR', (3, i), (3, i), text_color))
+            table_style.append(('FONTNAME', (3, i), (3, i), 'Helvetica-Bold'))
+
+            # Color code next-gen formats
+            next_gen = sample_images_media[i-1]['next_gen_formats']
+            if next_gen == 'Yes':
+                next_gen_color = HexColor('#4CAF50')  # Green
+                text_color = white
+            else:
+                next_gen_color = HexColor('#F44336')  # Red
+                text_color = white
+
+            table_style.append(('BACKGROUND', (4, i), (4, i), next_gen_color))
+            table_style.append(('TEXTCOLOR', (4, i), (4, i), text_color))
+            table_style.append(('FONTNAME', (4, i), (4, i), 'Helvetica-Bold'))
+
+        images_media_table.setStyle(TableStyle(table_style))
+        story.append(images_media_table)
+        story.append(Spacer(1, 25))
+
+    def add_http_headers_compression_section(self, story):
+        """Add HTTP Headers & Compression section"""
+        # Section heading
+        section_title_style = ParagraphStyle(
+            'SectionTitle',
+            parent=self.heading_style,
+            fontSize=16,
+            spaceAfter=15,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("HTTP Headers & Compression", section_title_style))
+        story.append(Spacer(1, 10))
+
+        # Create table data
+        headers_compression_data = [
+            ['Page URL', 'GZIP/Brotli Compression', 'Cache-Control Headers', 'ETag & Last-Modified Headers']
+        ]
+
+        # Sample HTTP headers & compression data
+        sample_headers_compression = [
+            {
+                'url': 'https://hosninsurance.ae/',
+                'compression': 'Yes',
+                'cache_control': 'Present',
+                'etag_lastmod': 'Present'
+            },
+            {
+                'url': 'https://hosninsurance.ae/about-us',
+                'compression': 'Yes',
+                'cache_control': 'Present',
+                'etag_lastmod': 'Absent'
+            },
+            {
+                'url': 'https://hosninsurance.ae/services/car-insurance',
+                'compression': 'No',
+                'cache_control': 'Absent',
+                'etag_lastmod': 'Absent'
+            },
+            {
+                'url': 'https://hosninsurance.ae/contact',
+                'compression': 'Yes',
+                'cache_control': 'Present',
+                'etag_lastmod': 'Present'
+            },
+            {
+                'url': 'https://hosninsurance.ae/get-quote',
+                'compression': 'Yes',
+                'cache_control': 'Absent',
+                'etag_lastmod': 'Present'
+            }
+        ]
+
+        for page in sample_headers_compression:
+            headers_compression_data.append([
+                Paragraph(page['url'], ParagraphStyle(
+                    'URLText',
+                    parent=self.body_style,
+                    fontSize=8,
+                    wordWrap='LTR'
+                )),
+                page['compression'],
+                page['cache_control'],
+                page['etag_lastmod']
+            ])
+
+        # Create table with optimized column widths
+        headers_compression_table = Table(headers_compression_data, colWidths=[2.5*inch, 1.5*inch, 1.4*inch, 1.4*inch])
+
+        # Table styling
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('WORDWRAP', (0, 0), (-1, -1), True)
+        ]
+
+        # Color code HTTP headers & compression metrics and add alternating rows
+        for i in range(1, len(headers_compression_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+
+            # Color code compression
+            compression = sample_headers_compression[i-1]['compression']
+            if compression == 'Yes':
+                comp_color = HexColor('#4CAF50')  # Green
+                text_color = white
+            else:
+                comp_color = HexColor('#F44336')  # Red
+                text_color = white
+
+            table_style.append(('BACKGROUND', (1, i), (1, i), comp_color))
+            table_style.append(('TEXTCOLOR', (1, i), (1, i), text_color))
+            table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+
+            # Color code cache control headers
+            cache_control = sample_headers_compression[i-1]['cache_control']
+            if cache_control == 'Present':
+                cache_color = HexColor('#4CAF50')  # Green
+                text_color = white
+            else:
+                cache_color = HexColor('#F44336')  # Red
+                text_color = white
+
+            table_style.append(('BACKGROUND', (2, i), (2, i), cache_color))
+            table_style.append(('TEXTCOLOR', (2, i), (2, i), text_color))
+            table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+
+            # Color code ETag & Last-Modified headers
+            etag_lastmod = sample_headers_compression[i-1]['etag_lastmod']
+            if etag_lastmod == 'Present':
+                etag_color = HexColor('#4CAF50')  # Green
+                text_color = white
+            else:
+                etag_color = HexColor('#F44336')  # Red
+                text_color = white
+
+            table_style.append(('BACKGROUND', (3, i), (3, i), etag_color))
+            table_style.append(('TEXTCOLOR', (3, i), (3, i), text_color))
+            table_style.append(('FONTNAME', (3, i), (3, i), 'Helvetica-Bold'))
+
+        headers_compression_table.setStyle(TableStyle(table_style))
+        story.append(headers_compression_table)
         story.append(Spacer(1, 30))
 
 # Initialize components
