@@ -670,6 +670,9 @@ class PDFReportGenerator:
         # Add Domain-Level Technical SEO Summary page
         self.add_domain_level_audit_page(story)
 
+        # Add Page-Level Technical SEO Checks page
+        self.add_page_level_technical_seo_page(story)
+
         # Add backlink audit pages
         try:
             self.add_backlink_title_page(story)
@@ -1412,6 +1415,28 @@ class PDFReportGenerator:
         for recommendation in recommendations:
             story.append(Paragraph(recommendation, recommendation_style))
 
+        story.append(Spacer(1, 30))
+
+    def add_page_level_technical_seo_page(self, story):
+        """Add Page-Level Technical SEO Checks page"""
+        story.append(PageBreak())
+
+        # Create large, bold, centered title style for Page-Level Technical SEO
+        page_level_title_style = ParagraphStyle(
+            'PageLevelTechnicalSEOTitle',
+            parent=self.styles['Heading1'],
+            fontSize=24,
+            spaceAfter=40,
+            textColor=HexColor('#2E86AB'),
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold',
+            spaceBefore=50
+        )
+
+        # Add centered title
+        story.append(Paragraph("Page-Level Technical SEO Checks", page_level_title_style))
+
+        # Add space for content
         story.append(Spacer(1, 30))
 
     def add_backlink_title_page(self, story):
