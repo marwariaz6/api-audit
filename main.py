@@ -1439,6 +1439,424 @@ class PDFReportGenerator:
         # Add space for content
         story.append(Spacer(1, 30))
 
+        # Section 1: Page Crawlability & Indexability
+        self.add_crawlability_indexability_section(story)
+
+        # Section 2: Page Performance Metrics
+        self.add_page_performance_section(story)
+
+        # Section 3: Mobile-Friendliness
+        self.add_mobile_friendliness_section(story)
+
+    def add_crawlability_indexability_section(self, story):
+        """Add Page Crawlability & Indexability section"""
+        # Section heading
+        section_title_style = ParagraphStyle(
+            'SectionTitle',
+            parent=self.heading_style,
+            fontSize=16,
+            spaceAfter=15,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+        
+        story.append(Paragraph("Page Crawlability & Indexability", section_title_style))
+        story.append(Spacer(1, 10))
+
+        # Create table data
+        crawlability_data = [
+            ['Page URL', 'HTTP Status', 'Redirect Type', 'Robots.txt Restrictions', 'Meta Robots Tag', 'X-Robots-Tag']
+        ]
+
+        # Sample data for different pages
+        sample_pages = [
+            {
+                'url': 'https://hosninsurance.ae/',
+                'status': '200',
+                'redirect': 'None',
+                'robots_txt': 'No',
+                'meta_robots': 'index, follow',
+                'x_robots': 'index, follow'
+            },
+            {
+                'url': 'https://hosninsurance.ae/about-us',
+                'status': '200',
+                'redirect': 'None',
+                'robots_txt': 'No',
+                'meta_robots': 'index, follow',
+                'x_robots': 'none'
+            },
+            {
+                'url': 'https://hosninsurance.ae/services/car-insurance',
+                'status': '301',
+                'redirect': '301 Permanent',
+                'robots_txt': 'No',
+                'meta_robots': 'index, follow',
+                'x_robots': 'index, follow'
+            },
+            {
+                'url': 'https://hosninsurance.ae/contact',
+                'status': '200',
+                'redirect': 'None',
+                'robots_txt': 'No',
+                'meta_robots': 'noindex, follow',
+                'x_robots': 'index, follow'
+            },
+            {
+                'url': 'https://hosninsurance.ae/get-quote',
+                'status': '200',
+                'redirect': 'None',
+                'robots_txt': 'No',
+                'meta_robots': 'index, follow',
+                'x_robots': 'index, follow'
+            }
+        ]
+
+        for page in sample_pages:
+            crawlability_data.append([
+                Paragraph(page['url'], ParagraphStyle(
+                    'URLText',
+                    parent=self.body_style,
+                    fontSize=8,
+                    wordWrap='LTR'
+                )),
+                page['status'],
+                page['redirect'],
+                page['robots_txt'],
+                page['meta_robots'],
+                page['x_robots']
+            ])
+
+        # Create table with optimized column widths
+        crawlability_table = Table(crawlability_data, colWidths=[2.0*inch, 0.8*inch, 1.0*inch, 0.8*inch, 1.0*inch, 1.0*inch])
+
+        # Table styling
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('WORDWRAP', (0, 0), (-1, -1), True)
+        ]
+
+        # Color code HTTP status codes and add alternating rows
+        for i in range(1, len(crawlability_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+                table_style.append(('BACKGROUND', (2, i), (-1, i), HexColor('#f8f9fa')))
+
+            # Color code HTTP status
+            status = sample_pages[i-1]['status']
+            if status == '200':
+                status_color = HexColor('#4CAF50')  # Green
+            elif status in ['301', '302']:
+                status_color = HexColor('#FF9800')  # Orange
+            elif status.startswith('4') or status.startswith('5'):
+                status_color = HexColor('#F44336')  # Red
+            else:
+                status_color = HexColor('#E0E0E0')  # Gray
+
+            table_style.append(('BACKGROUND', (1, i), (1, i), status_color))
+            table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+            table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+
+            # Color code meta robots tags
+            meta_robots = sample_pages[i-1]['meta_robots']
+            if 'noindex' in meta_robots:
+                table_style.append(('BACKGROUND', (4, i), (4, i), HexColor('#ffebee')))
+                table_style.append(('TEXTCOLOR', (4, i), (4, i), HexColor('#c62828')))
+
+        crawlability_table.setStyle(TableStyle(table_style))
+        story.append(crawlability_table)
+        story.append(Spacer(1, 25))
+
+    def add_page_performance_section(self, story):
+        """Add Page Performance Metrics section"""
+        # Section heading
+        section_title_style = ParagraphStyle(
+            'SectionTitle',
+            parent=self.heading_style,
+            fontSize=16,
+            spaceAfter=15,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+        
+        story.append(Paragraph("Page Performance Metrics", section_title_style))
+        story.append(Spacer(1, 10))
+
+        # Create table data
+        performance_data = [
+            ['Page URL', 'Load Time (s)', 'HTML Size (KB)', 'CSS Files', 'JS Files', 'Images', 'Total Size (KB)']
+        ]
+
+        # Sample performance data
+        sample_performance = [
+            {
+                'url': 'https://hosninsurance.ae/',
+                'load_time': '2.34',
+                'html_size': '45.2',
+                'css_files': '3',
+                'js_files': '7',
+                'images': '12',
+                'total_size': '1,245'
+            },
+            {
+                'url': 'https://hosninsurance.ae/about-us',
+                'load_time': '1.89',
+                'html_size': '32.1',
+                'css_files': '3',
+                'js_files': '5',
+                'images': '8',
+                'total_size': '890'
+            },
+            {
+                'url': 'https://hosninsurance.ae/services/car-insurance',
+                'load_time': '3.12',
+                'html_size': '67.8',
+                'css_files': '4',
+                'js_files': '9',
+                'images': '18',
+                'total_size': '1,876'
+            },
+            {
+                'url': 'https://hosninsurance.ae/contact',
+                'load_time': '1.45',
+                'html_size': '28.3',
+                'css_files': '2',
+                'js_files': '4',
+                'images': '5',
+                'total_size': '567'
+            },
+            {
+                'url': 'https://hosninsurance.ae/get-quote',
+                'load_time': '2.67',
+                'html_size': '51.4',
+                'css_files': '3',
+                'js_files': '8',
+                'images': '14',
+                'total_size': '1,423'
+            }
+        ]
+
+        for page in sample_performance:
+            performance_data.append([
+                Paragraph(page['url'], ParagraphStyle(
+                    'URLText',
+                    parent=self.body_style,
+                    fontSize=8,
+                    wordWrap='LTR'
+                )),
+                page['load_time'],
+                page['html_size'],
+                page['css_files'],
+                page['js_files'],
+                page['images'],
+                page['total_size']
+            ])
+
+        # Create table with optimized column widths
+        performance_table = Table(performance_data, colWidths=[2.2*inch, 0.8*inch, 0.8*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.9*inch])
+
+        # Table styling
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('WORDWRAP', (0, 0), (-1, -1), True)
+        ]
+
+        # Color code performance metrics and add alternating rows
+        for i in range(1, len(performance_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+                table_style.append(('BACKGROUND', (2, i), (-1, i), HexColor('#f8f9fa')))
+
+            # Color code load time
+            load_time = float(sample_performance[i-1]['load_time'])
+            if load_time <= 2.0:
+                load_color = HexColor('#4CAF50')  # Green - Good
+            elif load_time <= 3.0:
+                load_color = HexColor('#FF9800')  # Orange - Moderate
+            else:
+                load_color = HexColor('#F44336')  # Red - Slow
+
+            table_style.append(('BACKGROUND', (1, i), (1, i), load_color))
+            table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+            table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+
+            # Color code total size
+            total_size = int(sample_performance[i-1]['total_size'].replace(',', ''))
+            if total_size <= 1000:
+                size_color = HexColor('#4CAF50')  # Green - Good
+            elif total_size <= 1500:
+                size_color = HexColor('#FF9800')  # Orange - Moderate
+            else:
+                size_color = HexColor('#F44336')  # Red - Large
+
+            table_style.append(('BACKGROUND', (6, i), (6, i), size_color))
+            table_style.append(('TEXTCOLOR', (6, i), (6, i), white))
+            table_style.append(('FONTNAME', (6, i), (6, i), 'Helvetica-Bold'))
+
+        performance_table.setStyle(TableStyle(table_style))
+        story.append(performance_table)
+        story.append(Spacer(1, 25))
+
+    def add_mobile_friendliness_section(self, story):
+        """Add Mobile-Friendliness section"""
+        # Section heading
+        section_title_style = ParagraphStyle(
+            'SectionTitle',
+            parent=self.heading_style,
+            fontSize=16,
+            spaceAfter=15,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+        
+        story.append(Paragraph("Mobile-Friendliness", section_title_style))
+        story.append(Spacer(1, 10))
+
+        # Create table data
+        mobile_data = [
+            ['Page URL', 'Mobile-Responsive', 'Viewport Meta Tag', 'Touch Elements']
+        ]
+
+        # Sample mobile data
+        sample_mobile = [
+            {
+                'url': 'https://hosninsurance.ae/',
+                'responsive': 'Yes',
+                'viewport': 'Present',
+                'touch_elements': 'Pass'
+            },
+            {
+                'url': 'https://hosninsurance.ae/about-us',
+                'responsive': 'Yes',
+                'viewport': 'Present',
+                'touch_elements': 'Pass'
+            },
+            {
+                'url': 'https://hosninsurance.ae/services/car-insurance',
+                'responsive': 'Yes',
+                'viewport': 'Present',
+                'touch_elements': 'Fail'
+            },
+            {
+                'url': 'https://hosninsurance.ae/contact',
+                'responsive': 'Yes',
+                'viewport': 'Present',
+                'touch_elements': 'Pass'
+            },
+            {
+                'url': 'https://hosninsurance.ae/get-quote',
+                'responsive': 'No',
+                'viewport': 'Absent',
+                'touch_elements': 'Fail'
+            }
+        ]
+
+        for page in sample_mobile:
+            mobile_data.append([
+                Paragraph(page['url'], ParagraphStyle(
+                    'URLText',
+                    parent=self.body_style,
+                    fontSize=8,
+                    wordWrap='LTR'
+                )),
+                page['responsive'],
+                page['viewport'],
+                page['touch_elements']
+            ])
+
+        # Create table with optimized column widths
+        mobile_table = Table(mobile_data, colWidths=[3.0*inch, 1.2*inch, 1.4*inch, 1.2*inch])
+
+        # Table styling
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('WORDWRAP', (0, 0), (-1, -1), True)
+        ]
+
+        # Color code mobile metrics and add alternating rows
+        for i in range(1, len(mobile_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+
+            # Color code responsive status
+            responsive = sample_mobile[i-1]['responsive']
+            if responsive == 'Yes':
+                responsive_color = HexColor('#4CAF50')  # Green
+                text_color = white
+            else:
+                responsive_color = HexColor('#F44336')  # Red
+                text_color = white
+
+            table_style.append(('BACKGROUND', (1, i), (1, i), responsive_color))
+            table_style.append(('TEXTCOLOR', (1, i), (1, i), text_color))
+            table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+
+            # Color code viewport meta tag
+            viewport = sample_mobile[i-1]['viewport']
+            if viewport == 'Present':
+                viewport_color = HexColor('#4CAF50')  # Green
+                text_color = white
+            else:
+                viewport_color = HexColor('#F44336')  # Red
+                text_color = white
+
+            table_style.append(('BACKGROUND', (2, i), (2, i), viewport_color))
+            table_style.append(('TEXTCOLOR', (2, i), (2, i), text_color))
+            table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+
+            # Color code touch elements
+            touch = sample_mobile[i-1]['touch_elements']
+            if touch == 'Pass':
+                touch_color = HexColor('#4CAF50')  # Green
+                text_color = white
+            else:
+                touch_color = HexColor('#F44336')  # Red
+                text_color = white
+
+            table_style.append(('BACKGROUND', (3, i), (3, i), touch_color))
+            table_style.append(('TEXTCOLOR', (3, i), (3, i), text_color))
+            table_style.append(('FONTNAME', (3, i), (3, i), 'Helvetica-Bold'))
+
+        mobile_table.setStyle(TableStyle(table_style))
+        story.append(mobile_table)
+        story.append(Spacer(1, 30))
+
     def add_backlink_title_page(self, story):
         """Add backlink audit title page"""
         story.append(PageBreak())
