@@ -1,0 +1,143 @@
+Create a section in the PDF report titled:
+Page Crawlability & Indexability
+
+Insert a table where:
+
+First column = Page URL (full URL, text-wrapped if long)
+
+Next columns = one for each metric below:
+
+HTTP Status Code (e.g., 200, 301, 404, 500)
+
+Redirect Type (301, 302, meta refresh, JavaScript)
+
+Robots.txt Restrictions for Page (Yes/No)
+
+Meta Robots Tag (index, noindex, follow, nofollow)
+
+X-Robots-Tag HTTP Header (index/noindex, follow/nofollow, none)
+
+
+Create a section in the PDF report titled:
+Page Performance Metrics
+
+Insert a table where:
+
+First column = Page URL (full URL, text-wrapped if long)
+
+Next columns = one for each metric below:
+
+Page Load Time (in seconds, to 2 decimal places)
+
+HTML Size (in KB)
+
+Number of CSS Files
+
+Number of JavaScript Files
+
+Number of Image Files
+
+Total Page Size (all assets, in KB or MB)
+
+
+Mobile-Friendliness
+Insert a table where:
+
+First column = Page URL (full URL, text-wrapped if long)
+
+Next columns = one for each metric below:
+
+Mobile-Responsive Status (Yes/No)
+
+Mobile Viewport Meta Tag (Present/Absent)
+
+Touch Elements Size/Spacing (Pass/Fail)
+
+2. HTTPS & Security
+Insert a table where:
+
+First column = Page URL
+
+Next columns = one for each metric below:
+
+HTTPS Usage for Page URL (Yes/No)
+
+Mixed Content Issues (Count or “None”)
+
+Valid SSL/TLS Certificate (Valid/Invalid)
+
+3. Structured Data
+Insert a table where:
+
+First column = Page URL
+
+Next columns = one for each metric below:
+
+Presence of Schema Markup (Yes/No)
+
+Schema Validation Errors (Count or “None”)
+
+ Canonicalization
+Insert a table where:
+
+First column = Page URL (full URL, text-wrapped if long)
+
+Next columns = one for each metric below:
+
+Presence of Canonical Tag (Yes/No)
+
+Correct vs. Self-Referencing Canonical (Correct/Incorrect)
+
+Canonical Consistency (Matches main indexed URL: Yes/No)
+
+2. Images & Media
+Insert a table where:
+
+First column = Page URL
+
+Next columns = one for each metric below:
+
+Missing ALT Attributes (Count or “None”)
+
+Broken Images (Count or “None”)
+
+Image File Size Optimization (Pass/Fail)
+
+Use of Next-Gen Formats (WebP, AVIF) (Yes/No)
+
+3. HTTP Headers & Compression
+Insert a table where:
+
+First column = Page URL
+
+Next columns = one for each metric below:
+
+GZIP/Brotli Compression Enabled (Yes/No)
+
+Cache-Control Headers (Present/Absent)
+
+ETag & Last-Modified Headers (Present/Absent)
+
+Styling requirements for all tables:
+
+Clean table borders.
+
+Alternate row shading for readability.
+
+Wrap text for long URLs.
+
+Keep column widths balanced.
+
+No emoji icons — use plain text values only.
+
+Styling requirements:
+
+Clean table borders.
+
+Alternate row shading for readability.
+
+Wrap text for long URLs.
+
+Keep column widths balanced for readability.
+
+No emoji icons — use plain text values only.
