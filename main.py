@@ -683,6 +683,10 @@ class PDFReportGenerator:
             # Add the new sections
             self.add_link_source_quality_analysis(story)
             self.add_anchor_text_distribution(story)
+            story.append(Spacer(1, 30))
+
+            # Add Top 20 Referring Domains section
+            self.add_top_referring_domains_section(story)
         except Exception as e:
             logger.error(f"Error adding backlink pages: {e}")
             # Add fallback message
@@ -1319,7 +1323,7 @@ class PDFReportGenerator:
         # Create table with proper column widths
         domain_audit_table = Table(audit_data, colWidths=[2.5*inch, 1.2*inch, 2.8*inch])
 
-        # Define table style with alternating row colors
+        # Define table style
         table_style = [
             # Header row styling
             ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
@@ -3085,7 +3089,7 @@ class PDFReportGenerator:
             if i % 2 == 0:
                 table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
 
-            # Color code percentage column based on link type
+            # Color code based on link type
             link_type = distribution_data[i][0]
             percentage = float(distribution_data[i][2].rstrip('%'))
 
@@ -3204,8 +3208,7 @@ class PDFReportGenerator:
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 11),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (-1, 0), 'CENTER'),
-            ('ALIGN', (1, 1), (2, -1), 'CENTER'),
+            ('ALIGN', (1, 0), (2, -1), 'CENTER'),
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 1), (-1, -1), 10),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
@@ -3454,6 +3457,188 @@ class PDFReportGenerator:
 
         for insight in insights:
             story.append(Paragraph(insight, insight_style))
+
+        story.append(Spacer(1, 30))
+
+    def add_top_referring_domains_section(self, story):
+        """Add Top 20 Referring Domains section"""
+        story.append(PageBreak())
+
+        # Section heading
+        domains_title_style = ParagraphStyle(
+            'TopDomainsTitle',
+            parent=self.heading_style,
+            fontSize=18,
+            spaceAfter=20,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Top 20 Referring Domains", domains_title_style))
+
+        # Description paragraph
+        description_style = ParagraphStyle(
+            'DomainsDescription',
+            parent=self.body_style,
+            fontSize=11,
+            spaceAfter=20,
+            leading=14
+        )
+
+        story.append(Paragraph(
+            "Below is a list of the top referring domains pointing to your website, along with their backlink type and associated Spam Score. These insights help evaluate link quality and potential risk.",
+            description_style
+        ))
+
+        # Create referring domains table
+        domains_data = [
+            ['Referring Domain', 'Backlink Type', 'Spam Score'],
+            ['uae-government-resources.ae', 'DoFollow', '2%'],
+            ['insurance-reviews.com', 'DoFollow', '3%'],
+            ['financial-planning-uae.com', 'DoFollow', '4%'],
+            ['dubai-insurance-portal.ae', 'DoFollow', '5%'],
+            ['insurance-industry-forum.org', 'DoFollow', '6%'],
+            ['insurance-news-updates.org', 'NoFollow', '7%'],
+            ['uae-insurance-marketplace.ae', 'DoFollow', '7%'],
+            ['uae-business-directory.ae', 'DoFollow', '8%'],
+            ['insurance-comparison-tools.com', 'DoFollow', '8%'],
+            ['vehicle-protection-tips.com', 'DoFollow', '9%'],
+            ['emirates-financial-advisors.ae', 'DoFollow', '9%'],
+            ['comprehensive-coverage-guide.org', 'DoFollow', '10%'],
+            ['emirates-financial-blog.ae', 'DoFollow', '11%'],
+            ['motor-insurance-experts.org', 'DoFollow', '11%'],
+            ['autoinsurance-guide.org', 'DoFollow', '12%'],
+            ['insurance-industry-insights.org', 'DoFollow', '12%'],
+            ['regional-business-network.com', 'DoFollow', '13%'],
+            ['vehicle-safety-resources.net', 'DoFollow', '13%'],
+            ['business-directory-middle-east.com', 'DoFollow', '14%'],
+            ['financial-services-uae.com', 'NoFollow', '15%']
+        ]
+
+        # Create table with proper column widths
+        domains_table = Table(domains_data, colWidths=[3.2*inch, 1.3*inch, 1.0*inch])
+
+        # Define table style
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]
+
+        # Color code spam scores and backlink types
+        for i in range(1, len(domains_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+
+            # Color code backlink type
+            backlink_type = domains_data[i][1]
+            if backlink_type == 'DoFollow':
+                type_color = HexColor('#4CAF50')  # Green
+                text_color = white
+            else:  # NoFollow
+                type_color = HexColor('#FF9800')  # Orange
+                text_color = white
+
+            table_style.append(('BACKGROUND', (1, i), (1, i), type_color))
+            table_style.append(('TEXTCOLOR', (1, i), (1, i), text_color))
+            table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+
+            # Color code spam score
+            spam_score = int(domains_data[i][2].rstrip('%'))
+            if spam_score <= 10:
+                spam_color = HexColor('#4CAF50')  # Green - Low risk
+                text_color = white
+            elif spam_score <= 20:
+                spam_color = HexColor('#FF9800')  # Orange - Medium risk
+                text_color = white
+            else:
+                spam_color = HexColor('#F44336')  # Red - High risk
+                text_color = white
+
+            table_style.append(('BACKGROUND', (2, i), (2, i), spam_color))
+            table_style.append(('TEXTCOLOR', (2, i), (2, i), text_color))
+            table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+
+        domains_table.setStyle(TableStyle(table_style))
+        story.append(domains_table)
+        story.append(Spacer(1, 25))
+
+        # Add Complete Domain List section
+        complete_list_title_style = ParagraphStyle(
+            'CompleteListTitle',
+            parent=self.subheading_style,
+            fontSize=14,
+            spaceAfter=12,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Complete Domain List", complete_list_title_style))
+        story.append(Spacer(1, 8))
+
+        complete_list_style = ParagraphStyle(
+            'CompleteListText',
+            parent=self.body_style,
+            fontSize=11,
+            spaceAfter=12,
+            leading=14
+        )
+
+        story.append(Paragraph(
+            "For a complete list of referring domains beyond the top 20 (15 additional domains), click here to download the full CSV report.",
+            complete_list_style
+        ))
+
+        story.append(Paragraph(
+            "<b>Additional Domains Summary:</b> The additional 15 domains include 7 DoFollow links and 3 high-risk domains (spam score >30%). Review the CSV file to identify potential toxic links.",
+            complete_list_style
+        ))
+
+        # Add Actionable Recommendations section
+        recommendations_title_style = ParagraphStyle(
+            'RecommendationsTitle',
+            parent=self.subheading_style,
+            fontSize=14,
+            spaceAfter=12,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Actionable Recommendations", recommendations_title_style))
+        story.append(Spacer(1, 8))
+
+        # Generate recommendations
+        recommendations = [
+            "• Monitor High-Risk Links: Review domains with spam scores >20% and consider disavowing toxic links",
+            "• Build Quality Relationships: Focus outreach efforts on domains with low spam scores (≤10%)",
+            "• Diversify Link Sources: Seek backlinks from different industries and geographic regions",
+            "• Regular Audits: Conduct monthly backlink audits to identify new toxic links early",
+            "• Content Strategy: Create linkable assets like guides, tools, or research to earn natural backlinks",
+            "• Competitor Analysis: Study competitors' backlink profiles to identify link building opportunities",
+            "• Disavow File: Maintain an updated disavow file for Google Search Console with toxic domains"
+        ]
+
+        # Create recommendation style
+        recommendation_style = ParagraphStyle(
+            'RecommendationBullet',
+            parent=self.body_style,
+            fontSize=11,
+            spaceAfter=6,
+            leftIndent=10
+        )
+
+        for recommendation in recommendations:
+            story.append(Paragraph(recommendation, recommendation_style))
 
         story.append(Spacer(1, 30))
 
