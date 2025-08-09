@@ -1,0 +1,126 @@
+Backlink Profile Summary
+ This section summarizes the key metrics of your website's backlink profile, giving you a
+ quick overview of link quantity, quality, and potential issues.
+ Metric Value
+ Total Backlinks 1,284
+ Unique Referring Domains 432
+ DoFollow Links 978
+ NoFollow Links 306
+ Redirects 12
+ Average Domain Rating 54
+ Average Spam Score 18.7%
+ Toxic Links Detected 7
+ Backlink Types Distribution
+ Link Type Count Percentage
+ DoFollow Links 978 76.2%
+ NoFollow Links 306 23.8%
+ Text Links 1,150 89.6%
+ Image Links 134 10.4%
+ Redirects 12 0.9%
+ Link Source Quality Analysis
+ Quality Level Count Percentage Description
+ High Authority (DR 60+) 98 7.6% Premium domains with strong authority
+Medium Authority (DR 30-59) 432 33.6% Good quality domains with decent authority
+ Low Authority (DR <30) 754 58.8% Lower authority domains
+ Average Domain Rating: 42.3 - Overall quality indicator of linking domains
+ Anchor Text Distribution
+ Anchor Type Percentage
+ Branded Anchors 45.2%
+ Exact Match Keywords 12.8%
+ Generic Anchors 28.1%
+ URL Anchors 13.9%
+ Detailed Anchor Text Analysis
+ This section provides a comprehensive breakdown of all anchor texts used in backlinks
+ pointing to your website. Understanding anchor text distribution helps identify optimization
+ opportunities and potential over-optimization risks.
+ Anchor Text Count Percentage
+ hosn insurance 48 12.8%
+ click here 17 4.5%
+ insurance in UAE 12 3.2%
+ visit website 9 2.4%
+ [blank] (no anchor) 6 1.6%
+ https://hosninsurance.ae 4 1.1%
+ cheap car insurance 3 0.8%
+ car insurance dubai 8 2.1%
+ best insurance company 6 1.6%
+ auto insurance 5 1.3%
+ vehicle insurance 4 1.1%
+insurance quotes
+ comprehensive coverage
+ 7
+ 3
+ 1.9%
+ 0.8%
+ motor insurance
+ read more
+ learn more
+ get quote
+ homepage
+ website
+ official site
+ 9
+ 15
+ 2.4%
+ 4.0%
+ 11
+ 13
+ 8
+ 22
+ 5
+ Anchor Text Insights:
+ 2.9%
+ 3.5%
+ 2.1%
+ 5.9%
+ 1.3%
+ • Branded Anchors (48 links): Good brand recognition with 'hosn insurance' as primary
+ anchor
+ • Generic Anchors (52 links): High percentage of generic anchors like 'click here' and
+ 'website'
+ • Keyword-Rich Anchors (35 links): Good variety of insurance-related keywords
+ • URL Anchors (4 links): Low percentage of naked URL anchors is positive
+ • Recommendation: Consider reducing generic anchors and increase keyword-rich
+ variations
+ Top 20 Referring Domains
+ Below is a list of the top referring domains pointing to your website, along with their
+ backlink type and associated Spam Score. These insights help evaluate link quality and
+ potential risk.
+ Referring Domain Backlink Type Spam Score
+ uae-government-resources.ae DoFollow 2%
+ insurance-reviews.com DoFollow 3%
+ financial-planning-uae.com DoFollow 4%
+ dubai-insurance-portal.ae DoFollow 5%
+ insurance-industry-forum.org DoFollow 6%
+ insurance-news-updates.org NoFollow 7%
+ uae-insurance-marketplace.ae DoFollow 7%
+ uae-business-directory.ae DoFollow 8%
+ insurance-comparison-tools.com DoFollow 8%
+ vehicle-protection-tips.com DoFollow 9%
+ emirates-financial-advisors.ae DoFollow 9%
+ comprehensive-coverage-guide.org DoFollow 10%
+ emirates-financial-blog.ae DoFollow 11%
+ motor-insurance-experts.org DoFollow 11%
+ autoinsurance-guide.org DoFollow 12%
+ insurance-industry-insights.org DoFollow 12%
+ regional-business-network.com DoFollow 13%
+ vehicle-safety-resources.net DoFollow 13%
+ business-directory-middle-east.com DoFollow 14%
+ financial-services-uae.com NoFollow 15%
+ Complete Domain List
+For a complete list of referring domains beyond the top 20 (15 additional domains), click
+ here to download the full CSV report.
+ Additional Domains Summary: The additional 15 domains include 7 DoFollow links and 3
+ high-risk domains (spam score >30%). Review the CSV file to identify potential toxic links.
+ Actionable Recommendations
+ • Monitor High-Risk Links: Review domains with spam scores >20% and consider
+ disavowing toxic links
+ • Build Quality Relationships: Focus outreach efforts on domains with low spam scores
+ (≤10%)
+ • Diversify Link Sources: Seek backlinks from different industries and geographic
+ regions
+ • Regular Audits: Conduct monthly backlink audits to identify new toxic links early
+ • Content Strategy: Create linkable assets like guides, tools, or research to earn natural
+ backlinks
+ • Competitor Analysis: Study competitors' backlink profiles to identify link building
+ opportunities
+ • Disavow File: Maintain an updated disavow file for Google Search Console with toxi
