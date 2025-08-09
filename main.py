@@ -2978,7 +2978,7 @@ class PDFReportGenerator:
             for page in orphan_pages[:10]:  # Show first 10
                 orphan_data.append([
                     page['url'][:60] + "..." if len(page['url']) > 60 else page['url'],
-                    page['in_sitemap'],
+                    page['found_in_sitemap'],
                     'Orphaned' if page['internally_linked'] == 'No' else 'Linked'
                 ])
             
