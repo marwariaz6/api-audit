@@ -1,0 +1,68 @@
+A custom Python crawler that scans a website to find:
+1. Broken internal links
+2. Broken external links
+3. Anchor text, image alt text, or icon reference where the broken link is placed
+4. Orphan pages (pages in sitemap but not linked internally)
+Outputs clean CSV tables for Technical SEO reports.
+
+Build a Python script with the following requirements:
+
+1. **Inputs:**
+   - Base domain (e.g., https://example.com)
+   - Max crawl depth (default: 3)
+   - Request delay (default: 1 second between requests)
+   - Optional sitemap.xml URL
+
+2. **Crawling Logic:**
+   - Crawl only HTML pages within the domain
+   - Respect robots.txt unless overridden
+   - Extract all `<a>` tags from each page
+   - For each `<a>` tag, capture:
+       - `href` value (full absolute URL)
+       - Anchor text (strip whitespace)
+       - If the link contains an `<img>`, capture image `alt` attribute as "Image: {alt}"
+       - If the link is an icon (`<i>` tag with class), capture as "Icon: {class}"
+   - Detect if link is internal (same domain) or external (other domains)
+
+3. **Broken Link Detection:**
+   - Perform HTTP HEAD (or GET if HEAD not allowed) request to check status code
+   - If status code >= 400 → mark as broken
+   - Save results in CSV with columns:
+       - Target Page URL
+       - Broken Link URL
+       - Anchor Text / Current Value
+       - Link Type (Internal / External)
+       - Status Code
+
+4. **Orphan Page Detection:**
+   - Parse sitemap.xml (if provided or discovered automatically at `/sitemap.xml`)
+   - Crawl site to collect all **internally linked URLs**
+   - Compare with sitemap URLs
+   - Orphan pages = URLs in sitemap not found in crawl
+   - Save results in CSV with columns:
+       - Orphan Page URL
+       - Found in Sitemap? (Yes/No)
+       
+
+5. **Output:**
+   - `broken_links.csv`
+   - `orphan_pages.csv`
+   - Tables should be clean and ready for import into the SEO audit PDF generator
+
+6. **Technical Details:**
+   - Use `requests` and `BeautifulSoup` for crawling and parsing
+   - Use `urllib.parse` for handling relative/absolute links
+   - Handle infinite loops by tracking visited URLs
+   - Follow redirects (record final URL if redirected)
+   - Allow exclusion of query parameters from duplicate detection
+   - Run with Python 3.10+
+
+7. **Performance Optimization:**
+   - Add delay between requests
+   - Limit to max 200 pages unless overridden
+   - Use threading for link checking (but keep crawl sequential for stability)
+
+
+Goal: A standalone crawler that only handles this section of the SEO audit, while the rest of the audit uses DataForSEO API.
+
+
