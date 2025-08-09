@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -226,19 +225,19 @@
                 margin: 10px;
                 border-radius: 15px;
             }
-            
+
             .header {
                 padding: 30px 20px;
             }
-            
+
             .header h1 {
                 font-size: 2rem;
             }
-            
+
             .main-content {
                 padding: 30px 20px;
             }
-            
+
             .form-row {
                 grid-template-columns: 1fr;
                 gap: 10px;
@@ -261,7 +260,7 @@
                         <label for="urlInput">Website URL</label>
                         <input type="url" id="urlInput" name="url" placeholder="https://example.com" required>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="maxPages">Maximum Pages to Audit</label>
                         <select id="maxPages" name="max_pages">
@@ -271,7 +270,7 @@
                             <option value="10">Homepage + 10 pages</option>
                         </select>
                     </div>
-                    
+
                     <button type="submit" class="btn" id="submitBtn">
                         📄 Generate Multi-Page SEO Report
                     </button>
@@ -280,6 +279,31 @@
                 <div class="info-box">
                     <h4>🚀 What This Tool Does:</h4>
                     <p>Automatically discovers and audits your homepage plus main navigation pages. Generates a comprehensive PDF report with page-by-page analysis, site-wide metrics, and actionable recommendations.</p>
+                </div>
+            </div>
+
+            <div class="audit-form">
+                <h2>Run Custom Website Crawler</h2>
+                <form id="crawlerForm">
+                    <div class="form-group">
+                        <label for="crawlerUrl">Website URL</label>
+                        <input type="url" id="crawlerUrl" name="url" placeholder="https://example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="crawlerDepth">Max Crawl Depth</label>
+                        <input type="number" id="crawlerDepth" name="max_depth" value="2" min="1" max="5" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="crawlerPages">Max Pages to Crawl</label>
+                        <input type="number" id="crawlerPages" name="max_pages" value="100" min="10" max="500" required>
+                    </div>
+                    <button type="submit" class="btn" id="crawlerBtn">
+                        🕷️ Run Custom Crawler
+                    </button>
+                </form>
+                 <div class="info-box" style="background: #fff2e0; border-color: #f57c00;">
+                    <h4>✨ Crawler Features:</h4>
+                    <p>Finds broken internal/external links, identifies anchor text/alt text context, and detects orphan pages. Outputs clean CSV tables for technical SEO reports.</p>
                 </div>
             </div>
 
@@ -316,7 +340,59 @@
     </div>
 
     <script>
-        document.getElementById('auditForm').addEventListener('submit', async function(e) {
+        // Handle crawler form submission
+            document.getElementById('crawlerForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const submitBtn = document.getElementById('crawlerBtn');
+                const originalText = submitBtn.textContent;
+
+                try {
+                    submitBtn.textContent = '🕷️ Crawling...';
+                    submitBtn.disabled = true;
+
+                    console.log('Starting crawler analysis for:', document.getElementById('crawlerUrl').value);
+
+                    const formData = {
+                        url: document.getElementById('crawlerUrl').value,
+                        max_depth: parseInt(document.getElementById('crawlerDepth').value),
+                        max_pages: parseInt(document.getElementById('crawlerPages').value)
+                    };
+
+                    console.log('Making request to /run-crawler');
+
+                    const response = await fetch('/run-crawler', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    console.log('Response status:', response.status);
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
+                            alert(`Crawler analysis complete!\n\nResults:\n- Pages crawled: ${result.stats.pages_crawled}\n- Broken links: ${result.stats.broken_links_count}\n- Orphan pages: ${result.stats.orphan_pages_count}\n\nCSV files saved to reports folder.`);
+                        } else {
+                            throw new Error('Crawler analysis failed');
+                        }
+                    } else {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Crawler request failed');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error running crawler analysis: ' + error.message);
+                } finally {
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+                }
+            });
+
+            // Handle form submission
+            document.getElementById('auditForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const url = document.getElementById('urlInput').value.trim();
@@ -402,14 +478,14 @@
                         console.error('Error parsing response:', parseError);
                         errorMessage = `Server error (${response.status}): ${response.statusText}`;
                     }
-                    
+
                     loading.style.display = 'none';
                     error.style.display = 'block';
                     document.getElementById('errorMessage').textContent = errorMessage;
                 }
             } catch (err) {
                 console.error('PDF generation failed:', err);
-                
+
                 loading.style.display = 'none';
                 error.style.display = 'block';
                 document.getElementById('errorMessage').textContent = `Network error: ${err.message}`;
@@ -424,7 +500,19 @@
         document.getElementById('urlInput').addEventListener('input', function(e) {
             const url = e.target.value;
             const submitBtn = document.getElementById('submitBtn');
-            
+
+            if (url && !url.match(/^https?:\/\//)) {
+                e.target.setCustomValidity('Please enter a valid URL starting with http:// or https://');
+            } else {
+                e.target.setCustomValidity('');
+            }
+        });
+
+        // Add URL validation for crawler
+        document.getElementById('crawlerUrl').addEventListener('input', function(e) {
+            const url = e.target.value;
+            const crawlerBtn = document.getElementById('crawlerBtn');
+
             if (url && !url.match(/^https?:\/\//)) {
                 e.target.setCustomValidity('Please enter a valid URL starting with http:// or https://');
             } else {

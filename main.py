@@ -3788,6 +3788,44 @@ def serve_report(filename):
         logger.error(f"Error serving file {filename}: {e}")
         return "File not found", 404
 
+@app.route('/run-crawler', methods=['POST'])
+def run_crawler():
+    """Run website crawler for broken links and orphan pages"""
+    try:
+        from crawler_integration import run_crawler_audit, save_crawler_results_csv
+        
+        data = request.get_json()
+        url = data.get('url', 'https://example.com')
+        max_depth = data.get('max_depth', 2)
+        max_pages = data.get('max_pages', 50)
+        
+        # Validate URL format
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+        
+        logger.info(f"Starting crawler audit for: {url}")
+        
+        # Run crawler audit
+        results = run_crawler_audit(url, max_depth=max_depth, max_pages=max_pages, delay=0.5)
+        
+        # Save results to CSV
+        broken_file, orphan_file = save_crawler_results_csv(results, url)
+        
+        logger.info(f"Crawler audit complete: {results['crawl_stats']}")
+        
+        return jsonify({
+            'success': True,
+            'stats': results['crawl_stats'],
+            'files': {
+                'broken_links': os.path.basename(broken_file),
+                'orphan_pages': os.path.basename(orphan_file)
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error running crawler: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/generate-csv/<domain>')
 def generate_csv(domain):
     """Generate and serve CSV file with additional referring domains"""
