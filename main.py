@@ -606,7 +606,7 @@ class PDFReportGenerator:
         else:
             return HexColor('#F44336')  # Red
 
-    def generate_multi_page_report(self, analyzed_pages, overall_stats, filename):
+    def generate_multi_page_report(self, analyzed_pages, overall_stats, filename, crawler_results=None):
         """Generate comprehensive metric-by-metric PDF report"""
         try:
             doc = SimpleDocTemplate(filename, pagesize=A4)
@@ -690,6 +690,10 @@ class PDFReportGenerator:
         # Add the Web Core Vitals sections
         self.add_web_core_vitals_mobile_section(story)
         self.add_web_core_vitals_desktop_section(story)
+
+        # Add crawler results if available
+        if crawler_results:
+            self.add_crawler_results_section(story, crawler_results)
 
         # Add Backlink Audit Report section (last)
         try:
@@ -2883,6 +2887,121 @@ class PDFReportGenerator:
 
             table_style.append(('BACKGROUND', (1, i), (1, i), lcp_color))
             table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+
+
+    def add_crawler_results_section(self, story, crawler_results):
+        """Add crawler results section to PDF"""
+        story.append(PageBreak())
+        
+        # Section title
+        crawler_title_style = ParagraphStyle(
+            'CrawlerTitle',
+            parent=self.styles['Heading1'],
+            fontSize=24,
+            spaceAfter=30,
+            textColor=HexColor('#2E86AB'),
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        story.append(Paragraph("🔍 Link Analysis & Site Crawl", crawler_title_style))
+        story.append(Spacer(1, 20))
+        
+        # Summary statistics
+        stats = crawler_results['crawl_stats']
+        summary_data = [
+            ['Metric', 'Count'],
+            ['Pages Crawled', str(stats['pages_crawled'])],
+            ['Broken Links Found', str(stats['broken_links_count'])],
+            ['Orphan Pages Found', str(stats['orphan_pages_count'])],
+            ['Sitemap URLs', str(stats['sitemap_urls_count'])]
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 10)
+        ]))
+        
+        story.append(summary_table)
+        story.append(Spacer(1, 30))
+        
+        # Broken Links Section
+        if crawler_results['broken_links']:
+            story.append(Paragraph("Broken Links Found", self.heading_style))
+            
+            broken_data = [['Source Page', 'Broken URL', 'Anchor Text', 'Link Type', 'Status']]
+            for link in crawler_results['broken_links'][:10]:  # Show first 10
+                broken_data.append([
+                    link['source_page'][:50] + "..." if len(link['source_page']) > 50 else link['source_page'],
+                    link['broken_url'][:40] + "..." if len(link['broken_url']) > 40 else link['broken_url'],
+                    link['anchor_text'][:30] + "..." if len(link['anchor_text']) > 30 else link['anchor_text'],
+                    link['link_type'],
+                    str(link['status_code'])
+                ])
+            
+            broken_table = Table(broken_data, colWidths=[1.5*inch, 1.5*inch, 1.2*inch, 0.8*inch, 0.8*inch])
+            broken_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#F44336')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('GRID', (0, 0), (-1, -1), 1, black),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 6)
+            ]))
+            
+            story.append(broken_table)
+            
+            if len(crawler_results['broken_links']) > 10:
+                story.append(Spacer(1, 10))
+                story.append(Paragraph(f"+ {len(crawler_results['broken_links']) - 10} more broken links found", self.body_style))
+            
+            story.append(Spacer(1, 30))
+        
+        # Orphan Pages Section  
+        orphan_pages = [p for p in crawler_results['orphan_pages'] if p['internally_linked'] == 'No']
+        if orphan_pages:
+            story.append(Paragraph("Orphan Pages Found", self.heading_style))
+            
+            orphan_data = [['Page URL', 'In Sitemap', 'Status']]
+            for page in orphan_pages[:10]:  # Show first 10
+                orphan_data.append([
+                    page['url'][:60] + "..." if len(page['url']) > 60 else page['url'],
+                    page['in_sitemap'],
+                    'Orphaned' if page['internally_linked'] == 'No' else 'Linked'
+                ])
+            
+            orphan_table = Table(orphan_data, colWidths=[4*inch, 1*inch, 1*inch])
+            orphan_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#FF9800')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('GRID', (0, 0), (-1, -1), 1, black),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 6)
+            ]))
+            
+            story.append(orphan_table)
+            
+            if len(orphan_pages) > 10:
+                story.append(Spacer(1, 10))
+                story.append(Paragraph(f"+ {len(orphan_pages) - 10} more orphan pages found", self.body_style))
+
             table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
 
             # Color code FID/INP (First Input Delay / Interaction to Next Paint)
@@ -3768,8 +3887,18 @@ def generate_pdf():
         # Create reports directory if it doesn't exist
         os.makedirs('reports', exist_ok=True)
 
-        # Generate comprehensive multi-page PDF report
-        pdf_generator.generate_multi_page_report(analyzed_pages, overall_stats, filepath)
+        # Run crawler analysis and integrate results
+        try:
+            from crawler_integration import run_crawler_audit
+            logger.info("Running crawler analysis...")
+            crawler_results = run_crawler_audit(url, max_depth=2, max_pages=max_pages, delay=0.5)
+            logger.info(f"Crawler found {crawler_results['crawl_stats']['broken_links_count']} broken links and {crawler_results['crawl_stats']['orphan_pages_count']} orphan pages")
+        except Exception as e:
+            logger.warning(f"Crawler analysis failed: {e}")
+            crawler_results = None
+
+        # Generate comprehensive multi-page PDF report with crawler data
+        pdf_generator.generate_multi_page_report(analyzed_pages, overall_stats, filepath, crawler_results)
 
         logger.info(f"Generated report: {filename}")
         return send_file(filepath, as_attachment=True, download_name=filename)
