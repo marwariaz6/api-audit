@@ -426,6 +426,19 @@ class SEOAuditor:
 
         analysis['scores']['internal_links'] = internal_link_score
 
+        # Add external links scoring
+        external_links = analysis.get('external_links', 0)
+        if external_links == 0:
+            external_link_score = 30  # No external links is poor for authority
+        elif external_links < 3:
+            external_link_score = 60  # Few external links
+        elif external_links < 10:
+            external_link_score = 90  # Good balance
+        else:
+            external_link_score = 75  # Too many external links can dilute authority
+
+        analysis['scores']['external_links'] = external_link_score
+
         return analysis
 
     def calculate_scores(self, analysis):
@@ -660,6 +673,7 @@ class PDFReportGenerator:
         self.add_metric_analysis(story, analyzed_pages, "🔹 Image Optimization", "images")
         self.add_metric_analysis(story, analyzed_pages, "🔹 Content Quality", "content")
         self.add_metric_analysis(story, analyzed_pages, "🔹 Internal Linking", "internal_links")
+        self.add_metric_analysis(story, analyzed_pages, "🔹 External Linking", "external_links")
 
         # Add comprehensive missing images page at the end of On Page section
         self.add_missing_images_page(story, analyzed_pages)
@@ -725,7 +739,8 @@ class PDFReportGenerator:
             'headings': self.get_heading_issues(analysis),
             'images': self.get_image_issues(analysis),
             'content': self.get_content_issues(analysis),
-            'internal_links': self.get_internal_link_issues(analysis)
+            'internal_links': self.get_internal_link_issues(analysis),
+            'external_links': self.get_external_link_issues(analysis)
         }
 
         return issues_map.get(metric, "No specific issues")
@@ -799,6 +814,18 @@ class PDFReportGenerator:
             return "Good internal linking"
         else:
             return "Excellent internal linking"
+
+    def get_external_link_issues(self, analysis):
+        """Get external linking issues"""
+        external_links = analysis.get('external_links', 0)
+        if external_links == 0:
+            return "No external links found"
+        elif external_links < 3:
+            return f"Few external links ({external_links})"
+        elif external_links < 10:
+            return "Good external linking"
+        else:
+            return f"Too many external links ({external_links})"
 
     def get_metric_issues_table_data(self, analyzed_pages, metric):
         """Get detailed issues table data with current values and visual indicators"""
@@ -903,6 +930,19 @@ class PDFReportGenerator:
 
                 current_value = f"{internal_links} internal links"
 
+            elif metric == 'external_links':
+                external_links = analysis.get('external_links', 0)
+                if external_links == 0:
+                    issue = "No external links"
+                elif external_links < 3:
+                    issue = "Few external links"
+                elif external_links < 10:
+                    issue = "Good external linking"
+                else:
+                    issue = "Too many external links"
+
+                current_value = f"{external_links} external links"
+
             else:
                 issue = "Unknown metric"
                 current_value = "N/A"
@@ -955,6 +995,15 @@ class PDFReportGenerator:
                 "Link to relevant pages that provide additional value",
                 "Create a logical site structure with clear navigation paths",
                 "Use internal linking to distribute page authority throughout your site"
+            ],
+            'external_links': [
+                "Include 1-5 high-quality external links to authoritative sources",
+                "Link to relevant, trustworthy websites that add value for users",
+                "Use descriptive anchor text for external links",
+                "Open external links in new tabs to keep users on your site",
+                "Avoid linking to competitors unless providing genuine value",
+                "Regularly check external links to ensure they're still working",
+                "Consider using nofollow attribute for commercial external links"
             ],
             'overall': [
                 "Focus on improving the lowest-scoring metrics first",
