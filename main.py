@@ -680,6 +680,9 @@ class PDFReportGenerator:
         # Add Backlink Audit Report section (last)
         try:
             self.add_backlink_title_page(story)
+            # Add the new sections
+            self.add_link_source_quality_analysis(story)
+            self.add_anchor_text_distribution(story)
         except Exception as e:
             logger.error(f"Error adding backlink pages: {e}")
             # Add fallback message
@@ -1257,19 +1260,6 @@ class PDFReportGenerator:
             alignment=TA_CENTER,
             fontName='Helvetica-Bold',
             spaceBefore=150
-        )
-
-        # Create centered intro paragraph style
-        tech_seo_intro_style = ParagraphStyle(
-            'TechnicalSEOIntro',
-            parent=self.body_style,
-            fontSize=12,
-            spaceAfter=20,
-            alignment=TA_CENTER,
-            leftIndent=80,
-            rightIndent=80,
-            leading=20,
-            spaceBefore=30
         )
 
         # Add centered title
@@ -2194,8 +2184,7 @@ class PDFReportGenerator:
             ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
             ('TOPPADDING', (0, 0), (-1, -1), 8),
             ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('WORDWRAP', (0, 0), (-1, -1), True)
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
         ]
 
         # Color code canonicalization metrics and add alternating rows
@@ -2933,7 +2922,7 @@ class PDFReportGenerator:
         )
 
         story.append(Paragraph("Backlink Profile Summary", summary_title_style))
-        
+
         # Description paragraph
         description_style = ParagraphStyle(
             'BacklinkDescription',
@@ -2942,7 +2931,7 @@ class PDFReportGenerator:
             spaceAfter=20,
             leading=14
         )
-        
+
         story.append(Paragraph(
             "This section summarizes the key metrics of your website's backlink profile, giving you a quick overview of link quantity, quality, and potential issues.",
             description_style
@@ -2999,7 +2988,7 @@ class PDFReportGenerator:
                     color = HexColor('#FF9800')  # Orange
                 else:
                     color = HexColor('#F44336')  # Red
-                
+
                 table_style.append(('BACKGROUND', (1, i), (1, i), color))
                 table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
                 table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
@@ -3013,7 +3002,7 @@ class PDFReportGenerator:
                     color = HexColor('#FF9800')  # Orange
                 else:
                     color = HexColor('#F44336')  # Red
-                
+
                 table_style.append(('BACKGROUND', (1, i), (1, i), color))
                 table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
                 table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
@@ -3027,7 +3016,7 @@ class PDFReportGenerator:
                     color = HexColor('#FF9800')  # Orange
                 else:
                     color = HexColor('#F44336')  # Red
-                
+
                 table_style.append(('BACKGROUND', (1, i), (1, i), color))
                 table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
                 table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
@@ -3098,7 +3087,7 @@ class PDFReportGenerator:
                     color = HexColor('#FF9800')  # Orange
                 else:
                     color = HexColor('#F44336')  # Red
-                
+
                 table_style.append(('BACKGROUND', (2, i), (2, i), color))
                 table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
                 table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
@@ -3111,7 +3100,7 @@ class PDFReportGenerator:
                     color = HexColor('#FF9800')  # Orange
                 else:
                     color = HexColor('#F44336')  # Red
-                
+
                 table_style.append(('BACKGROUND', (2, i), (2, i), color))
                 table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
                 table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
@@ -3124,14 +3113,14 @@ class PDFReportGenerator:
                     color = HexColor('#FF9800')  # Orange
                 else:
                     color = HexColor('#F44336')  # Red
-                
+
                 table_style.append(('BACKGROUND', (2, i), (2, i), color))
                 table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
                 table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
 
         distribution_table.setStyle(TableStyle(table_style))
         story.append(distribution_table)
-        story.append(Spacer(1, 30))
+        story.append(Spacer(1, 25))
 
         # Add Key Insights section
         insights_title_style = ParagraphStyle(
@@ -3169,6 +3158,295 @@ class PDFReportGenerator:
             story.append(Paragraph(insight, insight_style))
 
         story.append(Spacer(1, 30))
+
+    def add_link_source_quality_analysis(self, story):
+        """Add Link Source Quality Analysis section"""
+        story.append(PageBreak())
+
+        # Section heading
+        quality_title_style = ParagraphStyle(
+            'LinkQualityTitle',
+            parent=self.heading_style,
+            fontSize=18,
+            spaceAfter=20,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Link Source Quality Analysis", quality_title_style))
+        story.append(Spacer(1, 15))
+
+        # Create quality analysis table
+        quality_data = [
+            ['Quality Level', 'Count', 'Percentage', 'Description'],
+            ['High Authority (DR 60+)', '98', '7.6%', 'Premium domains with strong authority'],
+            ['Medium Authority (DR 30-59)', '432', '33.6%', 'Good quality domains with decent authority'],
+            ['Low Authority (DR <30)', '754', '58.8%', 'Lower authority domains']
+        ]
+
+        # Create table with proper column widths
+        quality_table = Table(quality_data, colWidths=[1.8*inch, 0.8*inch, 1.0*inch, 2.8*inch])
+
+        # Define table style
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, 0), 'CENTER'),
+            ('ALIGN', (1, 1), (2, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]
+
+        # Color code quality levels
+        for i in range(1, len(quality_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+                table_style.append(('BACKGROUND', (3, i), (3, i), HexColor('#f8f9fa')))
+
+            # Color code based on quality level
+            quality_level = quality_data[i][0]
+            if 'High Authority' in quality_level:
+                color = HexColor('#4CAF50')  # Green
+            elif 'Medium Authority' in quality_level:
+                color = HexColor('#FF9800')  # Orange
+            else:  # Low Authority
+                color = HexColor('#F44336')  # Red
+
+            table_style.append(('BACKGROUND', (2, i), (2, i), color))
+            table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
+            table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+
+        quality_table.setStyle(TableStyle(table_style))
+        story.append(quality_table)
+        story.append(Spacer(1, 20))
+
+        # Add average domain rating summary
+        avg_rating_style = ParagraphStyle(
+            'AvgRating',
+            parent=self.body_style,
+            fontSize=12,
+            spaceAfter=15,
+            fontName='Helvetica-Bold',
+            textColor=HexColor('#2E86AB')
+        )
+
+        story.append(Paragraph("Average Domain Rating: 42.3 - Overall quality indicator of linking domains", avg_rating_style))
+        story.append(Spacer(1, 30))
+
+    def add_anchor_text_distribution(self, story):
+        """Add Anchor Text Distribution section"""
+        # Section heading
+        anchor_title_style = ParagraphStyle(
+            'AnchorDistributionTitle',
+            parent=self.heading_style,
+            fontSize=18,
+            spaceAfter=20,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Anchor Text Distribution", anchor_title_style))
+        story.append(Spacer(1, 15))
+
+        # Create anchor type distribution table
+        anchor_type_data = [
+            ['Anchor Type', 'Percentage'],
+            ['Branded Anchors', '45.2%'],
+            ['Exact Match Keywords', '12.8%'],
+            ['Generic Anchors', '28.1%'],
+            ['URL Anchors', '13.9%']
+        ]
+
+        # Create table with proper column widths
+        anchor_type_table = Table(anchor_type_data, colWidths=[3.5*inch, 2.0*inch])
+
+        # Define table style
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 11),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]
+
+        # Color code anchor types based on SEO best practices
+        for i in range(1, len(anchor_type_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+
+            # Color code based on anchor type quality
+            anchor_type = anchor_type_data[i][0]
+            percentage = float(anchor_type_data[i][1].rstrip('%'))
+
+            if 'Branded' in anchor_type and percentage > 40:
+                color = HexColor('#4CAF50')  # Green - Good branded ratio
+            elif 'Generic' in anchor_type and percentage > 25:
+                color = HexColor('#FF9800')  # Orange - High generic ratio
+            elif 'Exact Match' in anchor_type and percentage > 15:
+                color = HexColor('#F44336')  # Red - Over-optimization risk
+            else:
+                color = HexColor('#4CAF50')  # Green - Balanced distribution
+
+            table_style.append(('BACKGROUND', (1, i), (1, i), color))
+            table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+            table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+
+        anchor_type_table.setStyle(TableStyle(table_style))
+        story.append(anchor_type_table)
+        story.append(Spacer(1, 25))
+
+        # Add detailed anchor text analysis
+        detail_title_style = ParagraphStyle(
+            'DetailedAnchorTitle',
+            parent=self.subheading_style,
+            fontSize=16,
+            spaceAfter=15,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Detailed Anchor Text Analysis", detail_title_style))
+
+        description_style = ParagraphStyle(
+            'AnchorDescription',
+            parent=self.body_style,
+            fontSize=11,
+            spaceAfter=20,
+            leading=14
+        )
+
+        story.append(Paragraph(
+            "This section provides a comprehensive breakdown of all anchor texts used in backlinks pointing to your website. Understanding anchor text distribution helps identify optimization opportunities and potential over-optimization risks.",
+            description_style
+        ))
+
+        # Create detailed anchor text table
+        detailed_anchor_data = [
+            ['Anchor Text', 'Count', 'Percentage'],
+            ['hosn insurance', '48', '12.8%'],
+            ['click here', '17', '4.5%'],
+            ['insurance in UAE', '12', '3.2%'],
+            ['visit website', '9', '2.4%'],
+            ['[blank] (no anchor)', '6', '1.6%'],
+            ['https://hosninsurance.ae', '4', '1.1%'],
+            ['cheap car insurance', '3', '0.8%'],
+            ['car insurance dubai', '8', '2.1%'],
+            ['best insurance company', '6', '1.6%'],
+            ['auto insurance', '5', '1.3%'],
+            ['vehicle insurance', '4', '1.1%'],
+            ['insurance quotes', '7', '1.9%'],
+            ['comprehensive coverage', '3', '0.8%'],
+            ['motor insurance', '9', '2.4%'],
+            ['read more', '15', '4.0%'],
+            ['learn more', '11', '2.9%'],
+            ['get quote', '13', '3.5%'],
+            ['homepage', '8', '2.1%'],
+            ['website', '22', '5.9%'],
+            ['official site', '5', '1.3%']
+        ]
+
+        # Create table with proper column widths
+        detailed_anchor_table = Table(detailed_anchor_data, colWidths=[3.0*inch, 1.0*inch, 1.5*inch])
+
+        # Define table style
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]
+
+        # Color code anchor texts based on type and percentage
+        for i in range(1, len(detailed_anchor_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+
+            anchor_text = detailed_anchor_data[i][0].lower()
+            percentage = float(detailed_anchor_data[i][2].rstrip('%'))
+
+            # Color code based on anchor text type
+            if 'hosn insurance' in anchor_text:
+                color = HexColor('#4CAF50')  # Green - Branded anchor
+            elif any(word in anchor_text for word in ['insurance', 'car', 'auto', 'motor', 'vehicle']):
+                if percentage > 3:
+                    color = HexColor('#FF9800')  # Orange - High keyword density
+                else:
+                    color = HexColor('#4CAF50')  # Green - Good keyword anchor
+            elif any(word in anchor_text for word in ['click here', 'read more', 'website', 'homepage']):
+                color = HexColor('#FFC107')  # Yellow - Generic anchor
+            else:
+                color = HexColor('#E0E0E0')  # Gray - Other
+
+            table_style.append(('BACKGROUND', (2, i), (2, i), color))
+            if color != HexColor('#E0E0E0'):
+                table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
+                table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+
+        detailed_anchor_table.setStyle(TableStyle(table_style))
+        story.append(detailed_anchor_table)
+        story.append(Spacer(1, 25))
+
+        # Add Anchor Text Insights
+        insights_title_style = ParagraphStyle(
+            'InsightsTitle',
+            parent=self.subheading_style,
+            fontSize=14,
+            spaceAfter=12,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Anchor Text Insights:", insights_title_style))
+        story.append(Spacer(1, 8))
+
+        # Generate insights based on the data
+        insights = [
+            "• Branded Anchors (48 links): Good brand recognition with 'hosn insurance' as primary anchor",
+            "• Generic Anchors (52 links): High percentage of generic anchors like 'click here' and 'website'",
+            "• Keyword-Rich Anchors (35 links): Good variety of insurance-related keywords",
+            "• URL Anchors (4 links): Low percentage of naked URL anchors is positive",
+            "• Recommendation: Consider reducing generic anchors and increase keyword-rich variations"
+        ]
+
+        # Create insight style
+        insight_style = ParagraphStyle(
+            'InsightBullet',
+            parent=self.body_style,
+            fontSize=11,
+            spaceAfter=6,
+            leftIndent=10
+        )
+
+        for insight in insights:
+            story.append(Paragraph(insight, insight_style))
+
+        story.append(Spacer(1, 30))
+
 
 # Initialize components
 auditor = SEOAuditor()
