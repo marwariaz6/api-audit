@@ -3618,7 +3618,7 @@ class PDFReportGenerator:
         # Get domain for CSV link
         homepage_url = list(analyzed_pages.keys())[0] if analyzed_pages else "example.com"
         domain = urllib.parse.urlparse(homepage_url).netloc.replace('.', '_')
-        csv_link = f"http://0.0.0.0:5000/generate-csv/{domain}"
+        csv_link = f"/generate-csv/{domain}"
         
         clickable_csv_text = f'For a complete list of referring domains beyond the top 20 (15 additional domains), <link href="{csv_link}" color="blue">click here to download the full CSV report</link>.'
         
