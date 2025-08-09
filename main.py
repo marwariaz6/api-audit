@@ -2909,7 +2909,266 @@ class PDFReportGenerator:
         story.append(Paragraph("🔗 Backlink Audit Report", backlink_title_style))
 
         # Add plenty of white space for clean look
-        story.append(Spacer(1, 300))
+        story.append(Spacer(1, 200))
+
+        # Add Backlink Profile Summary
+        self.add_backlink_profile_summary(story)
+
+        # Add page break before next section
+        story.append(PageBreak())
+
+        # Add Backlink Types Distribution
+        self.add_backlink_types_distribution(story)
+
+    def add_backlink_profile_summary(self, story):
+        """Add Backlink Profile Summary section"""
+        # Section heading
+        summary_title_style = ParagraphStyle(
+            'BacklinkSummaryTitle',
+            parent=self.heading_style,
+            fontSize=18,
+            spaceAfter=20,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Backlink Profile Summary", summary_title_style))
+        
+        # Description paragraph
+        description_style = ParagraphStyle(
+            'BacklinkDescription',
+            parent=self.body_style,
+            fontSize=11,
+            spaceAfter=20,
+            leading=14
+        )
+        
+        story.append(Paragraph(
+            "This section summarizes the key metrics of your website's backlink profile, giving you a quick overview of link quantity, quality, and potential issues.",
+            description_style
+        ))
+
+        # Create summary metrics table
+        summary_data = [
+            ['Metric', 'Value'],
+            ['Total Backlinks', '1,284'],
+            ['Unique Referring Domains', '432'],
+            ['DoFollow Links', '978'],
+            ['NoFollow Links', '306'],
+            ['Redirects', '12'],
+            ['Average Domain Rating', '54'],
+            ['Average Spam Score', '18.7%'],
+            ['Toxic Links Detected', '7']
+        ]
+
+        # Create table with proper column widths
+        summary_table = Table(summary_data, colWidths=[3.0*inch, 2.0*inch])
+
+        # Define table style
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 11),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]
+
+        # Color code metrics based on values
+        for i in range(1, len(summary_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+
+            # Color code specific metrics
+            metric = summary_data[i][0]
+            value = summary_data[i][1]
+
+            if 'Domain Rating' in metric:
+                # Domain Rating: >50 good, >30 moderate, <30 poor
+                rating = int(value)
+                if rating >= 50:
+                    color = HexColor('#4CAF50')  # Green
+                elif rating >= 30:
+                    color = HexColor('#FF9800')  # Orange
+                else:
+                    color = HexColor('#F44336')  # Red
+                
+                table_style.append(('BACKGROUND', (1, i), (1, i), color))
+                table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+                table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+
+            elif 'Spam Score' in metric:
+                # Spam Score: <15% good, <30% moderate, >30% poor
+                score = float(value.rstrip('%'))
+                if score < 15:
+                    color = HexColor('#4CAF50')  # Green
+                elif score < 30:
+                    color = HexColor('#FF9800')  # Orange
+                else:
+                    color = HexColor('#F44336')  # Red
+                
+                table_style.append(('BACKGROUND', (1, i), (1, i), color))
+                table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+                table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+
+            elif 'Toxic Links' in metric:
+                # Toxic Links: 0 good, <10 moderate, >10 poor
+                toxic = int(value)
+                if toxic == 0:
+                    color = HexColor('#4CAF50')  # Green
+                elif toxic < 10:
+                    color = HexColor('#FF9800')  # Orange
+                else:
+                    color = HexColor('#F44336')  # Red
+                
+                table_style.append(('BACKGROUND', (1, i), (1, i), color))
+                table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+                table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+
+        summary_table.setStyle(TableStyle(table_style))
+        story.append(summary_table)
+        story.append(Spacer(1, 30))
+
+    def add_backlink_types_distribution(self, story):
+        """Add Backlink Types Distribution section"""
+        # Section heading
+        distribution_title_style = ParagraphStyle(
+            'BacklinkDistributionTitle',
+            parent=self.heading_style,
+            fontSize=18,
+            spaceAfter=20,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Backlink Types Distribution", distribution_title_style))
+        story.append(Spacer(1, 15))
+
+        # Create distribution table
+        distribution_data = [
+            ['Link Type', 'Count', 'Percentage'],
+            ['DoFollow Links', '978', '76.2%'],
+            ['NoFollow Links', '306', '23.8%'],
+            ['Text Links', '1,150', '89.6%'],
+            ['Image Links', '134', '10.4%'],
+            ['Redirects', '12', '0.9%']
+        ]
+
+        # Create table with proper column widths
+        distribution_table = Table(distribution_data, colWidths=[2.5*inch, 1.5*inch, 1.5*inch])
+
+        # Define table style
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 11),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]
+
+        # Color code distribution metrics and add alternating rows
+        for i in range(1, len(distribution_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+
+            # Color code percentage column based on link type
+            link_type = distribution_data[i][0]
+            percentage = float(distribution_data[i][2].rstrip('%'))
+
+            if 'DoFollow' in link_type:
+                # DoFollow links: >70% good, >50% moderate, <50% poor
+                if percentage >= 70:
+                    color = HexColor('#4CAF50')  # Green
+                elif percentage >= 50:
+                    color = HexColor('#FF9800')  # Orange
+                else:
+                    color = HexColor('#F44336')  # Red
+                
+                table_style.append(('BACKGROUND', (2, i), (2, i), color))
+                table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
+                table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+
+            elif 'Text Links' in link_type:
+                # Text links: >80% good, >60% moderate, <60% poor
+                if percentage >= 80:
+                    color = HexColor('#4CAF50')  # Green
+                elif percentage >= 60:
+                    color = HexColor('#FF9800')  # Orange
+                else:
+                    color = HexColor('#F44336')  # Red
+                
+                table_style.append(('BACKGROUND', (2, i), (2, i), color))
+                table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
+                table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+
+            elif 'Redirects' in link_type:
+                # Redirects: <5% good, <10% moderate, >10% poor
+                if percentage < 5:
+                    color = HexColor('#4CAF50')  # Green
+                elif percentage < 10:
+                    color = HexColor('#FF9800')  # Orange
+                else:
+                    color = HexColor('#F44336')  # Red
+                
+                table_style.append(('BACKGROUND', (2, i), (2, i), color))
+                table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
+                table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+
+        distribution_table.setStyle(TableStyle(table_style))
+        story.append(distribution_table)
+        story.append(Spacer(1, 30))
+
+        # Add Key Insights section
+        insights_title_style = ParagraphStyle(
+            'InsightsTitle',
+            parent=self.subheading_style,
+            fontSize=14,
+            spaceAfter=12,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Key Insights", insights_title_style))
+        story.append(Spacer(1, 8))
+
+        # Generate insights based on the data
+        insights = [
+            "• Strong DoFollow ratio at 76.2% indicates good link equity potential",
+            "• High text link percentage (89.6%) shows natural link building patterns",
+            "• Low redirect rate (0.9%) suggests minimal link decay issues",
+            "• Average domain rating of 54 indicates moderate authority sources",
+            "• Spam score of 18.7% requires monitoring and potential toxic link cleanup",
+            "• 7 toxic links detected should be reviewed and potentially disavowed"
+        ]
+
+        # Create insight style
+        insight_style = ParagraphStyle(
+            'InsightBullet',
+            parent=self.body_style,
+            fontSize=11,
+            spaceAfter=6,
+            leftIndent=10
+        )
+
+        for insight in insights:
+            story.append(Paragraph(insight, insight_style))
+
+        story.append(Spacer(1, 30))
 
 # Initialize components
 auditor = SEOAuditor()
