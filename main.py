@@ -1271,6 +1271,16 @@ class PDFReportGenerator:
                      "technical SEO best practices is crucial for long-term organic growth and "
                      "visibility in search engines.")
 
+        # Create introduction paragraph style
+        tech_seo_intro_style = ParagraphStyle(
+            'TechnicalSEOIntro',
+            parent=self.body_style,
+            fontSize=12,
+            spaceAfter=30,
+            alignment=TA_CENTER,
+            leading=18
+        )
+
         story.append(Paragraph(intro_text, tech_seo_intro_style))
 
         # Add plenty of white space for clean look
