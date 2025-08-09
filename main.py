@@ -2911,8 +2911,29 @@ class PDFReportGenerator:
         # Add centered title
         story.append(Paragraph("🔗 Backlink Audit Report", backlink_title_style))
 
-        # Add plenty of white space for clean look
-        story.append(Spacer(1, 200))
+        # Add introduction text
+        intro_text = ("This comprehensive backlink audit analyzes your website's link profile to identify "
+                     "opportunities for improvement and potential risks. Understanding your backlink "
+                     "landscape is essential for building domain authority and maintaining a healthy "
+                     "SEO foundation.")
+
+        # Create introduction paragraph style
+        backlink_intro_style = ParagraphStyle(
+            'BacklinkIntro',
+            parent=self.body_style,
+            fontSize=12,
+            spaceAfter=30,
+            alignment=TA_CENTER,
+            leading=18
+        )
+
+        story.append(Paragraph(intro_text, backlink_intro_style))
+
+        # Add some white space
+        story.append(Spacer(1, 100))
+
+        # Add page break before backlink summary
+        story.append(PageBreak())
 
         # Add Backlink Profile Summary
         self.add_backlink_profile_summary(story)
