@@ -2928,30 +2928,56 @@ class PDFReportGenerator:
         if crawler_results['broken_links']:
             story.append(Paragraph("Broken Links Found", self.heading_style))
 
-            broken_data = [['Source Page', 'Broken URL', 'Anchor Text', 'Link Type', 'Status Code']]
+            broken_data = [['Source Page', 'Broken URL', 'Anchor Text', 'Link Type', 'Status']]
             # Limit to top 20 broken links, but display only 10 in the table
             broken_links_to_display = crawler_results['broken_links'][:20]
             for link in broken_links_to_display[:10]:
+                # Create wrapped paragraphs for long text content
+                source_page_text = link['source_page'][:45] + "..." if len(link['source_page']) > 45 else link['source_page']
+                broken_url_text = link['broken_url'][:35] + "..." if len(link['broken_url']) > 35 else link['broken_url']
+                anchor_text = link['anchor_text'][:25] + "..." if len(link['anchor_text']) > 25 else link['anchor_text']
+                
                 broken_data.append([
-                    link['source_page'][:50] + "..." if len(link['source_page']) > 50 else link['source_page'],
-                    link['broken_url'][:40] + "..." if len(link['broken_url']) > 40 else link['broken_url'],
-                    link['anchor_text'][:30] + "..." if len(link['anchor_text']) > 30 else link['anchor_text'],
+                    Paragraph(source_page_text, ParagraphStyle(
+                        'BrokenLinkText',
+                        parent=self.body_style,
+                        fontSize=7,
+                        leading=8,
+                        wordWrap='LTR'
+                    )),
+                    Paragraph(broken_url_text, ParagraphStyle(
+                        'BrokenLinkText',
+                        parent=self.body_style,
+                        fontSize=7,
+                        leading=8,
+                        wordWrap='LTR'
+                    )),
+                    Paragraph(anchor_text, ParagraphStyle(
+                        'BrokenLinkText',
+                        parent=self.body_style,
+                        fontSize=7,
+                        leading=8,
+                        wordWrap='LTR'
+                    )),
                     link['link_type'],
                     str(link['status_code'])
                 ])
 
-            broken_table = Table(broken_data, colWidths=[1.5*inch, 1.5*inch, 1.2*inch, 0.8*inch, 0.8*inch])
+            # Adjusted column widths to better fit content and prevent overlap
+            broken_table = Table(broken_data, colWidths=[2.0*inch, 1.8*inch, 1.3*inch, 0.7*inch, 0.6*inch])
             broken_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), HexColor('#F44336')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), white),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                ('FONTSIZE', (0, 1), (-1, -1), 7),
                 ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('ALIGN', (3, 0), (-1, -1), 'CENTER'),  # Center align Link Type and Status columns
                 ('GRID', (0, 0), (-1, -1), 1, black),
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('TOPPADDING', (0, 0), (-1, -1), 6)
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('WORDWRAP', (0, 0), (-1, -1), True)
             ]))
 
             story.append(broken_table)
