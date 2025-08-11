@@ -657,8 +657,8 @@ class PDFReportGenerator:
         overall_page_data = [['Page URL', 'Overall Score']]
 
         for url, analysis in analyzed_pages.items():
-            # Create clickable URL
-            clickable_url = self.create_clickable_url(url)
+            # Create clickable URL with shorter length for overview table
+            clickable_url = self.create_clickable_url(url, max_chars=45)
             page_score = analysis['scores']['overall']
             overall_page_data.append([clickable_url, f"{page_score}/100"])
 
@@ -716,23 +716,29 @@ class PDFReportGenerator:
             logger.error(f"Error building PDF document: {e}")
             return None
 
-    def create_clickable_url(self, url, max_width=2.0):
+    def create_clickable_url(self, url, max_chars=40):
         """Create a clickable URL paragraph with proper wrapping"""
+        # Truncate URL if too long for better table formatting
+        if len(url) > max_chars:
+            display_url = url[:max_chars-3] + "..."
+        else:
+            display_url = url
+            
         # Create a custom style for URLs with smaller font and wrapping
         url_style = ParagraphStyle(
             'ClickableURL',
             parent=self.body_style,
             fontSize=8,
-            leading=10,
+            leading=9,
             wordWrap='LTR',
             allowWidows=1,
             allowOrphans=1,
-            spaceAfter=2,
-            spaceBefore=2
+            spaceAfter=1,
+            spaceBefore=1
         )
 
         # Create clickable link with proper HTML formatting
-        clickable_url = f'<link href="{url}" color="blue">{url}</link>'
+        clickable_url = f'<link href="{url}" color="blue">{display_url}</link>'
         return Paragraph(clickable_url, url_style)
 
     def get_metric_issue(self, analysis, metric):
@@ -848,7 +854,7 @@ class PDFReportGenerator:
         table_data.append(headers.get(metric, ['Page URL', 'Issue', 'Current Value', 'Status']))
 
         for url, analysis in analyzed_pages.items():
-            clickable_url = self.create_clickable_url(url)
+            clickable_url = self.create_clickable_url(url, max_chars=35)  # Limit URL length for table
             score = analysis['scores'].get(metric, 0)
             status = "PASS" if score >= 80 else "FAIL"
 
@@ -1031,19 +1037,31 @@ class PDFReportGenerator:
             if not isinstance(row, (list, tuple)):
                 continue
             wrapped_row = []
-            for cell in row:
-                # Wrap long text to prevent overflow
-                if isinstance(cell, str) and len(cell) > 50:
-                    wrapped_cell = Paragraph(cell, self.body_style)
+            for i, cell in enumerate(row):
+                # Handle different cell types
+                if hasattr(cell, '__class__') and 'Paragraph' in str(cell.__class__):
+                    # Already a Paragraph object (like clickable URLs)
+                    wrapped_cell = cell
+                elif isinstance(cell, str) and len(cell) > 30:
+                    # Wrap long text strings
+                    cell_style = ParagraphStyle(
+                        'CellText',
+                        parent=self.body_style,
+                        fontSize=9,
+                        leading=10,
+                        wordWrap='LTR'
+                    )
+                    wrapped_cell = Paragraph(cell, cell_style)
                 else:
                     wrapped_cell = cell
                 wrapped_row.append(wrapped_cell)
             wrapped_data.append(wrapped_row)
 
+        # Optimize column widths based on content type
         if metric_type == 'overall':
-            table = Table(wrapped_data, colWidths=[4.2*inch, 1.3*inch])
+            table = Table(wrapped_data, colWidths=[3.8*inch, 1.7*inch])
         else:
-            table = Table(wrapped_data, colWidths=[2.8*inch, 0.8*inch, 2.9*inch])
+            table = Table(wrapped_data, colWidths=[2.5*inch, 1.0*inch, 3.0*inch])
 
         # Basic table style with text wrapping support
         table_style = [
@@ -1091,25 +1109,30 @@ class PDFReportGenerator:
 
     def create_issues_table(self, data):
         """Create a detailed issues table with proper text wrapping and column management"""
-        # Wrap long text in cells to prevent overflow (URLs are already wrapped as clickable paragraphs)
+        # Wrap long text in cells to prevent overflow
         wrapped_data = []
         for row in data:
             wrapped_row = []
             for i, cell in enumerate(row):
-                if isinstance(cell, str):
-                    # Wrap long text content for non-URL columns
-                    if i == 1 and len(cell) > 20:  # Issue column
+                if hasattr(cell, '__class__') and 'Paragraph' in str(cell.__class__):
+                    # Already a Paragraph object (like clickable URLs)
+                    wrapped_cell = cell
+                elif isinstance(cell, str):
+                    # Wrap text content based on column
+                    if i == 1 and len(cell) > 15:  # Issue column
                         wrapped_cell = Paragraph(cell, ParagraphStyle(
                             'WrappedIssue',
                             parent=self.body_style,
                             fontSize=8,
+                            leading=9,
                             wordWrap='LTR'
                         ))
-                    elif i == 2 and len(cell) > 40:  # Current value column
+                    elif i == 2 and len(cell) > 25:  # Current value column
                         wrapped_cell = Paragraph(cell, ParagraphStyle(
                             'WrappedValue',
                             parent=self.body_style,
                             fontSize=8,
+                            leading=9,
                             wordWrap='LTR'
                         ))
                     else:
@@ -1119,8 +1142,8 @@ class PDFReportGenerator:
                 wrapped_row.append(wrapped_cell)
             wrapped_data.append(wrapped_row)
 
-        # Optimize column widths to fit content better with more space for URLs
-        table = Table(wrapped_data, colWidths=[2.2*inch, 1.2*inch, 2.3*inch, 0.8*inch])
+        # Better column width distribution - URL, Issue, Current Value, Status
+        table = Table(wrapped_data, colWidths=[2.0*inch, 1.4*inch, 2.0*inch, 1.1*inch])
 
         table_style = [
             ('BACKGROUND', (0, 0), (-1, 0), HexColor('#A23B72')),
@@ -1173,7 +1196,7 @@ class PDFReportGenerator:
         table_data = [['Page URL', 'Score', 'Issue/Status']]
 
         for url, analysis in analyzed_pages.items():
-            clickable_url = self.create_clickable_url(url)
+            clickable_url = self.create_clickable_url(url, max_chars=35)  # Shorter URLs for better table formatting
             score = analysis['scores'].get(metric, 0)
             issue = self.get_metric_issue(analysis, metric)
 
