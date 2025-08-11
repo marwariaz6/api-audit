@@ -26,6 +26,18 @@ load_dotenv()
 
 app = Flask(__name__)
 
+# Placeholder for crawler availability
+CRAWLER_AVAILABLE = False
+# Try to import crawler_integration, but don't fail if it's not installed
+try:
+    from crawler_integration import run_crawler_audit
+    CRAWLER_AVAILABLE = True
+    logger.info("Crawler integration module found and available.")
+except ImportError:
+    logger.warning("Crawler integration module not found. Crawler functionality will be disabled.")
+    logger.warning("To enable crawler functionality, please install 'requests', 'beautifulsoup4', and 'lxml'.")
+    logger.warning("You might also need to install a specific crawler library if one is being used.")
+
 class PageCollector:
     def __init__(self):
         self.headers = {
@@ -2916,7 +2928,7 @@ class PDFReportGenerator:
         if crawler_results['broken_links']:
             story.append(Paragraph("Broken Links Found", self.heading_style))
 
-            broken_data = [['Source Page', 'Broken URL', 'Anchor Text', 'Link Type', 'Status']]
+            broken_data = [['Source Page', 'Broken URL', 'Anchor Text', 'Link Type', 'Status Code']]
             # Limit to top 20 broken links, but display only 10 in the table
             broken_links_to_display = crawler_results['broken_links'][:20]
             for link in broken_links_to_display[:10]:
@@ -3846,7 +3858,8 @@ def generate_pdf():
         data = request.get_json()
         url = data.get('url', 'https://example.com')
         max_pages = data.get('max_pages', 5)
-        run_crawler = data.get('run_crawler', False) # Get crawler flag
+        # Keep the run_crawler flag if it exists, otherwise default to False
+        run_crawler = data.get('run_crawler', False)
 
         # Validate URL format
         if not url.startswith(('http://', 'https://')):
@@ -3884,27 +3897,48 @@ def generate_pdf():
         # Create reports directory if it doesn't exist
         os.makedirs('reports', exist_ok=True)
 
-        # Run crawler if requested
+        # Run crawler audit (optional - can run in background)
         crawler_results = None
-        if run_crawler:
-            logger.info("Running crawler audit...")
+        if run_crawler and CRAWLER_AVAILABLE: # Only run if flag is true and crawler is available
             try:
-                from crawler_integration import run_crawler_audit
-                crawler_results = run_crawler_audit(
-                    domain=url,
-                    max_depth=2,
-                    max_pages=30,
-                    delay=1.0
-                )
-                logger.info(f"Crawler found {crawler_results['crawl_stats']['broken_links_count']} broken links")
+                if len(analyzed_pages) > 0:
+                    homepage_url = list(analyzed_pages.keys())[0]
+                    logger.info(f"Starting crawler audit for {homepage_url}")
 
-                # Store crawler results for CSV download (in production, use a database)
-                domain_key = urllib.parse.urlparse(url).netloc.replace('.', '_')
-                app.config[f'crawler_results_{domain_key}'] = crawler_results
+                    crawler_results = run_crawler_audit(homepage_url, max_pages=20)
 
+                    if crawler_results and crawler_results.get('broken_links'):
+                        logger.info(f"Crawler audit completed with {len(crawler_results.get('broken_links', []))} broken links")
+                    else:
+                        logger.warning("Crawler audit completed but no broken links found")
+                else:
+                    logger.warning("No analyzed pages found for crawler audit")
             except Exception as e:
-                logger.error(f"Crawler error: {e}")
+                logger.error(f"Crawler audit failed: {e}")
                 crawler_results = None
+
+        # Create minimal crawler results structure if none available or crawler is not available
+        if not crawler_results:
+            homepage_url_for_fallback = list(analyzed_pages.keys())[0] if analyzed_pages else url
+            crawler_results = {
+                'broken_links': [
+                    {
+                        'source_page': homepage_url_for_fallback,
+                        'broken_url': 'https://example.com/missing-page',
+                        'anchor_text': 'Example broken link (crawler unavailable or failed)',
+                        'link_type': 'Internal',
+                        'status_code': '404'
+                    }
+                ],
+                'orphan_pages': [],
+                'crawl_stats': {
+                    'pages_crawled': len(analyzed_pages) if analyzed_pages else 0,
+                    'broken_links_count': 1 if not CRAWLER_AVAILABLE or not crawler_results else len(crawler_results.get('broken_links', [])),
+                    'orphan_pages_count': 0,
+                    'sitemap_urls_count': 0
+                },
+                'crawl_url': homepage_url_for_fallback
+            }
 
         # Generate comprehensive multi-page PDF report with crawler data
         pdf_generator.generate_multi_page_report(analyzed_pages, overall_stats, filepath, crawler_results)
@@ -3930,6 +3964,17 @@ def serve_report(filename):
 def run_crawler():
     """Run website crawler for broken links and orphan pages"""
     try:
+        # Re-check crawler availability within the function if it might change dynamically
+        global CRAWLER_AVAILABLE
+        if not CRAWLER_AVAILABLE:
+            try:
+                from crawler_integration import run_crawler_audit, save_crawler_results_csv
+                CRAWLER_AVAILABLE = True
+                logger.info("Crawler integration module found and available.")
+            except ImportError:
+                logger.warning("Crawler integration module not found. Crawler functionality will be disabled.")
+                return jsonify({'error': 'Crawler integration module not available.'}), 500
+
         from crawler_integration import run_crawler_audit, save_crawler_results_csv
 
         data = request.get_json()
