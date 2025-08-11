@@ -2887,121 +2887,6 @@ class PDFReportGenerator:
 
             table_style.append(('BACKGROUND', (1, i), (1, i), lcp_color))
             table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
-
-
-    def add_crawler_results_section(self, story, crawler_results):
-        """Add crawler results section to PDF"""
-        story.append(PageBreak())
-        
-        # Section title
-        crawler_title_style = ParagraphStyle(
-            'CrawlerTitle',
-            parent=self.styles['Heading1'],
-            fontSize=24,
-            spaceAfter=30,
-            textColor=HexColor('#2E86AB'),
-            alignment=TA_CENTER,
-            fontName='Helvetica-Bold'
-        )
-        
-        story.append(Paragraph("🔍 Link Analysis & Site Crawl", crawler_title_style))
-        story.append(Spacer(1, 20))
-        
-        # Summary statistics
-        stats = crawler_results['crawl_stats']
-        summary_data = [
-            ['Metric', 'Count'],
-            ['Pages Crawled', str(stats['pages_crawled'])],
-            ['Broken Links Found', str(stats['broken_links_count'])],
-            ['Orphan Pages Found', str(stats['orphan_pages_count'])],
-            ['Sitemap URLs', str(stats['sitemap_urls_count'])]
-        ]
-        
-        summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
-        summary_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 12),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 10)
-        ]))
-        
-        story.append(summary_table)
-        story.append(Spacer(1, 30))
-        
-        # Broken Links Section
-        if crawler_results['broken_links']:
-            story.append(Paragraph("Broken Links Found", self.heading_style))
-            
-            broken_data = [['Source Page', 'Broken URL', 'Anchor Text', 'Link Type', 'Status']]
-            for link in crawler_results['broken_links'][:10]:  # Show first 10
-                broken_data.append([
-                    link['source_page'][:50] + "..." if len(link['source_page']) > 50 else link['source_page'],
-                    link['broken_url'][:40] + "..." if len(link['broken_url']) > 40 else link['broken_url'],
-                    link['anchor_text'][:30] + "..." if len(link['anchor_text']) > 30 else link['anchor_text'],
-                    link['link_type'],
-                    str(link['status_code'])
-                ])
-            
-            broken_table = Table(broken_data, colWidths=[1.5*inch, 1.5*inch, 1.2*inch, 0.8*inch, 0.8*inch])
-            broken_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#F44336')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), white),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('FONTSIZE', (0, 1), (-1, -1), 8),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('GRID', (0, 0), (-1, -1), 1, black),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('TOPPADDING', (0, 0), (-1, -1), 6)
-            ]))
-            
-            story.append(broken_table)
-            
-            if len(crawler_results['broken_links']) > 10:
-                story.append(Spacer(1, 10))
-                story.append(Paragraph(f"+ {len(crawler_results['broken_links']) - 10} more broken links found", self.body_style))
-            
-            story.append(Spacer(1, 30))
-        
-        # Orphan Pages Section  
-        orphan_pages = [p for p in crawler_results['orphan_pages'] if p['internally_linked'] == 'No']
-        if orphan_pages:
-            story.append(Paragraph("Orphan Pages Found", self.heading_style))
-            
-            orphan_data = [['Page URL', 'In Sitemap', 'Status']]
-            for page in orphan_pages[:10]:  # Show first 10
-                orphan_data.append([
-                    page['url'][:60] + "..." if len(page['url']) > 60 else page['url'],
-                    page['found_in_sitemap'],
-                    'Orphaned' if page['internally_linked'] == 'No' else 'Linked'
-                ])
-            
-            orphan_table = Table(orphan_data, colWidths=[4*inch, 1*inch, 1*inch])
-            orphan_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#FF9800')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), white),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('FONTSIZE', (0, 1), (-1, -1), 8),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('GRID', (0, 0), (-1, -1), 1, black),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('TOPPADDING', (0, 0), (-1, -1), 6)
-            ]))
-            
-            story.append(orphan_table)
-            
-            if len(orphan_pages) > 10:
-                story.append(Spacer(1, 10))
-                story.append(Paragraph(f"+ {len(orphan_pages) - 10} more orphan pages found", self.body_style))
-
             table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
 
             # Color code FID/INP (First Input Delay / Interaction to Next Paint)
@@ -3059,6 +2944,121 @@ class PDFReportGenerator:
         core_vitals_desktop_table.setStyle(TableStyle(table_style))
         story.append(core_vitals_desktop_table)
         story.append(Spacer(1, 30))
+
+    def add_crawler_results_section(self, story, crawler_results):
+        """Add crawler results section to PDF"""
+        story.append(PageBreak())
+
+        # Section title
+        crawler_title_style = ParagraphStyle(
+            'CrawlerTitle',
+            parent=self.styles['Heading1'],
+            fontSize=24,
+            spaceAfter=30,
+            textColor=HexColor('#2E86AB'),
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("🔍 Link Analysis & Site Crawl", crawler_title_style))
+        story.append(Spacer(1, 20))
+
+        # Summary statistics
+        stats = crawler_results['crawl_stats']
+        summary_data = [
+            ['Metric', 'Count'],
+            ['Pages Crawled', str(stats['pages_crawled'])],
+            ['Broken Links Found', str(stats['broken_links_count'])],
+            ['Orphan Pages Found', str(stats['orphan_pages_count'])],
+            ['Sitemap URLs', str(stats['sitemap_urls_count'])]
+        ]
+
+        summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 10)
+        ]))
+
+        story.append(summary_table)
+        story.append(Spacer(1, 30))
+
+        # Broken Links Section
+        if crawler_results['broken_links']:
+            story.append(Paragraph("Broken Links Found", self.heading_style))
+
+            broken_data = [['Source Page', 'Broken URL', 'Anchor Text', 'Link Type', 'Status']]
+            for link in crawler_results['broken_links'][:10]:  # Show first 10
+                broken_data.append([
+                    link['source_page'][:50] + "..." if len(link['source_page']) > 50 else link['source_page'],
+                    link['broken_url'][:40] + "..." if len(link['broken_url']) > 40 else link['broken_url'],
+                    link['anchor_text'][:30] + "..." if len(link['anchor_text']) > 30 else link['anchor_text'],
+                    link['link_type'],
+                    str(link['status_code'])
+                ])
+
+            broken_table = Table(broken_data, colWidths=[1.5*inch, 1.5*inch, 1.2*inch, 0.8*inch, 0.8*inch])
+            broken_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#F44336')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('GRID', (0, 0), (-1, -1), 1, black),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 6)
+            ]))
+
+            story.append(broken_table)
+
+            if len(crawler_results['broken_links']) > 10:
+                story.append(Spacer(1, 10))
+                story.append(Paragraph(f"+ {len(crawler_results['broken_links']) - 10} more broken links found", self.body_style))
+
+            story.append(Spacer(1, 30))
+
+        # Orphan Pages Section
+        orphan_pages = [p for p in crawler_results['orphan_pages'] if p['internally_linked'] == 'No']
+        if orphan_pages:
+            story.append(Paragraph("Orphan Pages Found", self.heading_style))
+
+            orphan_data = [['Page URL', 'In Sitemap', 'Status']]
+            for page in orphan_pages[:10]:  # Show first 10
+                orphan_data.append([
+                    page['url'][:60] + "..." if len(page['url']) > 60 else page['url'],
+                    page['found_in_sitemap'],
+                    'Orphaned' if page['internally_linked'] == 'No' else 'Linked'
+                ])
+
+            orphan_table = Table(orphan_data, colWidths=[4*inch, 1*inch, 1*inch])
+            orphan_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#FF9800')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('GRID', (0, 0), (-1, -1), 1, black),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 6)
+            ]))
+
+            story.append(orphan_table)
+
+            if len(orphan_pages) > 10:
+                story.append(Spacer(1, 10))
+                story.append(Paragraph(f"+ {len(orphan_pages) - 10} more orphan pages found", self.body_style))
+
+            story.append(Spacer(1, 30))
 
     def add_backlink_title_page(self, story):
         """Add backlink audit title page"""
@@ -3513,7 +3513,7 @@ class PDFReportGenerator:
         story.append(anchor_type_table)
         story.append(Spacer(1, 25))
 
-        # Add detailed anchor text analysis
+        # Add Detailed Anchor Text Analysis
         detail_title_style = ParagraphStyle(
             'DetailedAnchorTitle',
             parent=self.subheading_style,
@@ -3787,9 +3787,9 @@ class PDFReportGenerator:
         homepage_url = list(analyzed_pages.keys())[0] if analyzed_pages else "example.com"
         domain = urllib.parse.urlparse(homepage_url).netloc.replace('.', '_')
         csv_link = f"/generate-csv/{domain}"
-        
+
         clickable_csv_text = f'For a complete list of referring domains beyond the top 20 (15 additional domains), <link href="{csv_link}" color="blue">click here to download the full CSV report</link>.'
-        
+
         story.append(Paragraph(clickable_csv_text, complete_list_style))
 
         story.append(Paragraph(
@@ -3922,26 +3922,26 @@ def run_crawler():
     """Run website crawler for broken links and orphan pages"""
     try:
         from crawler_integration import run_crawler_audit, save_crawler_results_csv
-        
+
         data = request.get_json()
         url = data.get('url', 'https://example.com')
         max_depth = data.get('max_depth', 2)
         max_pages = data.get('max_pages', 50)
-        
+
         # Validate URL format
         if not url.startswith(('http://', 'https://')):
             url = 'https://' + url
-        
+
         logger.info(f"Starting crawler audit for: {url}")
-        
+
         # Run crawler audit
         results = run_crawler_audit(url, max_depth=max_depth, max_pages=max_pages, delay=0.5)
-        
+
         # Save results to CSV
         broken_file, orphan_file = save_crawler_results_csv(results, url)
-        
+
         logger.info(f"Crawler audit complete: {results['crawl_stats']}")
-        
+
         return jsonify({
             'success': True,
             'stats': results['crawl_stats'],
@@ -3950,7 +3950,7 @@ def run_crawler():
                 'orphan_pages': os.path.basename(orphan_file)
             }
         })
-        
+
     except Exception as e:
         logger.error(f"Error running crawler: {e}")
         return jsonify({'error': str(e)}), 500
@@ -3962,7 +3962,7 @@ def generate_csv(domain):
         # Generate CSV filename
         csv_filename = f"additional_{domain}_referring_domains_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
         csv_filepath = os.path.join('reports', csv_filename)
-        
+
         # Create CSV data for additional referring domains (beyond top 20)
         additional_domains_data = [
             ['Referring Domain', 'Backlink Type', 'Spam Score', 'Domain Rating', 'Status'],
@@ -3982,15 +3982,15 @@ def generate_csv(domain):
             ['gcc-insurance-forum.org', 'NoFollow', '24%', '35', 'Review'],
             ['dubai-startup-directory.ae', 'DoFollow', '27%', '31', 'Review']
         ]
-        
+
         # Write CSV file
         with open(csv_filepath, 'w', newline='', encoding='utf-8') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerows(additional_domains_data)
-        
+
         logger.info(f"Generated CSV file: {csv_filename}")
         return send_file(csv_filepath, as_attachment=True, download_name=csv_filename)
-        
+
     except Exception as e:
         logger.error(f"Error generating CSV file: {e}")
         return jsonify({'error': str(e)}), 500
@@ -3998,6 +3998,6 @@ def generate_csv(domain):
 if __name__ == '__main__':
     # Ensure the reports directory exists
     os.makedirs('reports', exist_ok=True)
-    
+
     # Run Flask app on all interfaces for external access
     app.run(host='0.0.0.0', port=5000, debug=True)
