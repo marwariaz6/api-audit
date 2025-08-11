@@ -837,6 +837,50 @@ class PDFReportGenerator:
         else:
             return f"Too many external links ({external_links})"
 
+    def create_metric_table(self, table_data, metric):
+        """Create a table for metric analysis with proper styling"""
+        # Create table with proper column widths
+        table = Table(table_data, colWidths=[2.5*inch, 1.0*inch, 2.0*inch])
+
+        # Define table style
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#A23B72')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (1, -1), 'CENTER'),  # Score column centered
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP')
+        ]
+
+        # Color code scores and add alternating rows
+        for i in range(1, len(table_data)):
+            try:
+                # Alternate row backgrounds
+                if i % 2 == 0:
+                    table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+                    table_style.append(('BACKGROUND', (2, i), (2, i), HexColor('#f8f9fa')))
+
+                # Color code score column
+                score_text = table_data[i][1] if len(table_data[i]) > 1 else "0/100"
+                if "/" in score_text:
+                    score = int(score_text.split("/")[0])
+                    score_color = self.get_score_color(score)
+                    table_style.append(('BACKGROUND', (1, i), (1, i), score_color))
+                    table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+                    table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+            except (IndexError, ValueError) as e:
+                logger.error(f"Error processing metric table row {i}: {e}")
+                continue
+
+        table.setStyle(TableStyle(table_style))
+        return table
+
     def get_metric_issues_table_data(self, analyzed_pages, metric):
         """Get detailed issues table data with current values and visual indicators"""
         table_data = []
