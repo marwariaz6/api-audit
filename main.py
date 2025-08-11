@@ -723,7 +723,7 @@ class PDFReportGenerator:
             display_url = url[:max_chars-3] + "..."
         else:
             display_url = url
-            
+
         # Create a custom style for URLs with smaller font and wrapping
         url_style = ParagraphStyle(
             'ClickableURL',
@@ -960,152 +960,6 @@ class PDFReportGenerator:
             table_data.append([clickable_url, issue, current_value, status])
 
         return table_data
-
-    def get_metric_recommendations(self, metric):
-        """Get actionable recommendations for a specific metric"""
-        recommendations = {
-            'title': [
-                "Write unique, descriptive titles for each page (30-60 characters)",
-                "Include primary keywords naturally in title tags",
-                "Place most important keywords at the beginning of titles",
-                "Avoid keyword stuffing and maintain readability",
-                "Use your brand name consistently across titles"
-            ],
-            'meta_description': [
-                "Write compelling meta descriptions for all pages (120-160 characters)",
-                "Include a clear call-to-action in meta descriptions",
-                "Use primary and secondary keywords naturally",
-                "Make each meta description unique and relevant to page content",
-                "Test different descriptions to improve click-through rates"
-            ],
-            'headings': [
-                "Use only one H1 tag per page as the main headline",
-                "Structure content with H2 and H3 tags in logical hierarchy",
-                "Include target keywords in heading tags naturally",
-                "Make headings descriptive and user-friendly",
-                "Use headings to break up content and improve readability"
-            ],
-            'images': [
-                "Add descriptive alt text to all images",
-                "Use keywords in alt text when relevant and natural",
-                "Optimize image file sizes for faster loading",
-                "Use descriptive file names for images",
-                "Implement proper image compression and WebP format when possible"
-            ],
-            'content': [
-                "Create comprehensive, valuable content (minimum 300 words)",
-                "Focus on user intent and provide clear answers",
-                "Use target keywords naturally throughout content",
-                "Include related keywords and semantic variations",
-                "Update content regularly to maintain freshness and relevance"
-            ],
-            'internal_links': [
-                "Add 3-8 relevant internal links per page",
-                "Use descriptive anchor text for internal links",
-                "Link to relevant pages that provide additional value",
-                "Create a logical site structure with clear navigation paths",
-                "Use internal linking to distribute page authority throughout your site"
-            ],
-            'external_links': [
-                "Include 1-5 high-quality external links to authoritative sources",
-                "Link to relevant, trustworthy websites that add value for users",
-                "Use descriptive anchor text for external links",
-                "Open external links in new tabs to keep users on your site",
-                "Avoid linking to competitors unless providing genuine value",
-                "Regularly check external links to ensure they're still working",
-                "Consider using nofollow attribute for commercial external links"
-            ],
-            'overall': [
-                "Focus on improving the lowest-scoring metrics first",
-                "Monitor SEO performance regularly with analytics tools",
-                "Create a content strategy based on keyword research",
-                "Build quality backlinks from relevant, authoritative websites",
-                "Keep up with SEO best practices and algorithm updates"
-            ]
-        }
-
-        return recommendations.get(metric, [])
-
-    def create_metric_table(self, data, metric_type):
-        """Create a standardized metric table with proper text wrapping"""
-        if not data or len(data) == 0:
-            return Table([['No data available']])
-
-        # Wrap text in cells and ensure proper column widths
-        wrapped_data = []
-        for row in data:
-            if not isinstance(row, (list, tuple)):
-                continue
-            wrapped_row = []
-            for i, cell in enumerate(row):
-                # Handle different cell types
-                if hasattr(cell, '__class__') and 'Paragraph' in str(cell.__class__):
-                    # Already a Paragraph object (like clickable URLs)
-                    wrapped_cell = cell
-                elif isinstance(cell, str) and len(cell) > 30:
-                    # Wrap long text strings
-                    cell_style = ParagraphStyle(
-                        'CellText',
-                        parent=self.body_style,
-                        fontSize=9,
-                        leading=10,
-                        wordWrap='LTR'
-                    )
-                    wrapped_cell = Paragraph(cell, cell_style)
-                else:
-                    wrapped_cell = cell
-                wrapped_row.append(wrapped_cell)
-            wrapped_data.append(wrapped_row)
-
-        # Optimize column widths based on content type
-        if metric_type == 'overall':
-            table = Table(wrapped_data, colWidths=[3.8*inch, 1.7*inch])
-        else:
-            table = Table(wrapped_data, colWidths=[2.5*inch, 1.0*inch, 3.0*inch])
-
-        # Basic table style with text wrapping support
-        table_style = [
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
-            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('WORDWRAP', (0, 0), (-1, -1), True)
-        ]
-
-        # Color code scores with error handling
-        score_column = 1 if metric_type == 'overall' else 1
-        for i, row in enumerate(data[1:], 1):
-            try:
-                if len(row) > score_column:
-                    score_text = row[score_column]
-                    if isinstance(score_text, str) and '/' in score_text:
-                        score_value = int(score_text.split('/')[0])
-                        row_color = self.get_score_color(score_value)
-
-                        table_style.append(('BACKGROUND', (score_column, i), (score_column, i), row_color))
-                        table_style.append(('TEXTCOLOR', (score_column, i), (score_column, i), white))
-                        table_style.append(('FONTNAME', (score_column, i), (score_column, i), 'Helvetica-Bold'))
-
-                # Alternate row background for readability
-                if i % 2 == 0:
-                    bg_color = HexColor('#f8f9fa')
-                    table_style.append(('BACKGROUND', (0, i), (0, i), bg_color))
-                    if metric_type != 'overall' and len(row) > 2:
-                        table_style.append(('BACKGROUND', (2, i), (2, i), bg_color))
-            except (IndexError, ValueError) as e:
-                logger.error(f"Error processing table row {i}: {e}")
-                continue
-
-        table.setStyle(TableStyle(table_style))
-        return table
 
     def create_issues_table(self, data):
         """Create a detailed issues table with proper text wrapping and column management"""
@@ -3500,7 +3354,7 @@ class PDFReportGenerator:
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 12),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 1), (-1, -1), 11),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
@@ -3978,45 +3832,77 @@ def run_crawler():
         logger.error(f"Error running crawler: {e}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/generate-csv/<domain>')
-def generate_csv(domain):
-    """Generate and serve CSV file with additional referring domains"""
+@app.route('/crawler-csv/<domain>')
+def generate_crawler_csv(domain):
+    """Generate CSV file with crawler results"""
     try:
-        # Generate CSV filename
-        csv_filename = f"additional_{domain}_referring_domains_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        csv_filepath = os.path.join('reports', csv_filename)
-
-        # Create CSV data for additional referring domains (beyond top 20)
-        additional_domains_data = [
-            ['Referring Domain', 'Backlink Type', 'Spam Score', 'Domain Rating', 'Status'],
-            ['insurance-brokers-uae.com', 'DoFollow', '16%', '45', 'Monitor'],
-            ['middle-east-business.org', 'DoFollow', '18%', '52', 'Monitor'],
-            ['dubai-business-hub.ae', 'NoFollow', '22%', '38', 'Review'],
-            ['insurance-quotes-online.net', 'DoFollow', '25%', '29', 'Review'],
-            ['vehicle-insurance-guide.com', 'DoFollow', '28%', '33', 'Review'],
-            ['uae-financial-services.org', 'DoFollow', '31%', '41', 'High Risk'],
-            ['cheap-insurance-deals.info', 'DoFollow', '35%', '18', 'High Risk'],
-            ['auto-insurance-directory.biz', 'NoFollow', '38%', '22', 'High Risk'],
-            ['insurance-lead-gen.com', 'DoFollow', '42%', '15', 'Toxic'],
-            ['spam-insurance-links.org', 'DoFollow', '67%', '8', 'Toxic'],
-            ['low-quality-directory.net', 'DoFollow', '71%', '12', 'Toxic'],
-            ['regional-insurance-portal.ae', 'DoFollow', '19%', '47', 'Monitor'],
-            ['emirates-business-network.com', 'DoFollow', '21%', '39', 'Review'],
-            ['gcc-insurance-forum.org', 'NoFollow', '24%', '35', 'Review'],
-            ['dubai-startup-directory.ae', 'DoFollow', '27%', '31', 'Review']
+        # Create CSV data
+        csv_data = [
+            ['Type', 'URL', 'Status', 'Details'],
+            ['Broken Link', 'https://example.com/missing-page', '404', 'Page not found'],
+            ['Broken Link', 'https://example.com/old-resource', '404', 'Resource moved'],
+            ['Orphan Page', 'https://example.com/orphaned-content', '200', 'Not linked internally'],
+            ['Broken Link', 'https://external-site.com/broken', '404', 'External link broken'],
+            ['Orphan Page', 'https://example.com/hidden-page', '200', 'Found in sitemap only']
         ]
 
-        # Write CSV file
-        with open(csv_filepath, 'w', newline='', encoding='utf-8') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerows(additional_domains_data)
+        # Generate filename
+        filename = f"crawler_report_{domain}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        filepath = os.path.join('reports', filename)
 
-        logger.info(f"Generated CSV file: {csv_filename}")
-        return send_file(csv_filepath, as_attachment=True, download_name=csv_filename)
+        # Write CSV file
+        with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(csv_data)
+
+        return send_file(filepath, as_attachment=True, download_name=filename)
 
     except Exception as e:
-        logger.error(f"Error generating CSV file: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error generating crawler CSV: {e}")
+        return jsonify({'error': 'Failed to generate CSV file'}), 500
+
+@app.route('/generate-csv/<domain>')
+def generate_referring_domains_csv(domain):
+    """Generate CSV file with additional referring domains"""
+    try:
+        # Sample additional referring domains data
+        csv_data = [
+            ['Referring Domain', 'Backlink Type', 'Spam Score', 'Domain Rating', 'First Found', 'Last Seen'],
+            ['high-authority-news-site.com', 'DoFollow', '1%', '78', '2024-01-15', '2024-01-20'],
+            ['industry-blog-network.org', 'DoFollow', '3%', '65', '2024-01-18', '2024-01-25'],
+            ['regional-directory-uae.ae', 'DoFollow', '5%', '58', '2024-01-22', '2024-01-28'],
+            ['financial-resource-hub.com', 'DoFollow', '7%', '52', '2024-01-25', '2024-02-01'],
+            ['insurance-comparison-portal.com', 'DoFollow', '8%', '48', '2024-01-28', '2024-02-03'],
+            ['business-listing-directory.ae', 'DoFollow', '12%', '45', '2024-02-01', '2024-02-05'],
+            ['regional-news-outlet.ae', 'NoFollow', '15%', '42', '2024-02-03', '2024-02-08'],
+            ['low-quality-link-farm.com', 'DoFollow', '45%', '15', '2024-02-05', '2024-02-10'],
+            ['spam-content-aggregator.net', 'DoFollow', '67%', '8', '2024-02-08', '2024-02-12'],
+            ['suspicious-redirect-site.org', 'DoFollow', '78%', '5', '2024-02-10', '2024-02-15'],
+            ['potential-pbn-site-1.com', 'DoFollow', '82%', '12', '2024-02-12', '2024-02-18'],
+            ['questionable-authority-site.net', 'DoFollow', '89%', '3', '2024-02-15', '2024-02-20'],
+            ['toxic-link-source.org', 'DoFollow', '95%', '2', '2024-02-18', '2024-02-22'],
+            ['automated-content-site.com', 'NoFollow', '34%', '25', '2024-02-20', '2024-02-25'],
+            ['marginal-quality-blog.net', 'DoFollow', '28%', '35', '2024-02-22', '2024-02-28']
+        ]
+
+        # Generate filename
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"additional_{domain}_referring_domains_{timestamp}.csv"
+        filepath = os.path.join('reports', filename)
+
+        # Ensure reports directory exists
+        os.makedirs('reports', exist_ok=True)
+
+        # Write CSV file
+        with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(csv_data)
+
+        return send_file(filepath, as_attachment=True, download_name=filename)
+
+    except Exception as e:
+        logger.error(f"Error generating referring domains CSV: {e}")
+        return jsonify({'error': 'Failed to generate CSV file'}), 500
 
 if __name__ == '__main__':
     # Ensure the reports directory exists
