@@ -1,0 +1,89 @@
+/*
+UI/UX Audit with Puppeteer
+Checks:
+1. Navigation & Structure
+2. Design Consistency
+3. Mobile & Responsive Design
+4. Readability & Accessibility
+5. Interaction & Feedback
+6. Conversion Elements
+*/
+
+import puppeteer from "puppeteer";
+import fs from "fs";
+
+async function auditUIUX(url) {
+    const browser = await puppeteer.launch({ headless: true });
+    const page = await browser.newPage();
+
+    console.log(`Auditing: ${url}`);
+    await page.goto(url, { waitUntil: "networkidle2" });
+
+    let results = [];
+
+    // 1. Navigation & Structure
+    results.push({
+        category: "Navigation & Structure",
+        "Menu Visible": await page.$("nav") !== null,
+        "Breadcrumbs Exist": await page.$("nav[aria-label='breadcrumb'], .breadcrumb") !== null,
+        "Logo Clickable to Homepage": await page.evaluate(() => {
+            const logo = document.querySelector("a[href='/']");
+            return !!logo;
+        }),
+        "Search Function Visible": await page.$("input[type='search']") !== null
+    });
+
+    // 2. Design Consistency
+    results.push({
+        category: "Design Consistency",
+        "Consistent Colors & Fonts": "Check manually / color sampling needed",
+        "Uniform Button Styles": await page.$$eval("button", btns => {
+            const styles = btns.map(b => getComputedStyle(b).borderRadius + getComputedStyle(b).backgroundColor);
+            return new Set(styles).size === 1;
+        }),
+        "Whitespace & Padding": "Needs visual review"
+    });
+
+    // 3. Mobile & Responsive Design
+    await page.setViewport({ width: 375, height: 812 });
+    results.push({
+        category: "Mobile & Responsive Design",
+        "Responsive Layout": (await page.evaluate(() => window.innerWidth)) === 375,
+        "No Horizontal Scroll": await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        "Mobile Menu Works": await page.$("button[aria-label*='menu'], .hamburger") !== null
+    });
+
+    // 4. Readability & Accessibility
+    results.push({
+        category: "Readability & Accessibility",
+        "Legible Font Size": await page.$$eval("*", els => els.some(el => parseFloat(getComputedStyle(el).fontSize) < 16) ? "Some text too small" : "OK"),
+        "Color Contrast": "Requires Lighthouse or Axe-core for accuracy",
+        "ARIA Labels": await page.$$eval("[aria-label], [role]", els => els.length > 0)
+    });
+
+    // 5. Interaction & Feedback
+    results.push({
+        category: "Interaction & Feedback",
+        "Hover States Exist": "Requires manual hover simulation",
+        "Loading Indicators": await page.$(".loading, .spinner") !== null,
+        "Form Validation": await page.$("form [required]") !== null
+    });
+
+    // 6. Conversion Elements
+    results.push({
+        category: "Conversion Elements",
+        "CTA Above Fold": await page.evaluate(() => {
+            const cta = document.querySelector("a[href*='contact'], button");
+            return cta ? cta.getBoundingClientRect().top < window.innerHeight : false;
+        }),
+        "Contact Info Present": await page.$("a[href^='tel'], a[href^='mailto']") !== null
+    });
+
+    await browser.close();
+
+    // Output results as table
+    console.table(results);
+    fs.writeFileSync("uiux_audit.json", JSON.stringify(results, null, 2));
+}
+
+auditUIUX("https://example.com");
