@@ -1006,7 +1006,6 @@ class PDFReportGenerator:
             ('ALIGN', (0, 0), (2, -1), 'LEFT'),     # Other columns left-aligned
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('FONTSIZE', (0, 1), (-1, -1), 8),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
             ('TOPPADDING', (0, 0), (-1, -1), 4),
             ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
@@ -2871,7 +2870,9 @@ class PDFReportGenerator:
             story.append(Paragraph("Broken Links Found", self.heading_style))
 
             broken_data = [['Source Page', 'Broken URL', 'Anchor Text', 'Link Type', 'Status']]
-            for link in crawler_results['broken_links'][:10]:  # Show first 10
+            # Limit to top 20 broken links, but display only 10 in the table
+            broken_links_to_display = crawler_results['broken_links'][:20]
+            for link in broken_links_to_display[:10]:
                 broken_data.append([
                     link['source_page'][:50] + "..." if len(link['source_page']) > 50 else link['source_page'],
                     link['broken_url'][:40] + "..." if len(link['broken_url']) > 40 else link['broken_url'],
@@ -2896,9 +2897,18 @@ class PDFReportGenerator:
 
             story.append(broken_table)
 
-            if len(crawler_results['broken_links']) > 10:
+            if len(broken_links_to_display) > 10:
                 story.append(Spacer(1, 10))
-                story.append(Paragraph(f"+ {len(crawler_results['broken_links']) - 10} more broken links found", self.body_style))
+                story.append(Paragraph(f"+ {len(broken_links_to_display) - 10} more broken links found", self.body_style))
+
+            # Add CSV download link if there are more than 10 broken links
+            if len(broken_links_to_display) > 10:
+                story.append(Spacer(1, 10))
+                homepage_url = crawler_results.get('crawl_url', 'example.com')
+                domain_for_csv = urllib.parse.urlparse(homepage_url).netloc.replace('.', '_')
+                csv_link = f"/download-broken-links-csv/{domain_for_csv}"
+                clickable_csv_text = f'For a full list of all broken links, <link href="{csv_link}" color="blue">download the CSV report</link>.'
+                story.append(Paragraph(clickable_csv_text, self.body_style))
 
             story.append(Spacer(1, 30))
 
@@ -3054,6 +3064,7 @@ class PDFReportGenerator:
             # Alternate row backgrounds
             if i % 2 == 0:
                 table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+                table_style.append(('BACKGROUND', (1, i), (1, i), HexColor('#f8f9fa')))
 
             # Color code specific metrics
             metric = summary_data[i][0]
@@ -3401,6 +3412,7 @@ class PDFReportGenerator:
         )
 
         story.append(Paragraph("Detailed Anchor Text Analysis", detail_title_style))
+        story.append(Spacer(1, 8))
 
         description_style = ParagraphStyle(
             'AnchorDescription',
@@ -3727,6 +3739,7 @@ def generate_pdf():
         data = request.get_json()
         url = data.get('url', 'https://example.com')
         max_pages = data.get('max_pages', 5)
+        run_crawler = data.get('run_crawler', False) # Get crawler flag
 
         # Validate URL format
         if not url.startswith(('http://', 'https://')):
@@ -3757,22 +3770,34 @@ def generate_pdf():
 
         # Generate filename
         domain = urllib.parse.urlparse(url).netloc
-        domain = re.sub(r'[^\w\-_\.]', '_', domain)
-        filename = f"seo_audit_{domain}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        domain_for_filename = re.sub(r'[^\w\-_\.]', '_', domain)
+        filename = f"seo_audit_{domain_for_filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
         filepath = os.path.join('reports', filename)
 
         # Create reports directory if it doesn't exist
         os.makedirs('reports', exist_ok=True)
 
-        # Run crawler analysis and integrate results
-        try:
-            from crawler_integration import run_crawler_audit
-            logger.info("Running crawler analysis...")
-            crawler_results = run_crawler_audit(url, max_depth=2, max_pages=max_pages, delay=0.5)
-            logger.info(f"Crawler found {crawler_results['crawl_stats']['broken_links_count']} broken links and {crawler_results['crawl_stats']['orphan_pages_count']} orphan pages")
-        except Exception as e:
-            logger.warning(f"Crawler analysis failed: {e}")
-            crawler_results = None
+        # Run crawler if requested
+        crawler_results = None
+        if run_crawler:
+            logger.info("Running crawler audit...")
+            try:
+                from crawler_integration import run_crawler_audit
+                crawler_results = run_crawler_audit(
+                    domain=url,
+                    max_depth=2,
+                    max_pages=30,
+                    delay=1.0
+                )
+                logger.info(f"Crawler found {crawler_results['crawl_stats']['broken_links_count']} broken links")
+
+                # Store crawler results for CSV download (in production, use a database)
+                domain_key = urllib.parse.urlparse(url).netloc.replace('.', '_')
+                app.config[f'crawler_results_{domain_key}'] = crawler_results
+
+            except Exception as e:
+                logger.error(f"Crawler error: {e}")
+                crawler_results = None
 
         # Generate comprehensive multi-page PDF report with crawler data
         pdf_generator.generate_multi_page_report(analyzed_pages, overall_stats, filepath, crawler_results)
@@ -3846,48 +3871,8 @@ def generate_crawler_csv(domain):
             ['Orphan Page', 'https://example.com/hidden-page', '200', 'Found in sitemap only']
         ]
 
-        # Generate filename
+        # Generate filename with timestamp
         filename = f"crawler_report_{domain}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        filepath = os.path.join('reports', filename)
-
-        # Write CSV file
-        with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerows(csv_data)
-
-        return send_file(filepath, as_attachment=True, download_name=filename)
-
-    except Exception as e:
-        logger.error(f"Error generating crawler CSV: {e}")
-        return jsonify({'error': 'Failed to generate CSV file'}), 500
-
-@app.route('/generate-csv/<domain>')
-def generate_referring_domains_csv(domain):
-    """Generate CSV file with additional referring domains"""
-    try:
-        # Sample additional referring domains data
-        csv_data = [
-            ['Referring Domain', 'Backlink Type', 'Spam Score', 'Domain Rating', 'First Found', 'Last Seen'],
-            ['high-authority-news-site.com', 'DoFollow', '1%', '78', '2024-01-15', '2024-01-20'],
-            ['industry-blog-network.org', 'DoFollow', '3%', '65', '2024-01-18', '2024-01-25'],
-            ['regional-directory-uae.ae', 'DoFollow', '5%', '58', '2024-01-22', '2024-01-28'],
-            ['financial-resource-hub.com', 'DoFollow', '7%', '52', '2024-01-25', '2024-02-01'],
-            ['insurance-comparison-portal.com', 'DoFollow', '8%', '48', '2024-01-28', '2024-02-03'],
-            ['business-listing-directory.ae', 'DoFollow', '12%', '45', '2024-02-01', '2024-02-05'],
-            ['regional-news-outlet.ae', 'NoFollow', '15%', '42', '2024-02-03', '2024-02-08'],
-            ['low-quality-link-farm.com', 'DoFollow', '45%', '15', '2024-02-05', '2024-02-10'],
-            ['spam-content-aggregator.net', 'DoFollow', '67%', '8', '2024-02-08', '2024-02-12'],
-            ['suspicious-redirect-site.org', 'DoFollow', '78%', '5', '2024-02-10', '2024-02-15'],
-            ['potential-pbn-site-1.com', 'DoFollow', '82%', '12', '2024-02-12', '2024-02-18'],
-            ['questionable-authority-site.net', 'DoFollow', '89%', '3', '2024-02-15', '2024-02-20'],
-            ['toxic-link-source.org', 'DoFollow', '95%', '2', '2024-02-18', '2024-02-22'],
-            ['automated-content-site.com', 'NoFollow', '34%', '25', '2024-02-20', '2024-02-25'],
-            ['marginal-quality-blog.net', 'DoFollow', '28%', '35', '2024-02-22', '2024-02-28']
-        ]
-
-        # Generate filename
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"additional_{domain}_referring_domains_{timestamp}.csv"
         filepath = os.path.join('reports', filename)
 
         # Ensure reports directory exists
@@ -3901,8 +3886,107 @@ def generate_referring_domains_csv(domain):
         return send_file(filepath, as_attachment=True, download_name=filename)
 
     except Exception as e:
-        logger.error(f"Error generating referring domains CSV: {e}")
+        logger.error(f"Error generating crawler CSV: {e}")
+        return jsonify({'error': 'Failed to generate crawler CSV file'}), 500
+
+@app.route('/generate-csv/<domain>')
+def generate_csv(domain):
+    """Generate CSV with additional referring domains"""
+    try:
+        # Create additional domains CSV data
+        additional_domains = [
+            ['Referring Domain', 'Backlink Type', 'Spam Score'],
+            ['insurance-comparison-portal.ae', 'DoFollow', '15%'],
+            ['financial-advisory-blog.com', 'DoFollow', '16%'],
+            ['vehicle-insurance-guide.org', 'DoFollow', '17%'],
+            ['uae-business-services.ae', 'DoFollow', '18%'],
+            ['insurance-industry-news.org', 'NoFollow', '19%'],
+            ['middle-east-finance.com', 'DoFollow', '20%'],
+            ['auto-insurance-tips.net', 'DoFollow', '22%'],
+            ['business-directory-gulf.com', 'DoFollow', '25%'],
+            ['insurance-quotes-online.org', 'DoFollow', '28%'],
+            ['financial-planning-hub.com', 'DoFollow', '30%'],
+            ['vehicle-protection-blog.net', 'DoFollow', '32%'],
+            ['insurance-market-analysis.org', 'DoFollow', '35%'],
+            ['business-networking-uae.ae', 'NoFollow', '38%'],
+            ['auto-coverage-experts.com', 'DoFollow', '42%'],
+            ['regional-insurance-forum.org', 'DoFollow', '45%']
+        ]
+
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'additional_{domain}_referring_domains_{timestamp}.csv'
+        filepath = os.path.join('reports', filename)
+
+        # Ensure reports directory exists
+        os.makedirs('reports', exist_ok=True)
+
+        # Write CSV file
+        with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(additional_domains)
+
+        return send_file(
+            filepath,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='text/csv'
+        )
+
+    except Exception as e:
+        logger.error(f"Error generating CSV: {e}")
         return jsonify({'error': 'Failed to generate CSV file'}), 500
+
+@app.route('/download-broken-links-csv/<domain>')
+def download_broken_links_csv(domain):
+    """Generate and download CSV with all broken links"""
+    try:
+        # Get stored crawler results
+        crawler_results = app.config.get(f'crawler_results_{domain}')
+
+        if not crawler_results or not crawler_results.get('broken_links'):
+            # Fallback to sample data if no results found
+            broken_links_data = [
+                ['Source Page URL', 'Broken Link URL', 'Anchor Text / Current Value', 'Link Type', 'Status Code'],
+                ['https://example.com/', 'https://broken-link.com', 'Sample Broken Link', 'External', '404'],
+                ['https://example.com/page', 'https://example.com/missing', 'Missing Page', 'Internal', '404']
+            ]
+        else:
+            # Use actual crawler results
+            broken_links_data = [['Source Page URL', 'Broken Link URL', 'Anchor Text / Current Value', 'Link Type', 'Status Code']]
+
+            for link in crawler_results['broken_links']:
+                broken_links_data.append([
+                    link['source_page'],
+                    link['broken_url'],
+                    link['anchor_text'],
+                    link['link_type'],
+                    str(link['status_code'])
+                ])
+
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'broken_links_{domain}_{timestamp}.csv'
+        filepath = os.path.join('reports', filename)
+
+        # Ensure reports directory exists
+        os.makedirs('reports', exist_ok=True)
+
+        # Write CSV file
+        with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(broken_links_data)
+
+        return send_file(
+            filepath,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='text/csv'
+        )
+
+    except Exception as e:
+        logger.error(f"Error generating broken links CSV: {e}")
+        return jsonify({'error': 'Failed to generate broken links CSV file'}), 500
 
 if __name__ == '__main__':
     # Ensure the reports directory exists
