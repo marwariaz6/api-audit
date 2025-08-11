@@ -4001,5 +4001,3 @@ if __name__ == '__main__':
     
     # Run Flask app on all interfaces for external access
     app.run(host='0.0.0.0', port=5000, debug=True)
-    os.makedirs('reports', exist_ok=True)
-    app.run(host='0.0.0.0', port=5000, debug=True)
