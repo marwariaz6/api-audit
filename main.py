@@ -1033,7 +1033,8 @@ class PDFReportGenerator:
                 # Alternate row backgrounds for other columns
                 if i % 2 == 0 and len(row) > 2:
                     bg_color = HexColor('#f8f9fa')
-                    table_style.append(('BACKGROUND', (0, i), (2, i), bg_color))
+                    table_style.append(('BACKGROUND', (0, i), (0, i), bg_color))
+                    table_style.append(('BACKGROUND', (2, i), (2, i), bg_color))
             except (IndexError, ValueError) as e:
                 logger.error(f"Error processing issues table row {i}: {e}")
                 continue
