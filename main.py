@@ -1046,10 +1046,12 @@ class PDFReportGenerator:
         table_style = [
             ('BACKGROUND', (0, 0), (-1, 0), HexColor('#A23B72')),
             ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('ALIGN', (3, 0), (3, -1), 'CENTER'),  # Status column centered
-            ('ALIGN', (0, 0), (2, -1), 'LEFT'),     # Other columns left-aligned
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('ALIGN', (0, 0), (2, -1), 'LEFT'),     # Other columns left-aligned
+            ('ALIGN', (3, 0), (3, -1), 'CENTER'),  # Status column centered
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
             ('TOPPADDING', (0, 0), (-1, -1), 4),
             ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
@@ -2516,7 +2518,7 @@ class PDFReportGenerator:
 
         headers_compression_table.setStyle(TableStyle(table_style))
         story.append(headers_compression_table)
-        story.append(Spacer(1, 30))
+        story.append(Spacer(1, 25))
 
     def add_web_core_vitals_mobile_section(self, story):
         """Add Web Core Vitals Mobile section"""
@@ -2864,7 +2866,7 @@ class PDFReportGenerator:
 
         core_vitals_desktop_table.setStyle(TableStyle(table_style))
         story.append(core_vitals_desktop_table)
-        story.append(Spacer(1, 30))
+        story.append(Spacer(1, 25))
 
     def add_crawler_results_section(self, story, crawler_results):
         """Add crawler results section to PDF"""
@@ -2887,7 +2889,7 @@ class PDFReportGenerator:
         # Summary statistics
         stats = crawler_results['crawl_stats']
         summary_data = [
-            ['Metric', 'Count'],
+            ['Metric', 'Value'],
             ['Pages Crawled', str(stats['pages_crawled'])],
             ['Broken Links Found', str(stats['broken_links_count'])],
             ['Orphan Pages Found', str(stats['orphan_pages_count'])],
@@ -3768,6 +3770,66 @@ class PDFReportGenerator:
             story.append(Paragraph(recommendation, recommendation_style))
 
         story.append(Spacer(1, 30))
+
+    def get_metric_recommendations(self, metric):
+        """Get actionable recommendations for specific metrics"""
+        recommendations = {
+            'title': [
+                "Ensure each page has a unique, descriptive title tag between 30-60 characters",
+                "Include target keywords naturally in the beginning of title tags",
+                "Use brand name consistently at the end of title tags",
+                "Avoid duplicate title tags across different pages",
+                "Write compelling titles that encourage clicks from search results"
+            ],
+            'meta_description': [
+                "Write unique meta descriptions for each page between 120-160 characters",
+                "Include primary target keywords naturally in meta descriptions",
+                "Create compelling copy that encourages users to click from search results",
+                "Avoid duplicate meta descriptions across different pages",
+                "End with a clear call-to-action when appropriate"
+            ],
+            'headings': [
+                "Use only one H1 tag per page containing the main topic",
+                "Structure content with H2 tags for main sections",
+                "Use H3-H6 tags for subsections to create clear hierarchy",
+                "Include target keywords naturally in heading tags",
+                "Ensure headings accurately describe the content that follows"
+            ],
+            'images': [
+                "Add descriptive alt text to all images for accessibility and SEO",
+                "Keep alt text concise but descriptive (under 125 characters)",
+                "Use keywords naturally in alt text when relevant to the image",
+                "Optimize image file sizes for faster loading",
+                "Use descriptive filenames for images before uploading"
+            ],
+            'content': [
+                "Aim for at least 300 words of unique, valuable content per page",
+                "Create comprehensive, in-depth content that fully covers the topic",
+                "Use target keywords naturally throughout the content",
+                "Structure content with clear paragraphs and sections",
+                "Update content regularly to maintain freshness and relevance"
+            ],
+            'internal_links': [
+                "Add 3-8 internal links per page to related content",
+                "Use descriptive anchor text that indicates the linked page's content",
+                "Link to important pages from multiple locations throughout your site",
+                "Create a logical site structure with hub and spoke linking",
+                "Regularly audit and fix broken internal links"
+            ],
+            'external_links': [
+                "Include 1-3 high-quality external links to authoritative sources",
+                "Link to relevant, trustworthy websites that add value for users",
+                "Use descriptive anchor text for external links",
+                "Consider adding rel='nofollow' to commercial or untrusted external links",
+                "Regularly check external links to ensure they're still working"
+            ]
+        }
+
+        return recommendations.get(metric, [
+            "Optimize this metric according to current SEO best practices",
+            "Monitor performance and make data-driven improvements",
+            "Regular audits help maintain optimal SEO health"
+        ])
 
 
 # Initialize components
