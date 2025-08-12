@@ -3552,7 +3552,7 @@ class PDFReportGenerator:
         story.append(Paragraph("Navigation & Structure", self.heading_style))
         story.append(Spacer(1, 10))
 
-        nav_data = [['Page URL', 'Main Menu Visible', 'Breadcrumbs', 'Logo Clickable', 'Search Function']]
+        nav_data = [['Page URL', 'Menu Visible', 'Breadcrumbs', 'Logo Clickable', 'Search Function']]
 
         # Use browser results for each page
         for url, analysis in analyzed_pages.items():
@@ -3598,7 +3598,7 @@ class PDFReportGenerator:
         story.append(Paragraph("Design Consistency", self.heading_style))
         story.append(Spacer(1, 10))
 
-        design_data = [['Page URL', 'Color Scheme', 'Font Consistency', 'Button Styles', 'Layout Alignment']]
+        design_data = [['Page URL', 'Color Scheme', 'Font Consistency', 'Button Styles', 'Layout Align']]
 
         for url, analysis in analyzed_pages.items():
             browser_results = all_browser_results.get(url, {}) if all_browser_results else {}
@@ -3648,7 +3648,7 @@ class PDFReportGenerator:
         story.append(Paragraph("Mobile & Responsive Design", self.heading_style))
         story.append(Spacer(1, 10))
 
-        mobile_data = [['Page URL', 'Responsive Layout', 'No Horizontal Scroll', 'Mobile Menu', 'Touch Targets']]
+        mobile_data = [['Page URL', 'Responsive', 'Horizontal Scroll', 'Mobile Menu', 'Touch Targets']]
 
         for url, analysis in analyzed_pages.items():
             browser_results = all_browser_results.get(url, {}) if all_browser_results else {}
@@ -3693,7 +3693,7 @@ class PDFReportGenerator:
         story.append(Paragraph("Readability & Accessibility", self.heading_style))
         story.append(Spacer(1, 10))
 
-        accessibility_data = [['Page URL', 'Font Size', 'Color Contrast', 'ARIA Labels', 'Keyboard Navigation']]
+        accessibility_data = [['Page URL', 'Font Size', 'Color Contrast', 'ARIA Labels', 'Keyboard Nav']]
 
         for url, analysis in analyzed_pages.items():
             browser_results = all_browser_results.get(url, {}) if all_browser_results else {}
