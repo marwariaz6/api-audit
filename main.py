@@ -625,7 +625,7 @@ class PDFReportGenerator:
             story = []
 
             # Title page
-            story.append(Paragraph("Multi-Page SEO Audit Report", self.title_style))
+            story.append(Paragraph("Website SEO Audit Report", self.title_style))
             story.append(Spacer(1, 20))
         except Exception as e:
             logger.error(f"Error initializing PDF report: {e}")
@@ -680,7 +680,7 @@ class PDFReportGenerator:
 
         # Add On-Page SEO Audit section
         story.append(PageBreak())
-        
+
         # On-Page SEO Audit title
         on_page_seo_title_style = ParagraphStyle(
             'OnPageSEOTitle',
@@ -691,9 +691,9 @@ class PDFReportGenerator:
             alignment=TA_CENTER,
             fontName='Helvetica-Bold'
         )
-        
+
         story.append(Paragraph("On-Page SEO Audit", on_page_seo_title_style))
-        
+
         # Add introduction paragraph
         intro_text = ("This section provides a detailed analysis of on-page SEO elements across all audited pages. "
                      "Each metric is evaluated individually with specific recommendations to improve your website's "
@@ -710,7 +710,7 @@ class PDFReportGenerator:
         )
 
         story.append(Paragraph(intro_text, on_page_intro_style))
-        
+
         # Add page break before starting metric analysis
         story.append(PageBreak())
 
@@ -1903,7 +1903,7 @@ class PDFReportGenerator:
             ])
 
         # Create table with optimized column widths
-        mobile_table = Table(mobile_data, colWidths=[3.0*inch, 1.2*inch, 1.4*inch, 1.2*inch])
+        mobile_table = Table(mobile_data, colWidths=[2.2*inch, 1.1*inch, 1.3*inch, 1.0*inch])
 
         # Table styling
         table_style = [
@@ -3927,10 +3927,10 @@ class PDFReportGenerator:
 
         # Analyze failed checks across all pages to generate targeted recommendations
         failed_checks = self._analyze_failed_uiux_checks(analyzed_pages, all_browser_results)
-        
+
         # Generate recommendations based on actual failures
         recommendations = self._generate_targeted_recommendations(failed_checks)
-        
+
         # Add general recommendations if no specific failures found
         if not recommendations:
             recommendations = [
@@ -3969,7 +3969,7 @@ class PDFReportGenerator:
 
         for url, analysis in analyzed_pages.items():
             browser_results = all_browser_results.get(url, {})
-            
+
             # Skip pages with errors
             if any('error' in section for section in browser_results.values() if isinstance(section, dict)):
                 continue
@@ -5056,6 +5056,7 @@ def generate_crawler_csv(domain):
             ['Broken Link', 'https://example.com/old-resource', '404', 'Resource moved'],
             ['Orphan Page', 'https://example.com/orphaned-content', '200', 'Not linked internally'],
             ['Broken Link', 'https://external-site.com/broken', '404', 'External link broken'],
+            ['Orphan Page', 'https://example.com/hidden-page', '200', 'Not linked internally'],
             ['Orphan Page', 'https://example.com/hidden-page', '200', 'Found in sitemap only']
         ]
 

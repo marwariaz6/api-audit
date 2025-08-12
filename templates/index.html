@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Page SEO Audit Tool</title>
+    <title>Website SEO Audit Tool</title>
     <style>
         * {
             margin: 0;
@@ -248,7 +248,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🔍 Multi-Page SEO Audit Tool</h1>
+            <h1>🔍 Website SEO Audit Tool</h1>
             <p>Comprehensive SEO analysis for homepage + navigation pages</p>
         </div>
 
@@ -272,7 +272,7 @@
                     </div>
 
                     <button type="submit" class="btn" id="submitBtn">
-                        📄 Generate Multi-Page SEO Report
+                        📄 Generate Website SEO Report
                     </button>
                 </form>
 
@@ -441,7 +441,7 @@
                     const downloadUrl = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = downloadUrl;
-                    a.download = `multi_page_seo_audit_${Date.now()}.pdf`;
+                    a.download = `website_seo_audit_${Date.now()}.pdf`;
                     document.body.appendChild(a);
                     a.click();
                     window.URL.revokeObjectURL(downloadUrl);
@@ -452,7 +452,7 @@
                     results.style.display = 'block';
                     results.innerHTML = `
                         <div style="text-align: center; padding: 40px; background: #e8f5e8; border-radius: 15px;">
-                            <h2 style="color: #4CAF50; margin-bottom: 15px;">✅ Multi-Page SEO Report Generated!</h2>
+                            <h2 style="color: #4CAF50; margin-bottom: 15px;">✅ Website SEO Report Generated!</h2>
                             <p style="font-size: 1.2rem; color: #2e7d32; margin-bottom: 15px;">Your comprehensive SEO audit report has been downloaded.</p>
                             <div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0; border: 2px solid #4CAF50;">
                                 <h3 style="color: #2e7d32; margin-bottom: 10px;">📊 Report Features:</h3>
