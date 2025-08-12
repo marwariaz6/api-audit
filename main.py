@@ -1083,7 +1083,7 @@ class PDFReportGenerator:
                 row = data[i] if i < len(data) else []
                 status_text = row[3] if len(row) > 3 else ""
 
-                # Color code status column
+                # Color code status
                 if status_text == "PASS":
                     table_style.append(('BACKGROUND', (3, i), (3, i), HexColor('#4CAF50')))
                     table_style.append(('TEXTCOLOR', (3, i), (3, i), white))
@@ -1091,7 +1091,7 @@ class PDFReportGenerator:
                     table_style.append(('BACKGROUND', (3, i), (3, i), HexColor('#F44336')))
                     table_style.append(('TEXTCOLOR', (3, i), (3, i), white))
 
-                # Alternate row backgrounds for other columns
+                # Alternate row backgrounds
                 if i % 2 == 0 and len(row) > 2:
                     bg_color = HexColor('#f8f9fa')
                     table_style.append(('BACKGROUND', (0, i), (0, i), bg_color))
@@ -1461,7 +1461,7 @@ class PDFReportGenerator:
 
         # Create table data
         crawlability_data = [
-            ['Page URL', 'HTTP Status', 'Redirect Type', 'Robots.txt Restrictions', 'Meta Robots Tag', 'X-Robots-Tag']
+            ['Page URL', 'HTTP Status', 'Redirect Type', 'Robots.txt', 'Meta Robots Tag', 'X-Robots-Tag']
         ]
 
         # Sample data for different pages
@@ -1524,7 +1524,7 @@ class PDFReportGenerator:
             ])
 
         # Create table with optimized column widths
-        crawlability_table = Table(crawlability_data, colWidths=[2.0*inch, 0.8*inch, 1.0*inch, 0.8*inch, 1.0*inch, 1.0*inch])
+        crawlability_table = Table(crawlability_data, colWidths=[1.8*inch, 0.7*inch, 0.9*inch, 0.8*inch, 0.9*inch, 1.0*inch])
 
         # Table styling
         table_style = [
@@ -1734,7 +1734,7 @@ class PDFReportGenerator:
 
         # Create table data
         mobile_data = [
-            ['Page URL', 'Mobile-Responsive', 'Viewport Meta Tag', 'Touch Elements']
+            ['Page URL', 'Responsive', 'Viewport Tag', 'Touch Elements']
         ]
 
         # Sample mobile data
@@ -1870,7 +1870,7 @@ class PDFReportGenerator:
 
         # Create table data
         https_data = [
-            ['Page URL', 'HTTPS Usage', 'Mixed Content Issues', 'Valid SSL/TLS Certificate']
+            ['Page URL', 'HTTPS Usage', 'Mixed Content', 'Valid SSL/TLS']
         ]
 
         # Sample HTTPS security data
@@ -2006,7 +2006,7 @@ class PDFReportGenerator:
 
         # Create table data
         structured_data = [
-            ['Page URL', 'Schema Markup Present', 'Schema Validation Errors']
+            ['Page URL', 'Schema Markup', 'Schema Validation']
         ]
 
         # Sample structured data information
@@ -2123,7 +2123,7 @@ class PDFReportGenerator:
 
         # Create table data
         canonical_data = [
-            ['Page URL', 'Canonical Tag Present', 'Correct vs. Self-Referencing', 'Canonical Consistency']
+            ['Page URL', 'Canonical Tag', 'Correct vs. Self', 'Canonical Consistent']
         ]
 
         # Sample canonicalization data
@@ -2939,7 +2939,7 @@ class PDFReportGenerator:
                 source_page_text = link['source_page'][:45] + "..." if len(link['source_page']) > 45 else link['source_page']
                 broken_url_text = link['broken_url'][:35] + "..." if len(link['broken_url']) > 35 else link['broken_url']
                 anchor_text = link['anchor_text'][:25] + "..." if len(link['anchor_text']) > 25 else link['anchor_text']
-                
+
                 broken_data.append([
                     Paragraph(source_page_text, ParagraphStyle(
                         'BrokenLinkText',
@@ -3040,7 +3040,7 @@ class PDFReportGenerator:
         try:
             # Import here to avoid errors if playwright isn't installed
             from playwright.sync_api import sync_playwright
-            
+
             with sync_playwright() as p:
                 # Launch browser in headless mode
                 browser = p.chromium.launch(headless=True)
@@ -3049,10 +3049,10 @@ class PDFReportGenerator:
                 page.set_extra_http_headers({
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
                 })
-                
+
                 # Navigate to the page
                 page.goto(url, wait_until='networkidle')
-                
+
                 results = {
                     'navigation_structure': self._check_navigation_structure_playwright(page),
                     'design_consistency': self._check_design_consistency_playwright(page),
@@ -3061,27 +3061,27 @@ class PDFReportGenerator:
                     'interaction_feedback': self._check_interaction_feedback_playwright(page),
                     'conversion_elements': self._check_conversion_elements_playwright(page)
                 }
-                
+
                 browser.close()
                 return results
-            
+
         except ImportError:
             logger.warning("Playwright not available, using fallback UI/UX analysis")
             return self._fallback_uiux_analysis(url)
         except Exception as e:
             logger.error(f"Browser automation failed: {e}")
             return self._fallback_uiux_analysis(url)
-    
+
     def _check_navigation_structure_playwright(self, page):
         """Check navigation structure using Playwright"""
         results = {}
-        
+
         # Check for main navigation
         try:
             results['main_menu_visible'] = page.locator("nav").count() > 0
         except:
             results['main_menu_visible'] = False
-        
+
         # Check for breadcrumbs
         try:
             breadcrumb_selectors = [
@@ -3098,7 +3098,7 @@ class PDFReportGenerator:
             results['breadcrumbs_exist'] = breadcrumbs_found
         except:
             results['breadcrumbs_exist'] = False
-        
+
         # Check for clickable logo
         try:
             logo_selectors = [
@@ -3115,7 +3115,7 @@ class PDFReportGenerator:
             results['logo_clickable'] = logo_clickable
         except:
             results['logo_clickable'] = False
-        
+
         # Check for search function
         try:
             search_selectors = [
@@ -3132,13 +3132,13 @@ class PDFReportGenerator:
             results['search_function'] = search_found
         except:
             results['search_function'] = False
-        
+
         return results
-    
+
     def _check_design_consistency_playwright(self, page):
         """Check design consistency using Playwright"""
         results = {}
-        
+
         # Check button styles consistency
         try:
             buttons = page.locator("button").all()
@@ -3162,7 +3162,7 @@ class PDFReportGenerator:
                         };
                     }
                 """)
-                
+
                 # Compare border-radius and background-color
                 styles_match = (
                     first_button_style.get('borderRadius') == second_button_style.get('borderRadius') and
@@ -3173,22 +3173,22 @@ class PDFReportGenerator:
                 results['uniform_button_styles'] = True
         except:
             results['uniform_button_styles'] = "Cannot determine"
-        
+
         results['color_scheme'] = "Consistent"  # Would need more complex analysis
         results['font_consistency'] = "Good"    # Would need font analysis
         results['layout_alignment'] = "Aligned"  # Would need layout analysis
-        
+
         return results
-    
+
     def _check_mobile_responsive_playwright(self, page):
         """Check mobile responsiveness using Playwright"""
         results = {}
-        
+
         # Test mobile viewport
         try:
             # Set mobile viewport (iPhone X size)
             page.set_viewport_size({"width": 375, "height": 812})
-            
+
             # Check if layout adapts
             dimensions = page.evaluate("""
                 () => ({
@@ -3196,13 +3196,13 @@ class PDFReportGenerator:
                     windowWidth: window.innerWidth
                 })
             """)
-            
+
             body_width = dimensions['bodyWidth']
             window_width = dimensions['windowWidth']
-            
+
             results['responsive_layout'] = body_width <= window_width + 10  # Allow small tolerance
             results['no_horizontal_scroll'] = body_width <= window_width
-            
+
             # Check for mobile menu
             mobile_menu_selectors = [
                 "button[aria-label*='menu']",
@@ -3216,21 +3216,21 @@ class PDFReportGenerator:
                     mobile_menu_found = True
                     break
             results['mobile_menu_works'] = mobile_menu_found
-            
+
             # Reset viewport size
             page.set_viewport_size({"width": 1920, "height": 1080})
-            
+
         except:
             results['responsive_layout'] = False
             results['no_horizontal_scroll'] = False
             results['mobile_menu_works'] = False
-        
+
         return results
-    
+
     def _check_readability_accessibility_playwright(self, page):
         """Check readability and accessibility using Playwright"""
         results = {}
-        
+
         # Check font sizes
         try:
             small_text_found = page.evaluate("""
@@ -3248,27 +3248,27 @@ class PDFReportGenerator:
                     return false;
                 }
             """)
-            
+
             results['font_size'] = "Small Text" if small_text_found else "Good"
         except:
             results['font_size'] = "Cannot determine"
-        
+
         # Check for ARIA labels
         try:
             aria_count = page.locator("[aria-label], [role]").count()
             results['aria_labels'] = "Present" if aria_count > 0 else "Missing"
         except:
             results['aria_labels'] = "Missing"
-        
+
         results['color_contrast'] = "Good"  # Would need advanced color analysis
         results['keyboard_navigation'] = "Supported"  # Would need keyboard testing
-        
+
         return results
-    
+
     def _check_interaction_feedback_playwright(self, page):
         """Check interaction and feedback elements using Playwright"""
         results = {}
-        
+
         # Check for loading indicators
         try:
             loading_selectors = [".loading", ".spinner", "[class*='loading']", "[class*='spinner']"]
@@ -3280,23 +3280,23 @@ class PDFReportGenerator:
             results['loading_indicators'] = "Present" if loading_found else "None"
         except:
             results['loading_indicators'] = "None"
-        
+
         # Check for form validation
         try:
             required_fields_count = page.locator("form [required]").count()
             results['form_validation'] = "Yes" if required_fields_count > 0 else "N/A"
         except:
             results['form_validation'] = "N/A"
-        
+
         results['hover_states'] = "Good"  # Would need hover simulation
         results['error_messages'] = "Clear"  # Would need form testing
-        
+
         return results
-    
+
     def _check_conversion_elements_playwright(self, page):
         """Check conversion elements using Playwright"""
         results = {}
-        
+
         # Check for call-to-action buttons above fold
         try:
             cta_selectors = [
@@ -3305,7 +3305,7 @@ class PDFReportGenerator:
                 "[class*='call-to-action']",
                 "button[class*='primary']"
             ]
-            
+
             # Check if any CTA is above the fold (within first 600px)
             cta_above_fold = page.evaluate("""
                 (selectors) => {
@@ -3321,11 +3321,11 @@ class PDFReportGenerator:
                     return false;
                 }
             """, cta_selectors)
-            
+
             results['cta_above_fold'] = "Yes" if cta_above_fold else "No"
         except:
             results['cta_above_fold'] = "No"
-        
+
         # Check for contact information
         try:
             contact_selectors = [
@@ -3342,12 +3342,12 @@ class PDFReportGenerator:
             results['contact_info'] = "Visible" if contact_found else "Footer Only"
         except:
             results['contact_info'] = "Footer Only"
-        
+
         results['trust_signals'] = "Good"  # Would need trust signal detection
         results['value_proposition'] = "Clear"  # Would need content analysis
-        
+
         return results
-    
+
     def _fallback_uiux_analysis(self, url):
         """Fallback UI/UX analysis when browser automation isn't available"""
         return {
@@ -3476,7 +3476,7 @@ class PDFReportGenerator:
         for url, analysis in analyzed_pages.items():
             browser_results = all_browser_results.get(url, {}) if all_browser_results else {}
             nav_section = browser_results.get('navigation_structure', {})
-            
+
             # Check if there was an error for this page
             if 'error' in nav_section:
                 nav_data.append([
@@ -3487,7 +3487,7 @@ class PDFReportGenerator:
                         wordWrap='LTR'
                     )),
                     'ERROR',
-                    'ERROR', 
+                    'ERROR',
                     'ERROR',
                     'ERROR'
                 ])
@@ -3521,7 +3521,7 @@ class PDFReportGenerator:
         for url, analysis in analyzed_pages.items():
             browser_results = all_browser_results.get(url, {}) if all_browser_results else {}
             design_section = browser_results.get('design_consistency', {})
-            
+
             # Check if there was an error for this page
             if 'error' in design_section:
                 design_data.append([
@@ -3542,7 +3542,7 @@ class PDFReportGenerator:
                 font_consistency = design_section.get('font_consistency', 'Good')
                 button_styles = 'Uniform' if design_section.get('uniform_button_styles', True) else 'Inconsistent'
                 layout_alignment = design_section.get('layout_alignment', 'Aligned')
-                
+
                 design_data.append([
                     Paragraph(url[:40] + "..." if len(url) > 40 else url, ParagraphStyle(
                         'URLText',
@@ -3571,7 +3571,7 @@ class PDFReportGenerator:
         for url, analysis in analyzed_pages.items():
             browser_results = all_browser_results.get(url, {}) if all_browser_results else {}
             mobile_section = browser_results.get('mobile_responsive', {})
-            
+
             # Check if there was an error for this page
             if 'error' in mobile_section:
                 mobile_data.append([
@@ -3616,7 +3616,7 @@ class PDFReportGenerator:
         for url, analysis in analyzed_pages.items():
             browser_results = all_browser_results.get(url, {}) if all_browser_results else {}
             accessibility_section = browser_results.get('readability_accessibility', {})
-            
+
             # Check if there was an error for this page
             if 'error' in accessibility_section:
                 accessibility_data.append([
@@ -3661,7 +3661,7 @@ class PDFReportGenerator:
         for url, analysis in analyzed_pages.items():
             browser_results = all_browser_results.get(url, {}) if all_browser_results else {}
             interaction_section = browser_results.get('interaction_feedback', {})
-            
+
             # Check if there was an error for this page
             if 'error' in interaction_section:
                 interaction_data.append([
@@ -3706,7 +3706,7 @@ class PDFReportGenerator:
         for url, analysis in analyzed_pages.items():
             browser_results = all_browser_results.get(url, {}) if all_browser_results else {}
             conversion_section = browser_results.get('conversion_elements', {})
-            
+
             # Check if there was an error for this page
             if 'error' in conversion_section:
                 conversion_data.append([
@@ -3771,7 +3771,7 @@ class PDFReportGenerator:
             # Color code status cells
             for j in range(1, len(table_data[i])):
                 cell_value = table_data[i][j].lower() if isinstance(table_data[i][j], str) else str(table_data[i][j]).lower()
-                
+
                 if 'error' in cell_value:
                     color = HexColor('#9E9E9E')  # Gray for errors
                     text_color = white
@@ -4184,7 +4184,7 @@ class PDFReportGenerator:
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
         ]
 
-        # Color code quality levels
+        # Color code based on quality level
         for i in range(1, len(quality_data)):
             # Alternate row backgrounds
             if i % 2 == 0:
@@ -4613,67 +4613,6 @@ class PDFReportGenerator:
             story.append(Paragraph(recommendation, recommendation_style))
 
         story.append(Spacer(1, 30))
-
-    def get_metric_recommendations(self, metric):
-        """Get actionable recommendations for specific metrics"""
-        recommendations = {
-            'title': [
-                "Ensure each page has a unique, descriptive title tag between 30-60 characters",
-                "Include target keywords naturally in the beginning of title tags",
-                "Use brand name consistently at the end of title tags",
-                "Avoid duplicate title tags across different pages",
-                "Write compelling titles that encourage clicks from search results"
-            ],
-            'meta_description': [
-                "Write unique meta descriptions for each page between 120-160 characters",
-                "Include primary target keywords naturally in meta descriptions",
-                "Create compelling copy that encourages users to click from search results",
-                "Avoid duplicate meta descriptions across different pages",
-                "End with a clear call-to-action when appropriate"
-            ],
-            'headings': [
-                "Use only one H1 tag per page containing the main topic",
-                "Structure content with H2 tags for main sections",
-                "Use H3-H6 tags for subsections to create clear hierarchy",
-                "Include target keywords naturally in heading tags",
-                "Ensure headings accurately describe the content that follows"
-            ],
-            'images': [
-                "Add descriptive alt text to all images for accessibility and SEO",
-                "Keep alt text concise but descriptive (under 125 characters)",
-                "Use keywords naturally in alt text when relevant to the image",
-                "Optimize image file sizes for faster loading",
-                "Use descriptive filenames for images before uploading"
-            ],
-            'content': [
-                "Aim for at least 300 words of unique, valuable content per page",
-                "Create comprehensive, in-depth content that fully covers the topic",
-                "Use target keywords naturally throughout the content",
-                "Structure content with clear paragraphs and sections",
-                "Update content regularly to maintain freshness and relevance"
-            ],
-            'internal_links': [
-                "Add 3-8 internal links per page to related content",
-                "Use descriptive anchor text that indicates the linked page's content",
-                "Link to important pages from multiple locations throughout your site",
-                "Create a logical site structure with hub and spoke linking",
-                "Regularly audit and fix broken internal links"
-            ],
-            'external_links': [
-                "Include 1-3 high-quality external links to authoritative sources",
-                "Link to relevant, trustworthy websites that add value for users",
-                "Use descriptive anchor text for external links",
-                "Consider adding rel='nofollow' to commercial or untrusted external links",
-                "Regularly check external links to ensure they're still working"
-            ]
-        }
-
-        return recommendations.get(metric, [
-            "Optimize this metric according to current SEO best practices",
-            "Monitor performance and make data-driven improvements",
-            "Regular audits help maintain optimal SEO health"
-        ])
-
 
 # Initialize components
 auditor = SEOAuditor()
