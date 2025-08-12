@@ -3823,8 +3823,8 @@ class PDFReportGenerator:
         story.append(conversion_table)
         story.append(Spacer(1, 20))
 
-        # Add UI/UX Recommendations
-        self.add_uiux_recommendations(story)
+        # Add UI/UX Recommendations based on failed checks
+        self.add_uiux_recommendations(story, analyzed_pages, all_browser_results)
 
     def create_uiux_table_style(self, table_data):
         """Create consistent table style for UI/UX sections"""
@@ -3875,8 +3875,8 @@ class PDFReportGenerator:
 
         return TableStyle(table_style)
 
-    def add_uiux_recommendations(self, story):
-        """Add UI/UX Recommendations section"""
+    def add_uiux_recommendations(self, story, analyzed_pages=None, all_browser_results=None):
+        """Add UI/UX Recommendations section based on actual failed checks"""
         recommendations_title_style = ParagraphStyle(
             'UIUXRecommendationsTitle',
             parent=self.subheading_style,
@@ -3889,22 +3889,19 @@ class PDFReportGenerator:
         story.append(Paragraph("UI/UX Improvement Recommendations", recommendations_title_style))
         story.append(Spacer(1, 8))
 
-        recommendations = [
-            "• Ensure consistent navigation menu across all pages for better user orientation",
-            "• Implement breadcrumb navigation on deeper pages to improve user experience",
-            "• Add search functionality to help users find content quickly",
-            "• Improve font consistency and ensure readable font sizes (minimum 16px on mobile)",
-            "• Enhance color contrast ratios to meet WCAG accessibility guidelines",
-            "• Add ARIA labels and proper heading structure for screen reader accessibility",
-            "• Implement clear hover states and interactive feedback for all clickable elements",
-            "• Optimize touch targets for mobile devices (minimum 44px tap target size)",
-            "• Place clear call-to-action buttons above the fold on key pages",
-            "• Add trust signals like testimonials, certifications, or security badges",
-            "• Implement form validation with clear error messages and success feedback",
-            "• Ensure responsive design works well across all device sizes",
-            "• Add loading indicators for any actions that take more than 2 seconds",
-            "• Include contact information prominently on service and contact pages"
-        ]
+        # Analyze failed checks across all pages to generate targeted recommendations
+        failed_checks = self._analyze_failed_uiux_checks(analyzed_pages, all_browser_results)
+        
+        # Generate recommendations based on actual failures
+        recommendations = self._generate_targeted_recommendations(failed_checks)
+        
+        # Add general recommendations if no specific failures found
+        if not recommendations:
+            recommendations = [
+                "• Excellent UI/UX performance across all tested areas",
+                "• Continue monitoring user experience metrics regularly",
+                "• Consider conducting user testing sessions for deeper insights"
+            ]
 
         recommendation_style = ParagraphStyle(
             'UIUXRecommendationBullet',
@@ -3918,6 +3915,157 @@ class PDFReportGenerator:
             story.append(Paragraph(recommendation, recommendation_style))
 
         story.append(Spacer(1, 30))
+
+    def _analyze_failed_uiux_checks(self, analyzed_pages, all_browser_results):
+        """Analyze all UI/UX checks to identify failures across pages"""
+        if not analyzed_pages or not all_browser_results:
+            return {}
+
+        failed_checks = {
+            'navigation': {'missing_menu': 0, 'no_breadcrumbs': 0, 'logo_not_clickable': 0, 'no_search': 0},
+            'design': {'inconsistent_buttons': 0, 'poor_layout': 0},
+            'mobile': {'not_responsive': 0, 'horizontal_scroll': 0, 'no_mobile_menu': 0},
+            'accessibility': {'small_fonts': 0, 'missing_aria': 0, 'poor_contrast': 0, 'no_keyboard_nav': 0},
+            'interaction': {'no_hover': 0, 'no_loading': 0, 'no_validation': 0, 'unclear_errors': 0},
+            'conversion': {'no_cta_above_fold': 0, 'hidden_contact': 0, 'weak_trust': 0, 'unclear_value': 0},
+            'total_pages': len(analyzed_pages)
+        }
+
+        for url, analysis in analyzed_pages.items():
+            browser_results = all_browser_results.get(url, {})
+            
+            # Skip pages with errors
+            if any('error' in section for section in browser_results.values() if isinstance(section, dict)):
+                continue
+
+            # Analyze Navigation & Structure failures
+            nav_section = browser_results.get('navigation_structure', {})
+            if not nav_section.get('main_menu_visible', True):
+                failed_checks['navigation']['missing_menu'] += 1
+            if not nav_section.get('breadcrumbs_exist', False):
+                failed_checks['navigation']['no_breadcrumbs'] += 1
+            if not nav_section.get('logo_clickable', True):
+                failed_checks['navigation']['logo_not_clickable'] += 1
+            if not nav_section.get('search_function', False):
+                failed_checks['navigation']['no_search'] += 1
+
+            # Analyze Design Consistency failures
+            design_section = browser_results.get('design_consistency', {})
+            if not design_section.get('uniform_button_styles', True):
+                failed_checks['design']['inconsistent_buttons'] += 1
+
+            # Analyze Mobile & Responsive failures
+            mobile_section = browser_results.get('mobile_responsive', {})
+            if not mobile_section.get('responsive_layout', True):
+                failed_checks['mobile']['not_responsive'] += 1
+            if not mobile_section.get('no_horizontal_scroll', True):
+                failed_checks['mobile']['horizontal_scroll'] += 1
+            if not mobile_section.get('mobile_menu_works', True):
+                failed_checks['mobile']['no_mobile_menu'] += 1
+
+            # Analyze Accessibility failures
+            accessibility_section = browser_results.get('readability_accessibility', {})
+            if accessibility_section.get('font_size', 'Good') in ['Small Text', 'Poor']:
+                failed_checks['accessibility']['small_fonts'] += 1
+            if accessibility_section.get('aria_labels', 'Present') in ['Missing', 'Limited']:
+                failed_checks['accessibility']['missing_aria'] += 1
+            if accessibility_section.get('color_contrast', 'Good') in ['Poor', 'Needs Improvement']:
+                failed_checks['accessibility']['poor_contrast'] += 1
+            if accessibility_section.get('keyboard_navigation', 'Supported') in ['Limited', 'Not Supported']:
+                failed_checks['accessibility']['no_keyboard_nav'] += 1
+
+            # Analyze Interaction & Feedback failures
+            interaction_section = browser_results.get('interaction_feedback', {})
+            if interaction_section.get('hover_states', 'Good') in ['Poor', 'Limited']:
+                failed_checks['interaction']['no_hover'] += 1
+            if interaction_section.get('loading_indicators', 'Present') in ['None', 'Missing']:
+                failed_checks['interaction']['no_loading'] += 1
+            if interaction_section.get('form_validation', 'Yes') in ['No', 'Limited']:
+                failed_checks['interaction']['no_validation'] += 1
+            if interaction_section.get('error_messages', 'Clear') in ['Unclear', 'Missing']:
+                failed_checks['interaction']['unclear_errors'] += 1
+
+            # Analyze Conversion Elements failures
+            conversion_section = browser_results.get('conversion_elements', {})
+            if conversion_section.get('cta_above_fold', 'Yes') == 'No':
+                failed_checks['conversion']['no_cta_above_fold'] += 1
+            if conversion_section.get('contact_info', 'Visible') in ['Footer Only', 'Hidden']:
+                failed_checks['conversion']['hidden_contact'] += 1
+            if conversion_section.get('trust_signals', 'Good') in ['Poor', 'Limited']:
+                failed_checks['conversion']['weak_trust'] += 1
+            if conversion_section.get('value_proposition', 'Clear') in ['Unclear', 'Missing']:
+                failed_checks['conversion']['unclear_value'] += 1
+
+        return failed_checks
+
+    def _generate_targeted_recommendations(self, failed_checks):
+        """Generate specific recommendations based on identified failures"""
+        recommendations = []
+        total_pages = failed_checks.get('total_pages', 1)
+
+        # Navigation recommendations
+        nav_fails = failed_checks.get('navigation', {})
+        if nav_fails.get('missing_menu', 0) > 0:
+            recommendations.append(f"• Fix missing navigation menu on {nav_fails['missing_menu']}/{total_pages} pages - critical for user orientation")
+        if nav_fails.get('no_breadcrumbs', 0) > total_pages * 0.7:  # If >70% of pages lack breadcrumbs
+            recommendations.append(f"• Implement breadcrumb navigation on {nav_fails['no_breadcrumbs']} pages to improve user navigation")
+        if nav_fails.get('logo_not_clickable', 0) > 0:
+            recommendations.append(f"• Make logo clickable on {nav_fails['logo_not_clickable']} pages - standard UX expectation")
+        if nav_fails.get('no_search', 0) > total_pages * 0.5:  # If >50% lack search
+            recommendations.append(f"• Add search functionality - missing on {nav_fails['no_search']} pages")
+
+        # Design recommendations
+        design_fails = failed_checks.get('design', {})
+        if design_fails.get('inconsistent_buttons', 0) > 0:
+            recommendations.append(f"• Standardize button styles across {design_fails['inconsistent_buttons']} pages for better design consistency")
+
+        # Mobile recommendations
+        mobile_fails = failed_checks.get('mobile', {})
+        if mobile_fails.get('not_responsive', 0) > 0:
+            recommendations.append(f"• URGENT: Fix responsive design on {mobile_fails['not_responsive']} pages - critical for mobile users")
+        if mobile_fails.get('horizontal_scroll', 0) > 0:
+            recommendations.append(f"• Eliminate horizontal scrolling issues on {mobile_fails['horizontal_scroll']} pages")
+        if mobile_fails.get('no_mobile_menu', 0) > 0:
+            recommendations.append(f"• Implement mobile menu functionality on {mobile_fails['no_mobile_menu']} pages")
+
+        # Accessibility recommendations
+        access_fails = failed_checks.get('accessibility', {})
+        if access_fails.get('small_fonts', 0) > 0:
+            recommendations.append(f"• Increase font sizes on {access_fails['small_fonts']} pages - minimum 16px for mobile readability")
+        if access_fails.get('missing_aria', 0) > 0:
+            recommendations.append(f"• Add ARIA labels on {access_fails['missing_aria']} pages for screen reader accessibility")
+        if access_fails.get('poor_contrast', 0) > 0:
+            recommendations.append(f"• Improve color contrast ratios on {access_fails['poor_contrast']} pages to meet WCAG guidelines")
+        if access_fails.get('no_keyboard_nav', 0) > 0:
+            recommendations.append(f"• Enhance keyboard navigation support on {access_fails['no_keyboard_nav']} pages")
+
+        # Interaction recommendations
+        interaction_fails = failed_checks.get('interaction', {})
+        if interaction_fails.get('no_hover', 0) > 0:
+            recommendations.append(f"• Add hover states to interactive elements on {interaction_fails['no_hover']} pages")
+        if interaction_fails.get('no_loading', 0) > 0:
+            recommendations.append(f"• Implement loading indicators on {interaction_fails['no_loading']} pages for better user feedback")
+        if interaction_fails.get('no_validation', 0) > 0:
+            recommendations.append(f"• Add form validation to forms on {interaction_fails['no_validation']} pages")
+        if interaction_fails.get('unclear_errors', 0) > 0:
+            recommendations.append(f"• Improve error message clarity on {interaction_fails['unclear_errors']} pages")
+
+        # Conversion recommendations
+        conversion_fails = failed_checks.get('conversion', {})
+        if conversion_fails.get('no_cta_above_fold', 0) > 0:
+            recommendations.append(f"• Add call-to-action buttons above the fold on {conversion_fails['no_cta_above_fold']} pages")
+        if conversion_fails.get('hidden_contact', 0) > 0:
+            recommendations.append(f"• Make contact information more prominent on {conversion_fails['hidden_contact']} pages")
+        if conversion_fails.get('weak_trust', 0) > 0:
+            recommendations.append(f"• Add trust signals (testimonials, badges) on {conversion_fails['weak_trust']} pages")
+        if conversion_fails.get('unclear_value', 0) > 0:
+            recommendations.append(f"• Clarify value proposition on {conversion_fails['unclear_value']} pages")
+
+        # Add priority indicators
+        if any(fail > 0 for fail in [mobile_fails.get('not_responsive', 0), nav_fails.get('missing_menu', 0)]):
+            recommendations.insert(0, "• HIGH PRIORITY: Address responsive design and navigation issues first")
+
+        return recommendations
 
     def add_backlink_title_page(self, story):
         """Add backlink audit title page"""
