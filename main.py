@@ -678,14 +678,50 @@ class PDFReportGenerator:
         story.append(overall_page_table)
         story.append(Spacer(1, 30))
 
+        # Add On-Page SEO Audit section
+        story.append(PageBreak())
+        
+        # On-Page SEO Audit title
+        on_page_seo_title_style = ParagraphStyle(
+            'OnPageSEOTitle',
+            parent=self.styles['Heading1'],
+            fontSize=24,
+            spaceAfter=30,
+            textColor=HexColor('#2E86AB'),
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        story.append(Paragraph("On-Page SEO Audit", on_page_seo_title_style))
+        
+        # Add introduction paragraph
+        intro_text = ("This section provides a detailed analysis of on-page SEO elements across all audited pages. "
+                     "Each metric is evaluated individually with specific recommendations to improve your website's "
+                     "search engine visibility and user experience.")
+
+        # Create introduction paragraph style
+        on_page_intro_style = ParagraphStyle(
+            'OnPageSEOIntro',
+            parent=self.body_style,
+            fontSize=11,
+            spaceAfter=30,
+            alignment=TA_CENTER,
+            leading=16
+        )
+
+        story.append(Paragraph(intro_text, on_page_intro_style))
+        
+        # Add page break before starting metric analysis
+        story.append(PageBreak())
+
         # Metric-by-metric analysis
-        self.add_metric_analysis(story, analyzed_pages, "🔹 Title Tag Optimization", "title")
-        self.add_metric_analysis(story, analyzed_pages, "🔹 Meta Description", "meta_description")
-        self.add_metric_analysis(story, analyzed_pages, "🔹 Heading Structure", "headings")
-        self.add_metric_analysis(story, analyzed_pages, "🔹 Image Optimization", "images")
-        self.add_metric_analysis(story, analyzed_pages, "🔹 Content Quality", "content")
-        self.add_metric_analysis(story, analyzed_pages, "🔹 Internal Linking", "internal_links")
-        self.add_metric_analysis(story, analyzed_pages, "🔹 External Linking", "external_links")
+        self.add_metric_analysis(story, analyzed_pages, "■ Title Tag Optimization", "title")
+        self.add_metric_analysis(story, analyzed_pages, "■ Meta Description", "meta_description")
+        self.add_metric_analysis(story, analyzed_pages, "■ Heading Structure", "headings")
+        self.add_metric_analysis(story, analyzed_pages, "■ Image Optimization", "images")
+        self.add_metric_analysis(story, analyzed_pages, "■ Content Quality", "content")
+        self.add_metric_analysis(story, analyzed_pages, "■ Internal Linking", "internal_links")
+        self.add_metric_analysis(story, analyzed_pages, "■ External Linking", "external_links")
 
         # Add comprehensive missing images page at the end of On Page section
         self.add_missing_images_page(story, analyzed_pages)
