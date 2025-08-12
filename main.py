@@ -1215,7 +1215,7 @@ class PDFReportGenerator:
                 "Ensure external links open in new tabs for better UX"
             ]
         }
-        
+
         return recommendations.get(metric, [
             "Review and optimize this metric based on SEO best practices",
             "Monitor performance and make data-driven improvements",
@@ -1543,7 +1543,7 @@ class PDFReportGenerator:
 
         # Create table data
         crawlability_data = [
-            ['Page URL', 'HTTP Status', 'Redirect Type', 'Robots.txt', 'Meta Robots Tag', 'X-Robots-Tag']
+            ['Page URL', 'HTTP ', 'Redirect', 'Robots.txt', 'Meta Robots', 'X-Robots-Tag']
         ]
 
         # Sample data for different pages
@@ -1674,7 +1674,7 @@ class PDFReportGenerator:
 
         # Create table data
         performance_data = [
-            ['Page URL', 'Load Time (s)', 'HTML Size (KB)', 'CSS Files', 'JS Files', 'Images', 'Total Size (KB)']
+            ['Page URL', 'Load Time', 'HTML (KB)', 'CSS', 'JS Files', 'Images', 'Total (KB)']
         ]
 
         # Sample performance data
@@ -3507,7 +3507,7 @@ class PDFReportGenerator:
         # Perform browser-based UI/UX analysis for ALL pages
         all_browser_results = {}
         if analyzed_pages:
-            for url in analyzed_pages.keys():
+            for url, analysis in analyzed_pages.items(): # Iterate through analyzed pages
                 try:
                     logger.info(f"Running browser automation for {url}")
                     browser_results = self.audit_uiux_with_browser(url)
@@ -3527,7 +3527,7 @@ class PDFReportGenerator:
                         'conversion_elements': {'error': error_msg}
                     }
         else:
-            all_browser_results['fallback'] = self._fallback_uiux_analysis("https://example.com")
+            all_browser_results['fallback'] = self._fallback_uiux_analysis("https://example.com") # Fallback if no analyzed pages
 
         # 1. Navigation & Structure
         self.add_navigation_structure_section(story, analyzed_pages, all_browser_results)
@@ -4529,7 +4529,7 @@ class PDFReportGenerator:
         # Description paragraph
         description_style = ParagraphStyle(
             'DomainsDescription',
-            parent=self.body_style,
+            parent= self.body_style,
             fontSize=11,
             spaceAfter=20,
             leading=14
