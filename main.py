@@ -731,26 +731,30 @@ class PDFReportGenerator:
             logger.error(f"Error building PDF document: {e}")
             return None
 
-    def create_clickable_url(self, url, max_chars=40):
+    def create_clickable_url(self, url, max_chars=35):
         """Create a clickable URL paragraph with proper wrapping"""
-        # Truncate URL if too long for better table formatting
-        if len(url) > max_chars:
-            display_url = url[:max_chars-3] + "..."
-        else:
-            display_url = url
-
         # Create a custom style for URLs with smaller font and wrapping
         url_style = ParagraphStyle(
             'ClickableURL',
             parent=self.body_style,
             fontSize=8,
-            leading=9,
+            leading=10,
             wordWrap='LTR',
             allowWidows=1,
             allowOrphans=1,
-            spaceAfter=1,
-            spaceBefore=1
+            spaceAfter=2,
+            spaceBefore=2,
+            breakLongWords=1,
+            splitLongWords=1
         )
+
+        # For very long URLs, add break opportunities after slashes and dots
+        if len(url) > max_chars:
+            # Add soft line breaks after common URL separators
+            formatted_url = url.replace('/', '/<wbr/>').replace('.', '.<wbr/>')
+            display_url = formatted_url
+        else:
+            display_url = url
 
         # Create clickable link with proper HTML formatting
         clickable_url = f'<link href="{url}" color="blue">{display_url}</link>'
@@ -1031,32 +1035,54 @@ class PDFReportGenerator:
                     # Already a Paragraph object (like clickable URLs)
                     wrapped_cell = cell
                 elif isinstance(cell, str):
-                    # Wrap text content based on column
-                    if i == 1 and len(cell) > 15:  # Issue column
+                    # Always wrap text content in paragraphs with proper styling
+                    if i == 0:  # URL column
+                        wrapped_cell = Paragraph(cell, ParagraphStyle(
+                            'WrappedURL',
+                            parent=self.body_style,
+                            fontSize=8,
+                            leading=10,
+                            wordWrap='LTR',
+                            allowWidows=1,
+                            allowOrphans=1
+                        ))
+                    elif i == 1:  # Issue column
                         wrapped_cell = Paragraph(cell, ParagraphStyle(
                             'WrappedIssue',
                             parent=self.body_style,
                             fontSize=8,
-                            leading=9,
-                            wordWrap='LTR'
+                            leading=10,
+                            wordWrap='LTR',
+                            allowWidows=1,
+                            allowOrphans=1
                         ))
-                    elif i == 2 and len(cell) > 25:  # Current value column
+                    elif i == 2:  # Current value column
                         wrapped_cell = Paragraph(cell, ParagraphStyle(
                             'WrappedValue',
                             parent=self.body_style,
                             fontSize=8,
-                            leading=9,
-                            wordWrap='LTR'
+                            leading=10,
+                            wordWrap='LTR',
+                            allowWidows=1,
+                            allowOrphans=1
                         ))
-                    else:
-                        wrapped_cell = cell
+                    else:  # Status column
+                        wrapped_cell = Paragraph(cell, ParagraphStyle(
+                            'WrappedStatus',
+                            parent=self.body_style,
+                            fontSize=8,
+                            leading=10,
+                            wordWrap='LTR',
+                            allowWidows=1,
+                            allowOrphans=1
+                        ))
                 else:
                     wrapped_cell = cell
                 wrapped_row.append(wrapped_cell)
             wrapped_data.append(wrapped_row)
 
-        # Better column width distribution - URL, Issue, Current Value, Status
-        table = Table(wrapped_data, colWidths=[2.0*inch, 1.4*inch, 2.0*inch, 1.1*inch])
+        # Adjusted column widths to fit within page margins - URL, Issue, Current Value, Status
+        table = Table(wrapped_data, colWidths=[1.8*inch, 1.2*inch, 1.8*inch, 1.0*inch])
 
         table_style = [
             ('BACKGROUND', (0, 0), (-1, 0), HexColor('#A23B72')),
@@ -1068,13 +1094,16 @@ class PDFReportGenerator:
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 1), (-1, -1), 8),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
             ('GRID', (0, 0), (-1, -1), 1, black),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('FONTSIZE', (3, 1), (3, -1), 9),  # Status text
             ('FONTNAME', (3, 1), (3, -1), 'Helvetica-Bold'),  # Bold status text
-            ('WORDWRAP', (0, 0), (-1, -1), True)
+            ('WORDWRAP', (0, 0), (-1, -1), True),
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [white, HexColor('#f8f9fa')])
         ]
 
         # Color code status column and alternate row backgrounds with error handling
