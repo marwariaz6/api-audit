@@ -1140,6 +1140,59 @@ class PDFReportGenerator:
             story.append(Paragraph(f"• {recommendation}", self.body_style))
         story.append(Spacer(1, 20))
 
+    def get_metric_recommendations(self, metric):
+        """Get actionable recommendations for specific metrics"""
+        recommendations = {
+            'title': [
+                "Write unique, descriptive titles for each page (30-60 characters)",
+                "Include primary keywords naturally in title tags",
+                "Avoid duplicate title tags across different pages",
+                "Make titles compelling to improve click-through rates"
+            ],
+            'meta_description': [
+                "Write compelling meta descriptions (120-160 characters)",
+                "Include relevant keywords and calls-to-action",
+                "Make each meta description unique across pages",
+                "Summarize page content accurately to improve CTR"
+            ],
+            'headings': [
+                "Use only one H1 tag per page containing main keyword",
+                "Structure content with H2-H6 tags for better readability",
+                "Include relevant keywords in heading tags naturally",
+                "Maintain logical heading hierarchy throughout content"
+            ],
+            'images': [
+                "Add descriptive alt text to all images for accessibility",
+                "Use keywords naturally in alt text when relevant",
+                "Optimize image file sizes for faster loading",
+                "Use descriptive, SEO-friendly image file names"
+            ],
+            'content': [
+                "Increase content length to at least 300-500 words per page",
+                "Create high-quality, original content that provides value",
+                "Include relevant keywords naturally throughout content",
+                "Update content regularly to keep it fresh and relevant"
+            ],
+            'internal_links': [
+                "Add more internal links to improve site navigation",
+                "Use descriptive anchor text for internal links",
+                "Link to relevant, related content within your site",
+                "Create a logical internal linking structure"
+            ],
+            'external_links': [
+                "Add relevant external links to authoritative sources",
+                "Use external links to support your content claims",
+                "Balance external links - not too many or too few",
+                "Ensure external links open in new tabs for better UX"
+            ]
+        }
+        
+        return recommendations.get(metric, [
+            "Review and optimize this metric based on SEO best practices",
+            "Monitor performance and make data-driven improvements",
+            "Consider consulting SEO guidelines for this specific area"
+        ])
+
     def add_additional_missing_images(self, story, analyzed_pages):
         """Add additional missing image URLs that weren't shown in the main table"""
         has_additional_images = False
