@@ -3495,7 +3495,7 @@ class PDFReportGenerator:
         story.append(nav_table)
         story.append(Spacer(1, 20))
 
-    def add_design_consistency_section(self, story, analyzed_pages):
+    def add_design_consistency_section(self, story, analyzed_pages, browser_results=None):
         """Add Design Consistency section"""
         story.append(Paragraph("Design Consistency", self.heading_style))
         story.append(Spacer(1, 10))
@@ -3521,7 +3521,7 @@ class PDFReportGenerator:
         story.append(design_table)
         story.append(Spacer(1, 20))
 
-    def add_mobile_responsive_section(self, story, analyzed_pages):
+    def add_mobile_responsive_section(self, story, analyzed_pages, browser_results=None):
         """Add Mobile & Responsive Design section"""
         story.append(Paragraph("Mobile & Responsive Design", self.heading_style))
         story.append(Spacer(1, 10))
@@ -3547,7 +3547,7 @@ class PDFReportGenerator:
         story.append(mobile_table)
         story.append(Spacer(1, 20))
 
-    def add_readability_accessibility_section(self, story, analyzed_pages):
+    def add_readability_accessibility_section(self, story, analyzed_pages, browser_results=None):
         """Add Readability & Accessibility section"""
         story.append(Paragraph("Readability & Accessibility", self.heading_style))
         story.append(Spacer(1, 10))
@@ -3573,7 +3573,7 @@ class PDFReportGenerator:
         story.append(accessibility_table)
         story.append(Spacer(1, 20))
 
-    def add_interaction_feedback_section(self, story, analyzed_pages):
+    def add_interaction_feedback_section(self, story, analyzed_pages, browser_results=None):
         """Add Interaction & Feedback section"""
         story.append(Paragraph("Interaction & Feedback", self.heading_style))
         story.append(Spacer(1, 10))
@@ -3599,7 +3599,7 @@ class PDFReportGenerator:
         story.append(interaction_table)
         story.append(Spacer(1, 20))
 
-    def add_conversion_elements_section(self, story, analyzed_pages):
+    def add_conversion_elements_section(self, story, analyzed_pages, browser_results=None):
         """Add Conversion Elements section"""
         story.append(Paragraph("Conversion Elements", self.heading_style))
         story.append(Spacer(1, 10))
