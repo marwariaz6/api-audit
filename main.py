@@ -3036,37 +3036,38 @@ class PDFReportGenerator:
             story.append(Spacer(1, 30))
 
     def audit_uiux_with_browser(self, url):
-        """Perform UI/UX audit using browser automation with Playwright"""
+        """Perform UI/UX audit using browser automation with Puppeteer"""
         try:
-            # Import here to avoid errors if playwright isn't installed
-            from playwright.sync_api import sync_playwright
+            # Import here to avoid errors if puppeteer isn't installed
+            import pyppeteer
+            import asyncio
             
-            with sync_playwright() as p:
+            async def run_audit():
                 # Launch browser in headless mode
-                browser = p.chromium.launch(headless=True)
-                context = browser.new_context(
-                    viewport={'width': 1920, 'height': 1080},
-                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                )
-                page = context.new_page()
+                browser = await pyppeteer.launch(headless=True)
+                page = await browser.newPage()
+                await page.setViewport({'width': 1920, 'height': 1080})
+                await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
                 
                 # Navigate to the page
-                page.goto(url, wait_until='networkidle')
+                await page.goto(url, {'waitUntil': 'networkidle2'})
                 
                 results = {
-                    'navigation_structure': self._check_navigation_structure_playwright(page),
-                    'design_consistency': self._check_design_consistency_playwright(page),
-                    'mobile_responsive': self._check_mobile_responsive_playwright(page),
-                    'readability_accessibility': self._check_readability_accessibility_playwright(page),
-                    'interaction_feedback': self._check_interaction_feedback_playwright(page),
-                    'conversion_elements': self._check_conversion_elements_playwright(page)
+                    'navigation_structure': await self._check_navigation_structure_puppeteer(page),
+                    'design_consistency': await self._check_design_consistency_puppeteer(page),
+                    'mobile_responsive': await self._check_mobile_responsive_puppeteer(page),
+                    'readability_accessibility': await self._check_readability_accessibility_puppeteer(page),
+                    'interaction_feedback': await self._check_interaction_feedback_puppeteer(page),
+                    'conversion_elements': await self._check_conversion_elements_puppeteer(page)
                 }
                 
-                browser.close()
+                await browser.close()
                 return results
             
+            return asyncio.get_event_loop().run_until_complete(run_audit())
+            
         except ImportError:
-            logger.warning("Playwright not available, using fallback UI/UX analysis")
+            logger.warning("Puppeteer not available, using fallback UI/UX analysis")
             return self._fallback_uiux_analysis(url)
         except Exception as e:
             logger.error(f"Browser automation failed: {e}")
