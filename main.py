@@ -3036,59 +3036,49 @@ class PDFReportGenerator:
             story.append(Spacer(1, 30))
 
     def audit_uiux_with_browser(self, url):
-        """Perform UI/UX audit using browser automation (alternative to Puppeteer)"""
+        """Perform UI/UX audit using browser automation with Playwright"""
         try:
-            # Import here to avoid errors if selenium isn't installed
-            from selenium import webdriver
-            from selenium.webdriver.chrome.options import Options
-            from selenium.webdriver.common.by import By
-            from selenium.webdriver.support.ui import WebDriverWait
-            from selenium.webdriver.support import expected_conditions as EC
+            # Import here to avoid errors if playwright isn't installed
+            from playwright.sync_api import sync_playwright
             
-            # Setup Chrome options for headless mode
-            chrome_options = Options()
-            chrome_options.add_argument("--headless")
-            chrome_options.add_argument("--no-sandbox")
-            chrome_options.add_argument("--disable-dev-shm-usage")
-            chrome_options.add_argument("--disable-gpu")
-            chrome_options.add_argument("--window-size=1920,1080")
-            
-            # Initialize driver
-            driver = webdriver.Chrome(options=chrome_options)
-            driver.get(url)
-            
-            # Wait for page to load
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.TAG_NAME, "body"))
-            )
-            
-            results = {
-                'navigation_structure': self._check_navigation_structure(driver),
-                'design_consistency': self._check_design_consistency(driver),
-                'mobile_responsive': self._check_mobile_responsive(driver),
-                'readability_accessibility': self._check_readability_accessibility(driver),
-                'interaction_feedback': self._check_interaction_feedback(driver),
-                'conversion_elements': self._check_conversion_elements(driver)
-            }
-            
-            driver.quit()
-            return results
+            with sync_playwright() as p:
+                # Launch browser in headless mode
+                browser = p.chromium.launch(headless=True)
+                context = browser.new_context(
+                    viewport={'width': 1920, 'height': 1080},
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                )
+                page = context.new_page()
+                
+                # Navigate to the page
+                page.goto(url, wait_until='networkidle')
+                
+                results = {
+                    'navigation_structure': self._check_navigation_structure_playwright(page),
+                    'design_consistency': self._check_design_consistency_playwright(page),
+                    'mobile_responsive': self._check_mobile_responsive_playwright(page),
+                    'readability_accessibility': self._check_readability_accessibility_playwright(page),
+                    'interaction_feedback': self._check_interaction_feedback_playwright(page),
+                    'conversion_elements': self._check_conversion_elements_playwright(page)
+                }
+                
+                browser.close()
+                return results
             
         except ImportError:
-            logger.warning("Selenium not available, using fallback UI/UX analysis")
+            logger.warning("Playwright not available, using fallback UI/UX analysis")
             return self._fallback_uiux_analysis(url)
         except Exception as e:
             logger.error(f"Browser automation failed: {e}")
             return self._fallback_uiux_analysis(url)
     
-    def _check_navigation_structure(self, driver):
-        """Check navigation structure using browser automation"""
+    def _check_navigation_structure_playwright(self, page):
+        """Check navigation structure using Playwright"""
         results = {}
         
         # Check for main navigation
         try:
-            nav_element = driver.find_element(By.TAG_NAME, "nav")
-            results['main_menu_visible'] = True
+            results['main_menu_visible'] = page.locator("nav").count() > 0
         except:
             results['main_menu_visible'] = False
         
@@ -3102,12 +3092,9 @@ class PDFReportGenerator:
             ]
             breadcrumbs_found = False
             for selector in breadcrumb_selectors:
-                try:
-                    driver.find_element(By.CSS_SELECTOR, selector)
+                if page.locator(selector).count() > 0:
                     breadcrumbs_found = True
                     break
-                except:
-                    continue
             results['breadcrumbs_exist'] = breadcrumbs_found
         except:
             results['breadcrumbs_exist'] = False
@@ -3122,12 +3109,9 @@ class PDFReportGenerator:
             ]
             logo_clickable = False
             for selector in logo_selectors:
-                try:
-                    driver.find_element(By.CSS_SELECTOR, selector)
+                if page.locator(selector).count() > 0:
                     logo_clickable = True
                     break
-                except:
-                    continue
             results['logo_clickable'] = logo_clickable
         except:
             results['logo_clickable'] = False
@@ -3142,38 +3126,47 @@ class PDFReportGenerator:
             ]
             search_found = False
             for selector in search_selectors:
-                try:
-                    driver.find_element(By.CSS_SELECTOR, selector)
+                if page.locator(selector).count() > 0:
                     search_found = True
                     break
-                except:
-                    continue
             results['search_function'] = search_found
         except:
             results['search_function'] = False
         
         return results
     
-    def _check_design_consistency(self, driver):
-        """Check design consistency using browser automation"""
+    def _check_design_consistency_playwright(self, page):
+        """Check design consistency using Playwright"""
         results = {}
         
         # Check button styles consistency
         try:
-            buttons = driver.find_elements(By.TAG_NAME, "button")
+            buttons = page.locator("button").all()
             if len(buttons) > 1:
                 # Get computed styles for first two buttons
-                first_button_style = driver.execute_script(
-                    "return window.getComputedStyle(arguments[0])", buttons[0]
-                )
-                second_button_style = driver.execute_script(
-                    "return window.getComputedStyle(arguments[0])", buttons[1]
-                )
+                first_button_style = buttons[0].evaluate("""
+                    element => {
+                        const style = window.getComputedStyle(element);
+                        return {
+                            borderRadius: style.borderRadius,
+                            backgroundColor: style.backgroundColor
+                        };
+                    }
+                """)
+                second_button_style = buttons[1].evaluate("""
+                    element => {
+                        const style = window.getComputedStyle(element);
+                        return {
+                            borderRadius: style.borderRadius,
+                            backgroundColor: style.backgroundColor
+                        };
+                    }
+                """)
                 
                 # Compare border-radius and background-color
                 styles_match = (
-                    first_button_style.get('border-radius') == second_button_style.get('border-radius') and
-                    first_button_style.get('background-color') == second_button_style.get('background-color')
+                    first_button_style.get('borderRadius') == second_button_style.get('borderRadius') and
+                    first_button_style.get('backgroundColor') == second_button_style.get('backgroundColor')
                 )
                 results['uniform_button_styles'] = styles_match
             else:
@@ -3187,17 +3180,25 @@ class PDFReportGenerator:
         
         return results
     
-    def _check_mobile_responsive(self, driver):
-        """Check mobile responsiveness using browser automation"""
+    def _check_mobile_responsive_playwright(self, page):
+        """Check mobile responsiveness using Playwright"""
         results = {}
         
         # Test mobile viewport
         try:
-            driver.set_window_size(375, 812)  # iPhone X size
+            # Set mobile viewport (iPhone X size)
+            page.set_viewport_size({"width": 375, "height": 812})
             
             # Check if layout adapts
-            body_width = driver.execute_script("return document.body.scrollWidth")
-            window_width = driver.execute_script("return window.innerWidth")
+            dimensions = page.evaluate("""
+                () => ({
+                    bodyWidth: document.body.scrollWidth,
+                    windowWidth: window.innerWidth
+                })
+            """)
+            
+            body_width = dimensions['bodyWidth']
+            window_width = dimensions['windowWidth']
             
             results['responsive_layout'] = body_width <= window_width + 10  # Allow small tolerance
             results['no_horizontal_scroll'] = body_width <= window_width
@@ -3211,16 +3212,13 @@ class PDFReportGenerator:
             ]
             mobile_menu_found = False
             for selector in mobile_menu_selectors:
-                try:
-                    driver.find_element(By.CSS_SELECTOR, selector)
+                if page.locator(selector).count() > 0:
                     mobile_menu_found = True
                     break
-                except:
-                    continue
             results['mobile_menu_works'] = mobile_menu_found
             
-            # Reset window size
-            driver.set_window_size(1920, 1080)
+            # Reset viewport size
+            page.set_viewport_size({"width": 1920, "height": 1080})
             
         except:
             results['responsive_layout'] = False
@@ -3229,27 +3227,27 @@ class PDFReportGenerator:
         
         return results
     
-    def _check_readability_accessibility(self, driver):
-        """Check readability and accessibility using browser automation"""
+    def _check_readability_accessibility_playwright(self, page):
+        """Check readability and accessibility using Playwright"""
         results = {}
         
         # Check font sizes
         try:
-            all_elements = driver.find_elements(By.CSS_SELECTOR, "p, span, div, h1, h2, h3, h4, h5, h6")
-            small_text_found = False
-            
-            for element in all_elements[:20]:  # Check first 20 elements
-                try:
-                    font_size = driver.execute_script(
-                        "return window.getComputedStyle(arguments[0]).fontSize", element
-                    )
-                    if font_size and 'px' in font_size:
-                        size_value = float(font_size.replace('px', ''))
-                        if size_value < 16:
-                            small_text_found = True
-                            break
-                except:
-                    continue
+            small_text_found = page.evaluate("""
+                () => {
+                    const elements = document.querySelectorAll('p, span, div, h1, h2, h3, h4, h5, h6');
+                    for (let i = 0; i < Math.min(20, elements.length); i++) {
+                        const fontSize = window.getComputedStyle(elements[i]).fontSize;
+                        if (fontSize && fontSize.includes('px')) {
+                            const sizeValue = parseFloat(fontSize.replace('px', ''));
+                            if (sizeValue < 16) {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                }
+            """)
             
             results['font_size'] = "Small Text" if small_text_found else "Good"
         except:
@@ -3257,8 +3255,8 @@ class PDFReportGenerator:
         
         # Check for ARIA labels
         try:
-            aria_elements = driver.find_elements(By.CSS_SELECTOR, "[aria-label], [role]")
-            results['aria_labels'] = "Present" if len(aria_elements) > 0 else "Missing"
+            aria_count = page.locator("[aria-label], [role]").count()
+            results['aria_labels'] = "Present" if aria_count > 0 else "Missing"
         except:
             results['aria_labels'] = "Missing"
         
@@ -3267,8 +3265,8 @@ class PDFReportGenerator:
         
         return results
     
-    def _check_interaction_feedback(self, driver):
-        """Check interaction and feedback elements"""
+    def _check_interaction_feedback_playwright(self, page):
+        """Check interaction and feedback elements using Playwright"""
         results = {}
         
         # Check for loading indicators
@@ -3276,20 +3274,17 @@ class PDFReportGenerator:
             loading_selectors = [".loading", ".spinner", "[class*='loading']", "[class*='spinner']"]
             loading_found = False
             for selector in loading_selectors:
-                try:
-                    driver.find_element(By.CSS_SELECTOR, selector)
+                if page.locator(selector).count() > 0:
                     loading_found = True
                     break
-                except:
-                    continue
             results['loading_indicators'] = "Present" if loading_found else "None"
         except:
             results['loading_indicators'] = "None"
         
         # Check for form validation
         try:
-            required_fields = driver.find_elements(By.CSS_SELECTOR, "form [required]")
-            results['form_validation'] = "Yes" if len(required_fields) > 0 else "N/A"
+            required_fields_count = page.locator("form [required]").count()
+            results['form_validation'] = "Yes" if required_fields_count > 0 else "N/A"
         except:
             results['form_validation'] = "N/A"
         
@@ -3298,8 +3293,8 @@ class PDFReportGenerator:
         
         return results
     
-    def _check_conversion_elements(self, driver):
-        """Check conversion elements"""
+    def _check_conversion_elements_playwright(self, page):
+        """Check conversion elements using Playwright"""
         results = {}
         
         # Check for call-to-action buttons above fold
@@ -3312,19 +3307,20 @@ class PDFReportGenerator:
             ]
             
             # Check if any CTA is above the fold (within first 600px)
-            cta_above_fold = False
-            for selector in cta_selectors:
-                try:
-                    elements = driver.find_elements(By.CSS_SELECTOR, selector)
-                    for element in elements:
-                        location = element.location
-                        if location['y'] < 600:  # Above fold threshold
-                            cta_above_fold = True
-                            break
-                    if cta_above_fold:
-                        break
-                except:
-                    continue
+            cta_above_fold = page.evaluate("""
+                (selectors) => {
+                    for (const selector of selectors) {
+                        const elements = document.querySelectorAll(selector);
+                        for (const element of elements) {
+                            const rect = element.getBoundingClientRect();
+                            if (rect.top < 600) {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                }
+            """, cta_selectors)
             
             results['cta_above_fold'] = "Yes" if cta_above_fold else "No"
         except:
@@ -3340,12 +3336,9 @@ class PDFReportGenerator:
             ]
             contact_found = False
             for selector in contact_selectors:
-                try:
-                    driver.find_element(By.CSS_SELECTOR, selector)
+                if page.locator(selector).count() > 0:
                     contact_found = True
                     break
-                except:
-                    continue
             results['contact_info'] = "Visible" if contact_found else "Footer Only"
         except:
             results['contact_info'] = "Footer Only"
