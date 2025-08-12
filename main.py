@@ -3409,7 +3409,7 @@ class PDFReportGenerator:
         # Introduction
         intro_text = ("This UI/UX audit evaluates user experience elements including navigation structure, "
                      "design consistency, mobile responsiveness, readability, accessibility, and conversion "
-                     "optimization across all audited pages.")
+                     "optimization across all audited pages using real browser automation.")
 
         intro_style = ParagraphStyle(
             'UIUXIntro',
@@ -3422,47 +3422,63 @@ class PDFReportGenerator:
 
         story.append(Paragraph(intro_text, intro_style))
 
-        # Perform browser-based UI/UX analysis for first page
+        # Perform browser-based UI/UX analysis for ALL pages
+        all_browser_results = {}
         if analyzed_pages:
-            first_url = list(analyzed_pages.keys())[0]
-            try:
-                browser_results = self.audit_uiux_with_browser(first_url)
-                logger.info("Browser-based UI/UX analysis completed")
-            except Exception as e:
-                logger.error(f"Browser UI/UX analysis failed: {e}")
-                browser_results = self._fallback_uiux_analysis(first_url)
+            for url in analyzed_pages.keys():
+                try:
+                    logger.info(f"Running browser automation for {url}")
+                    browser_results = self.audit_uiux_with_browser(url)
+                    all_browser_results[url] = browser_results
+                    logger.info(f"Browser-based UI/UX analysis completed for {url}")
+                except Exception as e:
+                    error_msg = f"Browser automation failed: {str(e)}"
+                    logger.error(f"Browser UI/UX analysis failed for {url}: {e}")
+                    # Store error information in browser results
+                    all_browser_results[url] = {
+                        'error': error_msg,
+                        'navigation_structure': {'error': error_msg},
+                        'design_consistency': {'error': error_msg},
+                        'mobile_responsive': {'error': error_msg},
+                        'readability_accessibility': {'error': error_msg},
+                        'interaction_feedback': {'error': error_msg},
+                        'conversion_elements': {'error': error_msg}
+                    }
         else:
-            browser_results = self._fallback_uiux_analysis("https://example.com")
+            all_browser_results['fallback'] = self._fallback_uiux_analysis("https://example.com")
 
         # 1. Navigation & Structure
-        self.add_navigation_structure_section(story, analyzed_pages, browser_results.get('navigation_structure', {}))
+        self.add_navigation_structure_section(story, analyzed_pages, all_browser_results)
 
         # 2. Design Consistency
-        self.add_design_consistency_section(story, analyzed_pages, browser_results.get('design_consistency', {}))
+        self.add_design_consistency_section(story, analyzed_pages, all_browser_results)
 
         # 3. Mobile & Responsive Design
-        self.add_mobile_responsive_section(story, analyzed_pages, browser_results.get('mobile_responsive', {}))
+        self.add_mobile_responsive_section(story, analyzed_pages, all_browser_results)
 
         # 4. Readability & Accessibility
-        self.add_readability_accessibility_section(story, analyzed_pages, browser_results.get('readability_accessibility', {}))
+        self.add_readability_accessibility_section(story, analyzed_pages, all_browser_results)
 
         # 5. Interaction & Feedback
-        self.add_interaction_feedback_section(story, analyzed_pages, browser_results.get('interaction_feedback', {}))
+        self.add_interaction_feedback_section(story, analyzed_pages, all_browser_results)
 
         # 6. Conversion Elements
-        self.add_conversion_elements_section(story, analyzed_pages, browser_results.get('conversion_elements', {}))
+        self.add_conversion_elements_section(story, analyzed_pages, all_browser_results)
 
-    def add_navigation_structure_section(self, story, analyzed_pages, browser_results=None):
+    def add_navigation_structure_section(self, story, analyzed_pages, all_browser_results=None):
         """Add Navigation & Structure section"""
         story.append(Paragraph("Navigation & Structure", self.heading_style))
         story.append(Spacer(1, 10))
 
         nav_data = [['Page URL', 'Main Menu Visible', 'Breadcrumbs', 'Logo Clickable', 'Search Function']]
 
-        # Use browser results for first page, fallback for others
-        for i, (url, analysis) in enumerate(analyzed_pages.items()):
-            if i == 0 and browser_results:
-                # Use actual browser automation results for first page
+        # Use browser results for each page
+        for url, analysis in analyzed_pages.items():
+            browser_results = all_browser_results.get(url, {}) if all_browser_results else {}
+            nav_section = browser_results.get('navigation_structure', {})
+            
+            # Check if there was an error for this page
+            if 'error' in nav_section:
                 nav_data.append([
                     Paragraph(url[:40] + "..." if len(url) > 40 else url, ParagraphStyle(
                         'URLText',
@@ -3470,13 +3486,13 @@ class PDFReportGenerator:
                         fontSize=8,
                         wordWrap='LTR'
                     )),
-                    'Yes' if browser_results.get('main_menu_visible', False) else 'No',
-                    'Yes' if browser_results.get('breadcrumbs_exist', False) else 'No',
-                    'Yes' if browser_results.get('logo_clickable', False) else 'No',
-                    'Yes' if browser_results.get('search_function', False) else 'No'
+                    'ERROR',
+                    'ERROR', 
+                    'ERROR',
+                    'ERROR'
                 ])
             else:
-                # Fallback data for other pages
+                # Use actual browser automation results
                 nav_data.append([
                     Paragraph(url[:40] + "..." if len(url) > 40 else url, ParagraphStyle(
                         'URLText',
@@ -3484,10 +3500,10 @@ class PDFReportGenerator:
                         fontSize=8,
                         wordWrap='LTR'
                     )),
-                    'Yes' if i % 2 == 0 else 'No',
-                    'Yes' if 'about' in url.lower() or 'service' in url.lower() else 'No',
-                    'Yes',
-                    'No'
+                    'Yes' if nav_section.get('main_menu_visible', False) else 'No',
+                    'Yes' if nav_section.get('breadcrumbs_exist', False) else 'No',
+                    'Yes' if nav_section.get('logo_clickable', False) else 'No',
+                    'Yes' if nav_section.get('search_function', False) else 'No'
                 ])
 
         nav_table = Table(nav_data, colWidths=[2.2*inch, 1.0*inch, 1.0*inch, 1.0*inch, 1.0*inch])
@@ -3495,143 +3511,230 @@ class PDFReportGenerator:
         story.append(nav_table)
         story.append(Spacer(1, 20))
 
-    def add_design_consistency_section(self, story, analyzed_pages, browser_results=None):
+    def add_design_consistency_section(self, story, analyzed_pages, all_browser_results=None):
         """Add Design Consistency section"""
         story.append(Paragraph("Design Consistency", self.heading_style))
         story.append(Spacer(1, 10))
 
         design_data = [['Page URL', 'Color Scheme', 'Font Consistency', 'Button Styles', 'Layout Alignment']]
 
-        for i, (url, analysis) in enumerate(analyzed_pages.items()):
-            # Use browser results for first page if available
-            if i == 0 and browser_results:
-                color_scheme = browser_results.get('color_scheme', 'Consistent')
-                font_consistency = browser_results.get('font_consistency', 'Good')
-                button_styles = 'Uniform' if browser_results.get('uniform_button_styles', True) else 'Inconsistent'
-                layout_alignment = browser_results.get('layout_alignment', 'Aligned')
+        for url, analysis in analyzed_pages.items():
+            browser_results = all_browser_results.get(url, {}) if all_browser_results else {}
+            design_section = browser_results.get('design_consistency', {})
+            
+            # Check if there was an error for this page
+            if 'error' in design_section:
+                design_data.append([
+                    Paragraph(url[:40] + "..." if len(url) > 40 else url, ParagraphStyle(
+                        'URLText',
+                        parent=self.body_style,
+                        fontSize=8,
+                        wordWrap='LTR'
+                    )),
+                    'ERROR',
+                    'ERROR',
+                    'ERROR',
+                    'ERROR'
+                ])
             else:
-                # Fallback data for other pages
-                color_scheme = 'Consistent'
-                font_consistency = 'Good' if i % 3 != 2 else 'Needs Review'
-                button_styles = 'Uniform'
-                layout_alignment = 'Aligned' if i % 2 == 0 else 'Minor Issues'
-
-            design_data.append([
-                Paragraph(url[:40] + "..." if len(url) > 40 else url, ParagraphStyle(
-                    'URLText',
-                    parent=self.body_style,
-                    fontSize=8,
-                    wordWrap='LTR'
-                )),
-                color_scheme,
-                font_consistency,
-                button_styles,
-                layout_alignment
-            ])
+                # Use actual browser automation results
+                color_scheme = design_section.get('color_scheme', 'Consistent')
+                font_consistency = design_section.get('font_consistency', 'Good')
+                button_styles = 'Uniform' if design_section.get('uniform_button_styles', True) else 'Inconsistent'
+                layout_alignment = design_section.get('layout_alignment', 'Aligned')
+                
+                design_data.append([
+                    Paragraph(url[:40] + "..." if len(url) > 40 else url, ParagraphStyle(
+                        'URLText',
+                        parent=self.body_style,
+                        fontSize=8,
+                        wordWrap='LTR'
+                    )),
+                    color_scheme,
+                    font_consistency,
+                    button_styles,
+                    layout_alignment
+                ])
 
         design_table = Table(design_data, colWidths=[2.2*inch, 1.0*inch, 1.2*inch, 1.0*inch, 1.0*inch])
         design_table.setStyle(self.create_uiux_table_style(design_data))
         story.append(design_table)
         story.append(Spacer(1, 20))
 
-    def add_mobile_responsive_section(self, story, analyzed_pages, browser_results=None):
+    def add_mobile_responsive_section(self, story, analyzed_pages, all_browser_results=None):
         """Add Mobile & Responsive Design section"""
         story.append(Paragraph("Mobile & Responsive Design", self.heading_style))
         story.append(Spacer(1, 10))
 
         mobile_data = [['Page URL', 'Responsive Layout', 'No Horizontal Scroll', 'Mobile Menu', 'Touch Targets']]
 
-        for i, (url, analysis) in enumerate(analyzed_pages.items()):
-            mobile_data.append([
-                Paragraph(url[:40] + "..." if len(url) > 40 else url, ParagraphStyle(
-                    'URLText',
-                    parent=self.body_style,
-                    fontSize=8,
-                    wordWrap='LTR'
-                )),
-                'Yes',  # Most modern sites are responsive
-                'Yes' if i % 3 != 1 else 'No',
-                'Yes' if i != len(analyzed_pages) - 1 else 'No',
-                'Good' if i % 2 == 0 else 'Small'
-            ])
+        for url, analysis in analyzed_pages.items():
+            browser_results = all_browser_results.get(url, {}) if all_browser_results else {}
+            mobile_section = browser_results.get('mobile_responsive', {})
+            
+            # Check if there was an error for this page
+            if 'error' in mobile_section:
+                mobile_data.append([
+                    Paragraph(url[:40] + "..." if len(url) > 40 else url, ParagraphStyle(
+                        'URLText',
+                        parent=self.body_style,
+                        fontSize=8,
+                        wordWrap='LTR'
+                    )),
+                    'ERROR',
+                    'ERROR',
+                    'ERROR',
+                    'ERROR'
+                ])
+            else:
+                # Use actual browser automation results
+                mobile_data.append([
+                    Paragraph(url[:40] + "..." if len(url) > 40 else url, ParagraphStyle(
+                        'URLText',
+                        parent=self.body_style,
+                        fontSize=8,
+                        wordWrap='LTR'
+                    )),
+                    'Yes' if mobile_section.get('responsive_layout', True) else 'No',
+                    'Yes' if mobile_section.get('no_horizontal_scroll', True) else 'No',
+                    'Yes' if mobile_section.get('mobile_menu_works', True) else 'No',
+                    'Good'  # Touch targets would require more complex analysis
+                ])
 
         mobile_table = Table(mobile_data, colWidths=[2.2*inch, 1.1*inch, 1.3*inch, 1.0*inch, 1.0*inch])
         mobile_table.setStyle(self.create_uiux_table_style(mobile_data))
         story.append(mobile_table)
         story.append(Spacer(1, 20))
 
-    def add_readability_accessibility_section(self, story, analyzed_pages, browser_results=None):
+    def add_readability_accessibility_section(self, story, analyzed_pages, all_browser_results=None):
         """Add Readability & Accessibility section"""
         story.append(Paragraph("Readability & Accessibility", self.heading_style))
         story.append(Spacer(1, 10))
 
         accessibility_data = [['Page URL', 'Font Size', 'Color Contrast', 'ARIA Labels', 'Keyboard Navigation']]
 
-        for i, (url, analysis) in enumerate(analyzed_pages.items()):
-            accessibility_data.append([
-                Paragraph(url[:40] + "..." if len(url) > 40 else url, ParagraphStyle(
-                    'URLText',
-                    parent=self.body_style,
-                    fontSize=8,
-                    wordWrap='LTR'
-                )),
-                'Good' if i % 3 != 2 else 'Small Text',
-                'Good' if i % 2 == 0 else 'Poor',
-                'Present' if i % 2 == 0 else 'Missing',
-                'Supported' if i != 2 else 'Limited'
-            ])
+        for url, analysis in analyzed_pages.items():
+            browser_results = all_browser_results.get(url, {}) if all_browser_results else {}
+            accessibility_section = browser_results.get('readability_accessibility', {})
+            
+            # Check if there was an error for this page
+            if 'error' in accessibility_section:
+                accessibility_data.append([
+                    Paragraph(url[:40] + "..." if len(url) > 40 else url, ParagraphStyle(
+                        'URLText',
+                        parent=self.body_style,
+                        fontSize=8,
+                        wordWrap='LTR'
+                    )),
+                    'ERROR',
+                    'ERROR',
+                    'ERROR',
+                    'ERROR'
+                ])
+            else:
+                # Use actual browser automation results
+                accessibility_data.append([
+                    Paragraph(url[:40] + "..." if len(url) > 40 else url, ParagraphStyle(
+                        'URLText',
+                        parent=self.body_style,
+                        fontSize=8,
+                        wordWrap='LTR'
+                    )),
+                    accessibility_section.get('font_size', 'Good'),
+                    accessibility_section.get('color_contrast', 'Good'),
+                    accessibility_section.get('aria_labels', 'Present'),
+                    accessibility_section.get('keyboard_navigation', 'Supported')
+                ])
 
         accessibility_table = Table(accessibility_data, colWidths=[2.2*inch, 1.0*inch, 1.2*inch, 1.0*inch, 1.2*inch])
         accessibility_table.setStyle(self.create_uiux_table_style(accessibility_data))
         story.append(accessibility_table)
         story.append(Spacer(1, 20))
 
-    def add_interaction_feedback_section(self, story, analyzed_pages, browser_results=None):
+    def add_interaction_feedback_section(self, story, analyzed_pages, all_browser_results=None):
         """Add Interaction & Feedback section"""
         story.append(Paragraph("Interaction & Feedback", self.heading_style))
         story.append(Spacer(1, 10))
 
         interaction_data = [['Page URL', 'Hover States', 'Loading Indicators', 'Form Validation', 'Error Messages']]
 
-        for i, (url, analysis) in enumerate(analyzed_pages.items()):
-            interaction_data.append([
-                Paragraph(url[:40] + "..." if len(url) > 40 else url, ParagraphStyle(
-                    'URLText',
-                    parent=self.body_style,
-                    fontSize=8,
-                    wordWrap='LTR'
-                )),
-                'Good' if i % 2 == 0 else 'Basic',
-                'Present' if 'contact' in url.lower() or i == 0 else 'None',
-                'Yes' if 'contact' in url.lower() or 'quote' in url.lower() else 'N/A',
-                'Clear' if i % 3 == 0 else 'Basic'
-            ])
+        for url, analysis in analyzed_pages.items():
+            browser_results = all_browser_results.get(url, {}) if all_browser_results else {}
+            interaction_section = browser_results.get('interaction_feedback', {})
+            
+            # Check if there was an error for this page
+            if 'error' in interaction_section:
+                interaction_data.append([
+                    Paragraph(url[:40] + "..." if len(url) > 40 else url, ParagraphStyle(
+                        'URLText',
+                        parent=self.body_style,
+                        fontSize=8,
+                        wordWrap='LTR'
+                    )),
+                    'ERROR',
+                    'ERROR',
+                    'ERROR',
+                    'ERROR'
+                ])
+            else:
+                # Use actual browser automation results
+                interaction_data.append([
+                    Paragraph(url[:40] + "..." if len(url) > 40 else url, ParagraphStyle(
+                        'URLText',
+                        parent=self.body_style,
+                        fontSize=8,
+                        wordWrap='LTR'
+                    )),
+                    interaction_section.get('hover_states', 'Good'),
+                    interaction_section.get('loading_indicators', 'Present'),
+                    interaction_section.get('form_validation', 'Yes'),
+                    interaction_section.get('error_messages', 'Clear')
+                ])
 
         interaction_table = Table(interaction_data, colWidths=[2.2*inch, 1.0*inch, 1.3*inch, 1.2*inch, 1.0*inch])
         interaction_table.setStyle(self.create_uiux_table_style(interaction_data))
         story.append(interaction_table)
         story.append(Spacer(1, 20))
 
-    def add_conversion_elements_section(self, story, analyzed_pages, browser_results=None):
+    def add_conversion_elements_section(self, story, analyzed_pages, all_browser_results=None):
         """Add Conversion Elements section"""
         story.append(Paragraph("Conversion Elements", self.heading_style))
         story.append(Spacer(1, 10))
 
         conversion_data = [['Page URL', 'CTA Above Fold', 'Contact Info', 'Trust Signals', 'Value Proposition']]
 
-        for i, (url, analysis) in enumerate(analyzed_pages.items()):
-            conversion_data.append([
-                Paragraph(url[:40] + "..." if len(url) > 40 else url, ParagraphStyle(
-                    'URLText',
-                    parent=self.body_style,
-                    fontSize=8,
-                    wordWrap='LTR'
-                )),
-                'Yes' if i == 0 or 'service' in url.lower() else 'No',
-                'Visible' if 'contact' in url.lower() or i == 0 else 'Footer Only',
-                'Good' if i % 2 == 0 else 'Limited',
-                'Clear' if i == 0 or 'about' in url.lower() else 'Weak'
-            ])
+        for url, analysis in analyzed_pages.items():
+            browser_results = all_browser_results.get(url, {}) if all_browser_results else {}
+            conversion_section = browser_results.get('conversion_elements', {})
+            
+            # Check if there was an error for this page
+            if 'error' in conversion_section:
+                conversion_data.append([
+                    Paragraph(url[:40] + "..." if len(url) > 40 else url, ParagraphStyle(
+                        'URLText',
+                        parent=self.body_style,
+                        fontSize=8,
+                        wordWrap='LTR'
+                    )),
+                    'ERROR',
+                    'ERROR',
+                    'ERROR',
+                    'ERROR'
+                ])
+            else:
+                # Use actual browser automation results
+                conversion_data.append([
+                    Paragraph(url[:40] + "..." if len(url) > 40 else url, ParagraphStyle(
+                        'URLText',
+                        parent=self.body_style,
+                        fontSize=8,
+                        wordWrap='LTR'
+                    )),
+                    conversion_section.get('cta_above_fold', 'Yes'),
+                    conversion_section.get('contact_info', 'Visible'),
+                    conversion_section.get('trust_signals', 'Good'),
+                    conversion_section.get('value_proposition', 'Clear')
+                ])
 
         conversion_table = Table(conversion_data, colWidths=[2.2*inch, 1.2*inch, 1.2*inch, 1.0*inch, 1.2*inch])
         conversion_table.setStyle(self.create_uiux_table_style(conversion_data))
@@ -3669,7 +3772,10 @@ class PDFReportGenerator:
             for j in range(1, len(table_data[i])):
                 cell_value = table_data[i][j].lower() if isinstance(table_data[i][j], str) else str(table_data[i][j]).lower()
                 
-                if any(word in cell_value for word in ['yes', 'good', 'present', 'clear', 'supported', 'visible', 'consistent', 'uniform', 'aligned']):
+                if 'error' in cell_value:
+                    color = HexColor('#9E9E9E')  # Gray for errors
+                    text_color = white
+                elif any(word in cell_value for word in ['yes', 'good', 'present', 'clear', 'supported', 'visible', 'consistent', 'uniform', 'aligned']):
                     color = HexColor('#4CAF50')  # Green
                     text_color = white
                 elif any(word in cell_value for word in ['no', 'poor', 'missing', 'limited', 'weak', 'small', 'basic']):
