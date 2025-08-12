@@ -2343,7 +2343,7 @@ class PDFReportGenerator:
 
         # Create table data
         images_media_data = [
-            ['Page URL', 'Missing ALT Attributes', 'Broken Images', 'Image File Size Optimization', 'Next-Gen Formats (WebP/AVIF)']
+            ['Page URL', 'Miss ALT', 'Broken Images', 'Opt Img Size ', '(WebP/AVIF)']
         ]
 
         # Sample images & media data
@@ -2498,7 +2498,7 @@ class PDFReportGenerator:
 
         # Create table data
         headers_compression_data = [
-            ['Page URL', 'GZIP/Brotli Compression', 'Cache-Control Headers', 'ETag & Last-Modified Headers']
+            ['Page URL', 'GZIP Compress', 'Cache-Control', 'ETag&Last-Mod']
         ]
 
         # Sample HTTP headers & compression data
