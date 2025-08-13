@@ -621,6 +621,9 @@ class PDFReportGenerator:
     def generate_multi_page_report(self, analyzed_pages, overall_stats, filename, crawler_results=None):
         """Generate comprehensive metric-by-metric PDF report"""
         try:
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            
             doc = SimpleDocTemplate(filename, pagesize=A4)
             story = []
 
@@ -763,6 +766,21 @@ class PDFReportGenerator:
 
         try:
             doc.build(story)
+            logger.info(f"PDF document built successfully: {filename}")
+            
+            # Verify file was created and has content
+            if not os.path.exists(filename):
+                logger.error(f"PDF file was not created: {filename}")
+                return None
+            
+            file_size = os.path.getsize(filename)
+            if file_size == 0:
+                logger.error(f"PDF file is empty: {filename}")
+                return None
+                
+            logger.info(f"PDF file created successfully: {filename} ({file_size} bytes)")
+            return filename
+            
         except Exception as e:
             logger.error(f"Error building PDF document: {e}")
             return None
@@ -4931,14 +4949,19 @@ def generate_pdf():
         if not analyzed_pages:
             return jsonify({'error': 'No pages could be analyzed successfully'}), 500
 
-        # Generate filename
+        # Generate filename with absolute path
         domain = urllib.parse.urlparse(url).netloc
         domain_for_filename = re.sub(r'[^\w\-_\.]', '_', domain)
         filename = f"seo_audit_{domain_for_filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        filepath = os.path.join('reports', filename)
+        
+        # Use absolute path to avoid any path issues
+        reports_dir = os.path.abspath('reports')
+        filepath = os.path.join(reports_dir, filename)
 
         # Create reports directory if it doesn't exist
-        os.makedirs('reports', exist_ok=True)
+        os.makedirs(reports_dir, exist_ok=True)
+        
+        logger.info(f"Report will be saved to: {filepath}")
 
         # Run crawler audit (optional - can run in background)
         crawler_results = None
@@ -5237,10 +5260,29 @@ def generate_pdf():
             }
 
         # Generate comprehensive multi-page PDF report with crawler data
-        pdf_generator.generate_multi_page_report(analyzed_pages, overall_stats, filepath, crawler_results)
+        result = pdf_generator.generate_multi_page_report(analyzed_pages, overall_stats, filepath, crawler_results)
+        
+        if result is None:
+            logger.error("PDF generation failed")
+            return jsonify({'error': 'Failed to generate PDF report'}), 500
 
-        logger.info(f"Generated report: {filename}")
-        return send_file(filepath, as_attachment=True, download_name=filename)
+        # Verify file exists and has content before serving
+        if not os.path.exists(filepath):
+            logger.error(f"Generated PDF file not found: {filepath}")
+            return jsonify({'error': 'Report file not found after generation'}), 500
+            
+        file_size = os.path.getsize(filepath)
+        if file_size == 0:
+            logger.error(f"Generated PDF file is empty: {filepath}")
+            return jsonify({'error': 'Generated report file is empty'}), 500
+
+        logger.info(f"Generated report: {filename} ({file_size} bytes)")
+        
+        try:
+            return send_file(filepath, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        except Exception as e:
+            logger.error(f"Error serving PDF file: {e}")
+            return jsonify({'error': f'Failed to serve report file: {str(e)}'}), 500
 
     except Exception as e:
         logger.error(f"Error generating PDF: {e}")
