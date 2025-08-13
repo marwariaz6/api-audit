@@ -1225,13 +1225,13 @@ class PDFReportGenerator:
             ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
             ('TOPPADDING', (0, 0), (-1, -1), 6),
             ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
-            ('TEXTCOLOR', (0, 1), (-1, -1), black),  # Set black text for data rows only (after header styling)
             ('GRID', (0, 0), (-1, -1), 1, black),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('WORDWRAP', (0, 0), (-1, -1), True),
             ('LEFTPADDING', (0, 0), (-1, -1), 4),
             ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [white, HexColor('#f8f9fa')])
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [white, HexColor('#f8f9fa')]),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),  # Ensure header text is white
         ]
 
         # Center align numeric columns for content table
