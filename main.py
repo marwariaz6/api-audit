@@ -1216,7 +1216,6 @@ class PDFReportGenerator:
 
         table_style = [
             ('BACKGROUND', (0, 0), (-1, 0), HexColor('#A23B72')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 9),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
@@ -1231,7 +1230,7 @@ class PDFReportGenerator:
             ('LEFTPADDING', (0, 0), (-1, -1), 4),
             ('RIGHTPADDING', (0, 0), (-1, -1), 4),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [white, HexColor('#f8f9fa')]),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),  # Ensure header text is white
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),  # Header text must be white - apply last to override any conflicts
         ]
 
         # Center align numeric columns for content table
