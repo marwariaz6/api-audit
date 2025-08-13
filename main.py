@@ -623,7 +623,7 @@ class PDFReportGenerator:
         try:
             # Ensure directory exists
             os.makedirs(os.path.dirname(filename), exist_ok=True)
-            
+
             doc = SimpleDocTemplate(filename, pagesize=A4)
             story = []
 
@@ -767,26 +767,26 @@ class PDFReportGenerator:
         try:
             doc.build(story)
             logger.info(f"PDF document built successfully: {filename}")
-            
+
             # Verify file was created and has content
             if not os.path.exists(filename):
                 logger.error(f"PDF file was not created: {filename}")
                 return None
-            
+
             file_size = os.path.getsize(filename)
             if file_size == 0:
                 logger.error(f"PDF file is empty: {filename}")
                 return None
-            
+
             # Set proper file permissions
             try:
                 os.chmod(filename, 0o644)
             except Exception as e:
                 logger.warning(f"Could not set file permissions: {e}")
-                
+
             logger.info(f"PDF file created successfully: {filename} ({file_size} bytes)")
             return filename
-            
+
         except Exception as e:
             logger.error(f"Error building PDF document: {e}")
             return None
@@ -808,7 +808,7 @@ class PDFReportGenerator:
             splitLongWords=1
         )
 
-        # For very long URLs, add break opportunities after slashes and dots
+        # For very long URLs, add break opportunities after common URL separators
         if len(url) > max_chars:
             # Add soft line breaks after common URL separators
             formatted_url = url.replace('/', '/<wbr/>').replace('.', '.<wbr/>')
@@ -1043,7 +1043,7 @@ class PDFReportGenerator:
 
             elif metric == 'content':
                 word_count = analysis.get('word_count', 0)
-                
+
                 # Calculate readability score based on word count and content complexity
                 if word_count < 300:
                     readability_score = 58
@@ -1057,12 +1057,12 @@ class PDFReportGenerator:
                 else:
                     readability_score = 68
                     readability_text = f"{readability_score} (Standard)"
-                
+
                 # Calculate keyword density (simulated based on page type)
                 import random
                 random.seed(hash(url))  # Consistent random for same URL
                 keyword_density = round(random.uniform(1.2, 2.8), 1)
-                
+
                 # Format the data for content quality table
                 word_count_formatted = f"{word_count:,}"
                 keyword_density_formatted = f"{keyword_density}%"
@@ -1108,9 +1108,9 @@ class PDFReportGenerator:
     def create_issues_table(self, data):
         """Create a detailed issues table with proper text wrapping and column management"""
         # Check if this is the content quality table format by examining headers
-        is_content_table = (len(data) > 0 and len(data[0]) == 5 and 
+        is_content_table = (len(data) > 0 and len(data[0]) == 5 and
                            'Word Count' in str(data[0]) and 'Readability' in str(data[0]))
-        
+
         # Wrap long text in cells to prevent overflow
         wrapped_data = []
         for row in data:
@@ -1248,7 +1248,7 @@ class PDFReportGenerator:
         for i in range(1, len(data)):
             try:
                 row = data[i] if i < len(data) else []
-                
+
                 if is_content_table and len(row) > 4:
                     # Color code score column for content table
                     score_text = row[4]  # Score column
@@ -1260,11 +1260,11 @@ class PDFReportGenerator:
                             score_color = HexColor('#FF9800')  # Orange
                         else:
                             score_color = HexColor('#F44336')  # Red
-                        
+
                         table_style.append(('BACKGROUND', (4, i), (4, i), score_color))
                         table_style.append(('TEXTCOLOR', (4, i), (4, i), white))
                         table_style.append(('FONTNAME', (4, i), (4, i), 'Helvetica-Bold'))
-                
+
                 elif not is_content_table and len(row) > 3:
                     # Color code status column for standard tables
                     status_text = row[3]
@@ -1283,7 +1283,7 @@ class PDFReportGenerator:
                         table_style.append(('BACKGROUND', (2, i), (2, i), bg_color))
                     else:
                         table_style.append(('BACKGROUND', (2, i), (2, i), bg_color))
-                        
+
             except (IndexError, ValueError) as e:
                 logger.error(f"Error processing issues table row {i}: {e}")
                 continue
@@ -5058,14 +5058,14 @@ def generate_pdf():
         domain = urllib.parse.urlparse(url).netloc
         domain_for_filename = re.sub(r'[^\w\-_\.]', '_', domain)
         filename = f"seo_audit_{domain_for_filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        
+
         # Use absolute path to avoid any path issues
         reports_dir = os.path.abspath('reports')
         filepath = os.path.join(reports_dir, filename)
 
         # Create reports directory if it doesn't exist
         os.makedirs(reports_dir, exist_ok=True)
-        
+
         logger.info(f"Report will be saved to: {filepath}")
 
         # Run crawler audit (optional - can run in background)
@@ -5085,14 +5085,14 @@ def generate_pdf():
                 else:
                     logger.warning("No analyzed pages found for crawler audit")
             except Exception as e:
-                logger.error(f"Crawler audit failed: {e}")
+                logger.error(f"Crawler auditfailed: {e}")
                 crawler_results = None
 
         # Create comprehensive crawler results structure if none available or crawler is not available
         if not crawler_results:
             homepage_url_for_fallback = list(analyzed_pages.keys())[0] if analyzed_pages else url
             domain = urllib.parse.urlparse(homepage_url_for_fallback).netloc
-            
+
             # Generate comprehensive broken links data
             comprehensive_broken_links = [
                 {
@@ -5272,7 +5272,7 @@ def generate_pdf():
                     'status_code': '404'
                 }
             ]
-            
+
             # Generate comprehensive orphan pages data
             comprehensive_orphan_pages = [
                 {
@@ -5351,7 +5351,7 @@ def generate_pdf():
                     'internally_linked': 'No'
                 }
             ]
-            
+
             crawler_results = {
                 'broken_links': comprehensive_broken_links,
                 'orphan_pages': comprehensive_orphan_pages,
@@ -5366,7 +5366,7 @@ def generate_pdf():
 
         # Generate comprehensive multi-page PDF report with crawler data
         result = pdf_generator.generate_multi_page_report(analyzed_pages, overall_stats, filepath, crawler_results)
-        
+
         if result is None:
             logger.error("PDF generation failed")
             return jsonify({'error': 'Failed to generate PDF report'}), 500
@@ -5375,24 +5375,24 @@ def generate_pdf():
         if not os.path.exists(filepath):
             logger.error(f"Generated PDF file not found: {filepath}")
             return jsonify({'error': 'Report file not found after generation'}), 500
-            
+
         file_size = os.path.getsize(filepath)
         if file_size == 0:
             logger.error(f"Generated PDF file is empty: {filepath}")
             return jsonify({'error': 'Generated report file is empty'}), 500
 
         logger.info(f"Generated report: {filename} ({file_size} bytes)")
-        
+
         try:
             # Double-check file exists before serving
             if not os.path.exists(filepath):
                 logger.error(f"File disappeared before serving: {filepath}")
                 return jsonify({'error': 'Report file was deleted before download'}), 500
-                
+
             # Use absolute path for serving
             absolute_filepath = os.path.abspath(filepath)
             logger.info(f"Serving file from absolute path: {absolute_filepath}")
-            
+
             return send_file(absolute_filepath, as_attachment=True, download_name=filename, mimetype='application/pdf')
         except FileNotFoundError:
             logger.error(f"PDF file not found when serving: {filepath}")
@@ -5644,7 +5644,7 @@ def download_broken_orphan_csv(domain):
                     'status_code': '404'
                 }
             ]
-            
+
             for link in fallback_broken:
                 combined_data.append([
                     'Broken Link',
@@ -5694,7 +5694,7 @@ def download_broken_orphan_csv(domain):
                     'internally_linked': 'No'
                 }
             ]
-            
+
             for page in fallback_orphan:
                 combined_data.append([
                     'Orphan Page',
@@ -5731,7 +5731,7 @@ def download_broken_orphan_csv(domain):
 if __name__ == '__main__':
     # Ensure the reports directory exists
     os.makedirs('reports', exist_ok=True)
-    
+
     # Clean up old report files (keep only last 50 files to prevent disk space issues)
     try:
         reports_dir = 'reports'
@@ -5740,7 +5740,7 @@ if __name__ == '__main__':
             if f.endswith('.pdf') and 'seo_audit_' in f:
                 filepath = os.path.join(reports_dir, f)
                 files.append((os.path.getmtime(filepath), filepath))
-        
+
         # Sort by modification time and keep only the 50 most recent
         files.sort(reverse=True)
         if len(files) > 50:
