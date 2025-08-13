@@ -777,6 +777,12 @@ class PDFReportGenerator:
             if file_size == 0:
                 logger.error(f"PDF file is empty: {filename}")
                 return None
+            
+            # Set proper file permissions
+            try:
+                os.chmod(filename, 0o644)
+            except Exception as e:
+                logger.warning(f"Could not set file permissions: {e}")
                 
             logger.info(f"PDF file created successfully: {filename} ({file_size} bytes)")
             return filename
@@ -5279,9 +5285,24 @@ def generate_pdf():
         logger.info(f"Generated report: {filename} ({file_size} bytes)")
         
         try:
-            return send_file(filepath, as_attachment=True, download_name=filename, mimetype='application/pdf')
+            # Double-check file exists before serving
+            if not os.path.exists(filepath):
+                logger.error(f"File disappeared before serving: {filepath}")
+                return jsonify({'error': 'Report file was deleted before download'}), 500
+                
+            # Use absolute path for serving
+            absolute_filepath = os.path.abspath(filepath)
+            logger.info(f"Serving file from absolute path: {absolute_filepath}")
+            
+            return send_file(absolute_filepath, as_attachment=True, download_name=filename, mimetype='application/pdf')
+        except FileNotFoundError:
+            logger.error(f"PDF file not found when serving: {filepath}")
+            return jsonify({'error': 'Report file not found. Please try generating the report again.'}), 404
+        except PermissionError:
+            logger.error(f"Permission denied accessing PDF file: {filepath}")
+            return jsonify({'error': 'Permission denied accessing report file.'}), 403
         except Exception as e:
-            logger.error(f"Error serving PDF file: {e}")
+            logger.error(f"Unexpected error serving PDF file: {e}")
             return jsonify({'error': f'Failed to serve report file: {str(e)}'}), 500
 
     except Exception as e:
@@ -5611,6 +5632,27 @@ def download_broken_orphan_csv(domain):
 if __name__ == '__main__':
     # Ensure the reports directory exists
     os.makedirs('reports', exist_ok=True)
+    
+    # Clean up old report files (keep only last 50 files to prevent disk space issues)
+    try:
+        reports_dir = 'reports'
+        files = []
+        for f in os.listdir(reports_dir):
+            if f.endswith('.pdf') and 'seo_audit_' in f:
+                filepath = os.path.join(reports_dir, f)
+                files.append((os.path.getmtime(filepath), filepath))
+        
+        # Sort by modification time and keep only the 50 most recent
+        files.sort(reverse=True)
+        if len(files) > 50:
+            for _, old_file in files[50:]:
+                try:
+                    os.remove(old_file)
+                    logger.info(f"Cleaned up old report: {old_file}")
+                except Exception as e:
+                    logger.error(f"Error cleaning up {old_file}: {e}")
+    except Exception as e:
+        logger.error(f"Error during cleanup: {e}")
 
     # Run Flask app on all interfaces for external access
     app.run(host='0.0.0.0', port=5000, debug=True)
