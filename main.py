@@ -5696,6 +5696,30 @@ def generate_csv(domain):
     try:
         logger.info(f"Starting CSV generation for domain: {domain}")
 
+        # Check if a recent CSV file already exists (within last 10 minutes)
+        reports_dir = 'reports'
+        existing_file = None
+        current_time = time.time()
+        
+        if os.path.exists(reports_dir):
+            for f in os.listdir(reports_dir):
+                if f.startswith(f'additional_{domain}_referring_domains_') and f.endswith('.csv'):
+                    filepath = os.path.join(reports_dir, f)
+                    # Check if file was created within last 10 minutes
+                    if current_time - os.path.getmtime(filepath) < 600:  # 10 minutes
+                        existing_file = filepath
+                        logger.info(f"Reusing existing CSV file: {f}")
+                        break
+
+        if existing_file:
+            # Reuse existing file
+            return send_file(
+                existing_file,
+                as_attachment=True,
+                download_name=os.path.basename(existing_file),
+                mimetype='text/csv'
+            )
+
         # Create additional domains CSV data
         additional_domains = [
             ['Referring Domain', 'Backlink Type', 'Spam Score'],
@@ -5744,6 +5768,29 @@ def generate_csv(domain):
 def download_broken_links_csv(domain):
     """Generate and download CSV with all broken links"""
     try:
+        # Check if a recent CSV file already exists (within last 10 minutes)
+        reports_dir = 'reports'
+        existing_file = None
+        current_time = time.time()
+        
+        if os.path.exists(reports_dir):
+            for f in os.listdir(reports_dir):
+                if f.startswith(f'broken_links_{domain}_') and f.endswith('.csv'):
+                    filepath = os.path.join(reports_dir, f)
+                    # Check if file was created within last 10 minutes
+                    if current_time - os.path.getmtime(filepath) < 600:  # 10 minutes
+                        existing_file = filepath
+                        logger.info(f"Reusing existing broken links CSV file: {f}")
+                        break
+
+        if existing_file:
+            return send_file(
+                existing_file,
+                as_attachment=True,
+                download_name=os.path.basename(existing_file),
+                mimetype='text/csv'
+            )
+
         # Get stored crawler results
         crawler_results = app.config.get(f'crawler_results_{domain}')
 
@@ -5945,21 +5992,39 @@ if __name__ == '__main__':
     # Clean up old report files (keep only last 50 files to prevent disk space issues)
     try:
         reports_dir = 'reports'
-        files = []
+        pdf_files = []
+        csv_files = []
+        
         for f in os.listdir(reports_dir):
+            filepath = os.path.join(reports_dir, f)
+            
+            # Separate PDF and CSV files
             if f.endswith('.pdf') and 'seo_audit_' in f:
-                filepath = os.path.join(reports_dir, f)
-                files.append((os.path.getmtime(filepath), filepath))
+                pdf_files.append((os.path.getmtime(filepath), filepath))
+            elif f.endswith('.csv'):
+                csv_files.append((os.path.getmtime(filepath), filepath))
 
-        # Sort by modification time and keep only the 50 most recent
-        files.sort(reverse=True)
-        if len(files) > 50:
-            for _, old_file in files[50:]:
+        # Clean up PDF files (keep 50 most recent)
+        pdf_files.sort(reverse=True)
+        if len(pdf_files) > 50:
+            for _, old_file in pdf_files[50:]:
                 try:
                     os.remove(old_file)
-                    logger.info(f"Cleaned up old report: {old_file}")
+                    logger.info(f"Cleaned up old PDF report: {old_file}")
                 except Exception as e:
                     logger.error(f"Error cleaning up {old_file}: {e}")
+
+        # Clean up CSV files (keep 20 most recent)
+        csv_files.sort(reverse=True)
+        if len(csv_files) > 20:
+            for _, old_file in csv_files[20:]:
+                try:
+                    os.remove(old_file)
+                    logger.info(f"Cleaned up old CSV report: {old_file}")
+                except Exception as e:
+                    logger.error(f"Error cleaning up {old_file}: {e}")
+                    
+        logger.info(f"Cleanup completed: {len(pdf_files)} PDFs, {len(csv_files)} CSVs in reports directory")
     except Exception as e:
         logger.error(f"Error during cleanup: {e}")
 
