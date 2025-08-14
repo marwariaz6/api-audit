@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, make_response
 import requests
 import json
 import os
@@ -16,6 +16,7 @@ import re
 from bs4 import BeautifulSoup
 import logging
 import csv
+import io # Import io for StringIO
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -329,7 +330,7 @@ class SEOAuditor:
 
         return None
 
-    def analyze_multi_page_data(self, multi_page_results):
+    def analyze_multi_page_data(self, multi_page_results, keyword=None):
         """Analyze audit data for multiple pages"""
         analyzed_pages = {}
         overall_stats = {
@@ -569,6 +570,95 @@ class SEOAuditor:
             issues.append("Add more internal links to improve site navigation")
 
         return issues
+
+    def analyze_content_quality_dataforseo(self, url, keyword=None):
+        """Analyze content quality using DataForSEO API and calculate metrics."""
+        try:
+            # Fetch page data using DataForSEO API
+            # The /on_page/instant endpoint is suitable for immediate results
+            endpoint = "/on_page/instant"
+            data = [{
+                "target": url,
+                "keyword": keyword,
+                "load_resources": True,
+                "enable_javascript": True,
+                "enable_browser_rendering": True,
+                "custom_js": "meta",
+                "browser_preset": "desktop"
+            }]
+
+            result = self.make_request(endpoint, data, 'POST')
+
+            if not result or 'tasks' not in result or not result['tasks']:
+                logger.error("No tasks found in DataForSEO API response.")
+                return None
+            
+            task_id = result['tasks'][0]['id']
+            
+            # Poll for task completion and get results
+            max_retries = 15 # Increased retries for potentially longer processing
+            for _ in range(max_retries):
+                task_result_endpoint = f"/on_page/task_get/{task_id}"
+                task_result = self.make_request(task_result_endpoint)
+                
+                if task_result and task_result.get('status_code') == 20000:
+                    task_info = task_result['tasks'][0]
+                    if task_info['status_message'] == 'Ok':
+                        analysis_data = task_info.get('result', [{}])[0] # Take the first result object
+                        
+                        # --- Content Analysis ---
+                        word_count = analysis_data.get('content', {}).get('word_count', 0)
+                        text_content = analysis_data.get('content', {}).get('text_content', '') # Get raw text if available
+
+                        # Calculate Readability (Flesch Reading Ease)
+                        readability_score = 0
+                        if text_content:
+                            try:
+                                import textstat
+                                readability_score = textstat.flesch_reading_ease(text_content)
+                            except ImportError:
+                                logger.warning("textstat library not found. Cannot calculate readability score.")
+                            except Exception as e:
+                                logger.error(f"Error calculating readability: {e}")
+                        
+                        # Calculate Keyword Density
+                        keyword_density = 0
+                        if keyword and word_count > 0:
+                            # Simple keyword count - could be improved for better accuracy
+                            keyword_count = text_content.lower().count(keyword.lower())
+                            keyword_density = (keyword_count / word_count) * 100 if word_count > 0 else 0
+
+                        # Determine Content Quality Score
+                        content_quality_score = "Needs Improvement"
+                        if readability_score > 60 and word_count > 500:
+                            content_quality_score = "Excellent"
+                        elif readability_score > 50 and word_count > 300:
+                            content_quality_score = "Good"
+
+                        return {
+                            'url': url,
+                            'word_count': word_count,
+                            'readability_score': round(readability_score, 2),
+                            'keyword_density': round(keyword_density, 2) if keyword else None,
+                            'content_quality_score': content_quality_score
+                        }
+                elif task_info['status_message'] in ['In progress', 'Pending']:
+                    time.sleep(5) # Wait and retry
+                else:
+                    logger.error(f"DataForSEO task failed with message: {task_info['status_message']}")
+                    return None # Task failed
+            elif task_result and task_result.get('status_code') != 20000:
+                logger.error(f"DataForSEO task status error: {task_result.get('status_message', 'Unknown error')}")
+                return None
+            
+            time.sleep(5) # Wait and retry if status is not 'Ok' or an error occurred
+
+        logger.error("DataForSEO task did not complete within the allowed retries.")
+        return None
+
+        except Exception as e:
+            logger.error(f"Error during DataForSEO content quality analysis: {e}")
+            return None
 
 class PDFReportGenerator:
     def __init__(self):
@@ -4929,8 +5019,7 @@ class PDFReportGenerator:
                 spam_color = HexColor('#F44336')  # Red - High risk
                 text_color = white
 
-            table_style.append(('BACKGROUND', (2, i), (2, i), spam_color))
-            table_style.append(('TEXTCOLOR', (2, i), (2, i), text_color))
+            table_style.append(('BACKGROUND', (2, i), (2, i), spam_style.append(('TEXTCOLOR', (2, i), (2, i), text_color))
             table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
 
         domains_table.setStyle(TableStyle(table_style))
@@ -5625,23 +5714,23 @@ def download_broken_orphan_csv(domain):
                 {
                     'source_page': f'https://{domain.replace("_", ".")}/',
                     'broken_url': f'https://{domain.replace("_", ".")}/old-services-page',
-                    'anchor_text': 'Our Services (Outdated)',
+                    'anchor_text': 'Old Services Page',
                     'link_type': 'Internal',
                     'status_code': '404'
                 },
                 {
                     'source_page': f'https://{domain.replace("_", ".")}/about',
-                    'broken_url': 'https://facebook.com/company-old-page',
-                    'anchor_text': 'Follow us on Facebook',
+                    'broken_url': 'https://external-site.com/missing',
+                    'anchor_text': 'External Reference',
                     'link_type': 'External',
                     'status_code': '404'
                 },
                 {
-                    'source_page': f'https://{domain.replace("_", ".")}/contact',
-                    'broken_url': f'https://{domain.replace("_", ".")}/resources/company-brochure.pdf',
-                    'anchor_text': 'Download Company Brochure',
+                    'source_page': f'https://{domain.replace("_", ".")}/services',
+                    'broken_url': f'https://{domain.replace("_", ".")}/contact-old',
+                    'anchor_text': 'Contact Page',
                     'link_type': 'Internal',
-                    'status_code': '404'
+                    'status_code': '301'
                 }
             ]
 
