@@ -5618,26 +5618,56 @@ def generate_csv(domain):
         # Generate filename with timestamp
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f'additional_{domain}_referring_domains_{timestamp}.csv'
-        filepath = os.path.join('reports', filename)
+        
+        # Use absolute path to avoid any path issues
+        reports_dir = os.path.abspath('reports')
+        filepath = os.path.join(reports_dir, filename)
 
-        # Ensure reports directory exists
-        os.makedirs('reports', exist_ok=True)
+        # Ensure reports directory exists with proper permissions
+        os.makedirs(reports_dir, exist_ok=True)
 
         # Write CSV file
         with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerows(additional_domains)
 
+        # Verify file was created and has content
+        if not os.path.exists(filepath):
+            logger.error(f"CSV file was not created: {filepath}")
+            return jsonify({'error': 'CSV file creation failed'}), 500
+
+        file_size = os.path.getsize(filepath)
+        if file_size == 0:
+            logger.error(f"CSV file is empty: {filepath}")
+            return jsonify({'error': 'CSV file is empty'}), 500
+
+        # Set proper file permissions
+        try:
+            os.chmod(filepath, 0o644)
+        except Exception as e:
+            logger.warning(f"Could not set file permissions: {e}")
+
+        logger.info(f"CSV file created successfully: {filepath} ({file_size} bytes)")
+
+        # Use absolute path for serving
+        absolute_filepath = os.path.abspath(filepath)
+        
         return send_file(
-            filepath,
+            absolute_filepath,
             as_attachment=True,
             download_name=filename,
             mimetype='text/csv'
         )
 
+    except FileNotFoundError:
+        logger.error(f"CSV file not found when serving: {filepath}")
+        return jsonify({'error': 'CSV file not found. Please try generating again.'}), 404
+    except PermissionError:
+        logger.error(f"Permission denied accessing CSV file: {filepath}")
+        return jsonify({'error': 'Permission denied accessing CSV file.'}), 403
     except Exception as e:
         logger.error(f"Error generating CSV: {e}")
-        return jsonify({'error': 'Failed to generate CSV file'}), 500
+        return jsonify({'error': f'Failed to generate CSV file: {str(e)}'}), 500
 
 @app.route('/download-broken-links-csv/<domain>')
 def download_broken_links_csv(domain):
