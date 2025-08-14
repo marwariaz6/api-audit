@@ -5629,6 +5629,11 @@ def run_crawler():
         url = data.get('url', 'https://example.com')
         max_depth = data.get('max_depth', 2)
         max_pages = data.get('max_pages', 50)
+        full_crawl = data.get('full_crawl', False)
+        
+        # If full crawl is enabled, set max_pages to a very high number
+        if full_crawl:
+            max_pages = 10000  # Effectively unlimited
 
         # Validate URL format
         if not url.startswith(('http://', 'https://')):
