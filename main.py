@@ -5251,15 +5251,26 @@ def generate_pdf():
         logger.info(f"Reports directory exists: {os.path.exists(reports_dir)}")
         logger.info(f"Reports directory writable: {os.access(reports_dir, os.W_OK)}")
 
-        # Run crawler audit (optional - can run in background)
+        # Run crawler audit (optional - can run in background) OR retrieve existing results
         crawler_results = None
-        if run_crawler and CRAWLER_AVAILABLE: # Only run if flag is true and crawler is available
+        homepage_url_for_results = list(analyzed_pages.keys())[0] if analyzed_pages else url
+        domain_key = urllib.parse.urlparse(homepage_url_for_results).netloc.replace('.', '_')
+        
+        # First, try to get stored crawler results from previous runs
+        stored_results = app.config.get(f'crawler_results_{domain_key}')
+        if stored_results:
+            crawler_results = stored_results
+            logger.info(f"Using stored crawler results with {len(crawler_results.get('broken_links', []))} broken links")
+        elif run_crawler and CRAWLER_AVAILABLE: # Only run if flag is true and crawler is available
             try:
                 if len(analyzed_pages) > 0:
                     homepage_url = list(analyzed_pages.keys())[0]
                     logger.info(f"Starting crawler audit for {homepage_url}")
 
                     crawler_results = run_crawler_audit(homepage_url, max_pages=20)
+                    
+                    # Store results for future use
+                    app.config[f'crawler_results_{domain_key}'] = crawler_results
 
                     if crawler_results and crawler_results.get('broken_links'):
                         logger.info(f"Crawler audit completed with {len(crawler_results.get('broken_links', []))} broken links")
@@ -5643,6 +5654,10 @@ def run_crawler():
 
         # Run crawler audit
         results = run_crawler_audit(url, max_depth=max_depth, max_pages=max_pages, delay=0.5)
+
+        # Store results in app config for later use by PDF generation
+        domain_key = urllib.parse.urlparse(url).netloc.replace('.', '_')
+        app.config[f'crawler_results_{domain_key}'] = results
 
         # Save results to CSV
         broken_file, orphan_file = save_crawler_results_csv(results, url)
