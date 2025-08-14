@@ -5019,7 +5019,8 @@ class PDFReportGenerator:
                 spam_color = HexColor('#F44336')  # Red - High risk
                 text_color = white
 
-            table_style.append(('BACKGROUND', (2, i), (2, i), spam_style.append(('TEXTCOLOR', (2, i), (2, i), text_color))
+            table_style.append(('BACKGROUND', (2, i), (2, i), spam_color))
+            table_style.append(('TEXTCOLOR', (2, i), (2, i), text_color))
             table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
 
         domains_table.setStyle(TableStyle(table_style))
