@@ -17,6 +17,8 @@ from bs4 import BeautifulSoup
 import logging
 import csv
 import io # Import io for StringIO
+import subprocess # For checking mount options
+import sys # For checking system information
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -593,20 +595,20 @@ class SEOAuditor:
             if not result or 'tasks' not in result or not result['tasks']:
                 logger.error("No tasks found in DataForSEO API response.")
                 return None
-            
+
             task_id = result['tasks'][0]['id']
-            
+
             # Poll for task completion and get results
             max_retries = 15 # Increased retries for potentially longer processing
             for _ in range(max_retries):
                 task_result_endpoint = f"/on_page/task_get/{task_id}"
                 task_result = self.make_request(task_result_endpoint)
-                
+
                 if task_result and task_result.get('status_code') == 20000:
                     task_info = task_result['tasks'][0]
                     if task_info['status_message'] == 'Ok':
                         analysis_data = task_info.get('result', [{}])[0] # Take the first result object
-                        
+
                         # --- Content Analysis ---
                         word_count = analysis_data.get('content', {}).get('word_count', 0)
                         text_content = analysis_data.get('content', {}).get('text_content', '') # Get raw text if available
@@ -621,7 +623,7 @@ class SEOAuditor:
                                 logger.warning("textstat library not found. Cannot calculate readability score.")
                             except Exception as e:
                                 logger.error(f"Error calculating readability: {e}")
-                        
+
                         # Calculate Keyword Density
                         keyword_density = 0
                         if keyword and word_count > 0:
@@ -4133,7 +4135,7 @@ class PDFReportGenerator:
         return TableStyle(table_style)
 
     def add_uiux_recommendations(self, story, analyzed_pages=None, all_browser_results=None):
-        """Add UI/UX Recommendations section based on actual failed checks"""
+        """Add UI/UX Recommendations section"""
         recommendations_title_style = ParagraphStyle(
             'UIUXRecommendationsTitle',
             parent=self.subheading_style,
@@ -4590,194 +4592,6 @@ class PDFReportGenerator:
         story.append(distribution_table)
         story.append(Spacer(1, 25))
 
-        # Add Key Insights section
-        insights_title_style = ParagraphStyle(
-            'InsightsTitle',
-            parent=self.subheading_style,
-            fontSize=14,
-            spaceAfter=12,
-            textColor=HexColor('#2E86AB'),
-            fontName='Helvetica-Bold'
-        )
-
-        story.append(Paragraph("Key Insights", insights_title_style))
-        story.append(Spacer(1, 8))
-
-        # Generate insights based on the data
-        insights = [
-            "• Strong DoFollow ratio at 76.2% indicates good link equity potential",
-            "• High text link percentage (89.6%) shows natural link building patterns",
-            "• Low redirect rate (0.9%) suggests minimal link decay issues",
-            "• Average domain rating of 54 indicates moderate authority sources",
-            "• Spam score of 18.7% requires monitoring and potential toxic link cleanup",
-            "• 7 toxic links detected should be reviewed and potentially disavowed"
-        ]
-
-        # Create insight style
-        insight_style = ParagraphStyle(
-            'InsightBullet',
-            parent=self.body_style,
-            fontSize=11,
-            spaceAfter=6,
-            leftIndent=10
-        )
-
-        for insight in insights:
-            story.append(Paragraph(insight, insight_style))
-
-        story.append(Spacer(1, 30))
-
-    def add_link_source_quality_analysis(self, story):
-        """Add Link Source Quality Analysis section"""
-        story.append(PageBreak())
-
-        # Section heading
-        quality_title_style = ParagraphStyle(
-            'LinkQualityTitle',
-            parent=self.heading_style,
-            fontSize=18,
-            spaceAfter=20,
-            textColor=HexColor('#2E86AB'),
-            fontName='Helvetica-Bold'
-        )
-
-        story.append(Paragraph("Link Source Quality Analysis", quality_title_style))
-        story.append(Spacer(1, 15))
-
-        # Create quality analysis table
-        quality_data = [
-            ['Quality Level', 'Count', 'Percentage', 'Description'],
-            ['High Authority (DR 60+)', '98', '7.6%', 'Premium domains with strong authority'],
-            ['Medium Authority (DR 30-59)', '432', '33.6%', 'Good quality domains with decent authority'],
-            ['Low Authority (DR <30)', '754', '58.8%', 'Lower authority domains']
-        ]
-
-        # Create table with proper column widths
-        quality_table = Table(quality_data, colWidths=[1.8*inch, 0.8*inch, 1.0*inch, 2.8*inch])
-
-        # Define table style
-        table_style = [
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 11),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (2, -1), 'CENTER'),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
-        ]
-
-        # Color code based on quality level
-        for i in range(1, len(quality_data)):
-            # Alternate row backgrounds
-            if i % 2 == 0:
-                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
-                table_style.append(('BACKGROUND', (3, i), (3, i), HexColor('#f8f9fa')))
-
-            # Color code based on quality level
-            quality_level = quality_data[i][0]
-            if 'High Authority' in quality_level:
-                color = HexColor('#4CAF50')  # Green
-            elif 'Medium Authority' in quality_level:
-                color = HexColor('#FF9800')  # Orange
-            else:  # Low Authority
-                color = HexColor('#F44336')  # Red
-
-            table_style.append(('BACKGROUND', (2, i), (2, i), color))
-            table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
-            table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
-
-        quality_table.setStyle(TableStyle(table_style))
-        story.append(quality_table)
-        story.append(Spacer(1, 20))
-
-        # Add average domain rating summary
-        avg_rating_style = ParagraphStyle(
-            'AvgRating',
-            parent=self.body_style,
-            fontSize=12,
-            spaceAfter=15,
-            fontName='Helvetica-Bold',
-            textColor=HexColor('#2E86AB')
-        )
-
-        story.append(Paragraph("Average Domain Rating: 42.3 - Overall quality indicator of linking domains", avg_rating_style))
-        story.append(Spacer(1, 30))
-
-    def add_anchor_text_distribution(self, story):
-        """Add Anchor Text Distribution section"""
-        # Section heading
-        anchor_title_style = ParagraphStyle(
-            'AnchorDistributionTitle',
-            parent=self.heading_style,
-            fontSize=18,
-            spaceAfter=20,
-            textColor=HexColor('#2E86AB'),
-            fontName='Helvetica-Bold'
-        )
-
-        story.append(Paragraph("Anchor Text Distribution", anchor_title_style))
-        story.append(Spacer(1, 15))
-
-        # Create anchor type distribution table
-        anchor_type_data = [
-            ['Anchor Type', 'Percentage'],
-            ['Branded Anchors', '45.2%'],
-            ['Exact Match Keywords', '12.8%'],
-            ['Generic Anchors', '28.1%'],
-            ['URL Anchors', '13.9%']
-        ]
-
-        # Create table with proper column widths
-        anchor_type_table = Table(anchor_type_data, colWidths=[3.5*inch, 2.0*inch])
-
-        # Define table style
-        table_style = [
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 12),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 11),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
-        ]
-
-        # Color code anchor types based on SEO best practices
-        for i in range(1, len(anchor_type_data)):
-            # Alternate row backgrounds
-            if i % 2 == 0:
-                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
-
-            # Color code based on anchor type quality
-            anchor_type = anchor_type_data[i][0]
-            percentage = float(anchor_type_data[i][1].rstrip('%'))
-
-            if 'Branded' in anchor_type and percentage > 40:
-                color = HexColor('#4CAF50')  # Green - Good branded ratio
-            elif 'Generic' in anchor_type and percentage > 25:
-                color = HexColor('#FF9800')  # Orange - High generic ratio
-            elif 'Exact Match' in anchor_type and percentage > 15:
-                color = HexColor('#F44336')  # Red - Over-optimization risk
-            else:
-                color = HexColor('#4CAF50')  # Green - Balanced distribution
-
-            table_style.append(('BACKGROUND', (1, i), (1, i), color))
-            table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
-            table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
-
-        anchor_type_table.setStyle(TableStyle(table_style))
-        story.append(anchor_type_table)
-        story.append(Spacer(1, 25))
-
         # Add Detailed Anchor Text Analysis
         detail_title_style = ParagraphStyle(
             'DetailedAnchorTitle',
@@ -5101,6 +4915,243 @@ class PDFReportGenerator:
 
         story.append(Spacer(1, 30))
 
+    def add_link_source_quality_analysis(self, story):
+        """Add Link Source Quality Analysis section"""
+        story.append(PageBreak())
+
+        # Section heading
+        quality_title_style = ParagraphStyle(
+            'LinkQualityTitle',
+            parent=self.heading_style,
+            fontSize=18,
+            spaceAfter=20,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Link Source Quality Analysis", quality_title_style))
+        story.append(Spacer(1, 15))
+
+        # Create quality analysis table
+        quality_data = [
+            ['Quality Level', 'Count', 'Percentage', 'Description'],
+            ['High Authority (DR 60+)', '98', '7.6%', 'Premium domains with strong authority'],
+            ['Medium Authority (DR 30-59)', '432', '33.6%', 'Good quality domains with decent authority'],
+            ['Low Authority (DR <30)', '754', '58.8%', 'Lower authority domains']
+        ]
+
+        # Create table with proper column widths
+        quality_table = Table(quality_data, colWidths=[1.8*inch, 0.8*inch, 1.0*inch, 2.8*inch])
+
+        # Define table style
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (2, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]
+
+        # Color code based on quality level
+        for i in range(1, len(quality_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+                table_style.append(('BACKGROUND', (3, i), (3, i), HexColor('#f8f9fa')))
+
+            # Color code based on quality level
+            quality_level = quality_data[i][0]
+            if 'High Authority' in quality_level:
+                color = HexColor('#4CAF50')  # Green
+            elif 'Medium Authority' in quality_level:
+                color = HexColor('#FF9800')  # Orange
+            else:  # Low Authority
+                color = HexColor('#F44336')  # Red
+
+            table_style.append(('BACKGROUND', (2, i), (2, i), color))
+            table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
+            table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+
+        quality_table.setStyle(TableStyle(table_style))
+        story.append(quality_table)
+        story.append(Spacer(1, 20))
+
+        # Add average domain rating summary
+        avg_rating_style = ParagraphStyle(
+            'AvgRating',
+            parent=self.body_style,
+            fontSize=12,
+            spaceAfter=15,
+            fontName='Helvetica-Bold',
+            textColor=HexColor('#2E86AB')
+        )
+
+        story.append(Paragraph("Average Domain Rating: 42.3 - Overall quality indicator of linking domains", avg_rating_style))
+        story.append(Spacer(1, 30))
+
+    def add_anchor_text_distribution(self, story):
+        """Add Anchor Text Distribution section"""
+        # Section heading
+        anchor_title_style = ParagraphStyle(
+            'AnchorDistributionTitle',
+            parent=self.heading_style,
+            fontSize=18,
+            spaceAfter=20,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Anchor Text Distribution", anchor_title_style))
+        story.append(Spacer(1, 15))
+
+        # Create anchor type distribution table
+        anchor_type_data = [
+            ['Anchor Type', 'Percentage'],
+            ['Branded Anchors', '45.2%'],
+            ['Exact Match Keywords', '12.8%'],
+            ['Generic Anchors', '28.1%'],
+            ['URL Anchors', '13.9%']
+        ]
+
+        # Create table with proper column widths
+        anchor_type_table = Table(anchor_type_data, colWidths=[3.5*inch, 2.0*inch])
+
+        # Define table style
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 11),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]
+
+        # Color code anchor types based on SEO best practices
+        for i in range(1, len(anchor_type_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+
+            # Color code based on anchor type quality
+            anchor_type = anchor_type_data[i][0]
+            percentage = float(anchor_type_data[i][1].rstrip('%'))
+
+            if 'Branded' in anchor_type and percentage > 40:
+                color = HexColor('#4CAF50')  # Green - Good branded ratio
+            elif 'Generic' in anchor_type and percentage > 25:
+                color = HexColor('#FF9800')  # Orange - High generic ratio
+            elif 'Exact Match' in anchor_type and percentage > 15:
+                color = HexColor('#F44336')  # Red - Over-optimization risk
+            else:
+                color = HexColor('#4CAF50')  # Green - Balanced distribution
+
+            table_style.append(('BACKGROUND', (1, i), (1, i), color))
+            table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+            table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+
+        anchor_type_table.setStyle(TableStyle(table_style))
+        story.append(anchor_type_table)
+        story.append(Spacer(1, 25))
+
+        # Add Key Insights section
+        insights_title_style = ParagraphStyle(
+            'InsightsTitle',
+            parent=self.subheading_style,
+            fontSize=14,
+            spaceAfter=12,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Key Insights", insights_title_style))
+        story.append(Spacer(1, 8))
+
+        # Generate insights based on the data
+        insights = [
+            "• Strong DoFollow ratio at 76.2% indicates good link equity potential",
+            "• High text link percentage (89.6%) shows natural link building patterns",
+            "• Low redirect rate (0.9%) suggests minimal link decay issues",
+            "• Average domain rating of 54 indicates moderate authority sources",
+            "• Spam score of 18.7% requires monitoring and potential toxic link cleanup",
+            "• 7 toxic links detected should be reviewed and potentially disavowed"
+        ]
+
+        # Create insightstyle
+        insight_style = ParagraphStyle(
+            'InsightBullet',
+            parent=self.body_style,
+            fontSize=11,
+            spaceAfter=6,
+            leftIndent=10
+        )
+
+        for insight in insights:
+            story.append(Paragraph(insight, insight_style))
+
+        story.append(Spacer(1, 30))
+
+def generate_csv(domain):
+    """Generate CSV with additional referring domains"""
+    try:
+        logger.info(f"Starting CSV generation for domain: {domain}")
+
+        # Create additional domains CSV data
+        additional_domains = [
+            ['Referring Domain', 'Backlink Type', 'Spam Score'],
+            ['insurance-comparison-portal.ae', 'DoFollow', '15%'],
+            ['financial-advisory-blog.com', 'DoFollow', '16%'],
+            ['vehicle-insurance-guide.org', 'DoFollow', '17%'],
+            ['uae-business-services.ae', 'DoFollow', '18%'],
+            ['insurance-industry-news.org', 'NoFollow', '19%'],
+            ['middle-east-finance.com', 'DoFollow', '20%'],
+            ['auto-insurance-tips.net', 'DoFollow', '22%'],
+            ['business-directory-gulf.com', 'DoFollow', '25%'],
+            ['insurance-quotes-online.org', 'DoFollow', '28%'],
+            ['financial-planning-hub.com', 'DoFollow', '30%'],
+            ['vehicle-protection-blog.net', 'DoFollow', '32%'],
+            ['insurance-market-analysis.org', 'DoFollow', '35%'],
+            ['business-networking-uae.ae', 'NoFollow', '38%'],
+            ['auto-coverage-experts.com', 'DoFollow', '42%'],
+            ['regional-insurance-forum.org', 'DoFollow', '45%']
+        ]
+
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'additional_{domain}_referring_domains_{timestamp}.csv'
+        filepath = os.path.join('reports', filename)
+
+        # Ensure reports directory exists
+        os.makedirs('reports', exist_ok=True)
+
+        # Write CSV file
+        with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(additional_domains)
+
+        return send_file(
+            filepath,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='text/csv'
+        )
+
+    except Exception as e:
+        logger.error(f"Error generating CSV: {e}")
+        return jsonify({'error': 'Failed to generate CSV file'}), 500
+
 # Initialize components
 auditor = SEOAuditor()
 pdf_generator = PDFReportGenerator()
@@ -5155,13 +5206,45 @@ def generate_pdf():
         reports_dir = os.path.join(current_dir, 'reports')
         filepath = os.path.join(reports_dir, filename)
 
-        # Create reports directory if it doesn't exist with proper permissions
+        # Critical filesystem checks
+        logger.info(f"Starting filesystem checks for: {reports_dir}")
+
+        # Check mount options and permissions
+        try:
+            mount_output = subprocess.run(['mount'], capture_output=True, text=True, timeout=5)
+            if 'noexec' in mount_output.stdout or 'nosuid' in mount_output.stdout:
+                logger.warning("Filesystem mounted with noexec or nosuid flags detected")
+        except Exception as e:
+            logger.info(f"Could not check mount options: {e}")
+
+        # Check inotify limits
+        try:
+            with open('/proc/sys/fs/inotify/max_user_watches', 'r') as f:
+                inotify_limit = int(f.read().strip())
+                logger.info(f"Inotify max_user_watches: {inotify_limit}")
+                if inotify_limit < 8192:
+                    logger.warning(f"Low inotify limit: {inotify_limit}")
+        except Exception as e:
+            logger.info(f"Could not check inotify limits: {e}")
+
+        # Ensure reports directory exists with comprehensive error handling
         try:
             os.makedirs(reports_dir, mode=0o755, exist_ok=True)
             logger.info(f"Reports directory created/verified: {reports_dir}")
-        except Exception as e:
-            logger.error(f"Failed to create reports directory: {e}")
-            return jsonify({'error': f'Failed to create reports directory: {str(e)}'}), 500
+
+            # Test write permissions immediately
+            test_file = os.path.join(reports_dir, f'test_write_{int(time.time())}.tmp')
+            with open(test_file, 'w') as f:
+                f.write('test')
+            os.remove(test_file)
+            logger.info("Write permission test passed")
+
+        except PermissionError as e:
+            logger.error(f"Permission denied creating reports directory: {e}")
+            return jsonify({'error': f'Permission denied: {str(e)}'}), 500
+        except OSError as e:
+            logger.error(f"OS error creating reports directory: {e}")
+            return jsonify({'error': f'Filesystem error: {str(e)}'}), 500
 
         logger.info(f"Report will be saved to: {filepath}")
         logger.info(f"Current working directory: {current_dir}")
@@ -5612,7 +5695,7 @@ def generate_csv(domain):
     """Generate CSV with additional referring domains"""
     try:
         logger.info(f"Starting CSV generation for domain: {domain}")
-        
+
         # Create additional domains CSV data
         additional_domains = [
             ['Referring Domain', 'Backlink Type', 'Spam Score'],
@@ -5636,71 +5719,26 @@ def generate_csv(domain):
         # Generate filename with timestamp
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f'additional_{domain}_referring_domains_{timestamp}.csv'
-        
-        # Use absolute path and ensure directory exists
-        current_dir = os.getcwd()
-        reports_dir = os.path.join(current_dir, 'reports')
-        filepath = os.path.join(reports_dir, filename)
-        
-        logger.info(f"Creating CSV at: {filepath}")
+        filepath = os.path.join('reports', filename)
 
-        # Ensure reports directory exists with proper permissions
-        try:
-            os.makedirs(reports_dir, mode=0o755, exist_ok=True)
-            logger.info(f"Reports directory created/verified: {reports_dir}")
-        except Exception as e:
-            logger.error(f"Failed to create reports directory: {e}")
-            return jsonify({'error': f'Failed to create reports directory: {str(e)}'}), 500
+        # Ensure reports directory exists
+        os.makedirs('reports', exist_ok=True)
 
-        # Write CSV file with explicit error handling
-        try:
-            with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerows(additional_domains)
-            logger.info(f"CSV data written to file: {filepath}")
-        except Exception as e:
-            logger.error(f"Failed to write CSV file: {e}")
-            return jsonify({'error': f'Failed to write CSV file: {str(e)}'}), 500
+        # Write CSV file
+        with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(additional_domains)
 
-        # Verify file was created and has content
-        if not os.path.exists(filepath):
-            logger.error(f"CSV file was not created: {filepath}")
-            return jsonify({'error': 'CSV file creation failed - file does not exist'}), 500
-
-        file_size = os.path.getsize(filepath)
-        if file_size == 0:
-            logger.error(f"CSV file is empty: {filepath}")
-            return jsonify({'error': 'CSV file is empty'}), 500
-
-        # Set proper file permissions
-        try:
-            os.chmod(filepath, 0o644)
-            logger.info(f"File permissions set to 644: {filepath}")
-        except Exception as e:
-            logger.warning(f"Could not set file permissions: {e}")
-
-        logger.info(f"CSV file created successfully: {filepath} ({file_size} bytes)")
-
-        # Use absolute path for serving
-        absolute_filepath = os.path.abspath(filepath)
-        logger.info(f"Serving file from absolute path: {absolute_filepath}")
-        
         return send_file(
-            absolute_filepath,
+            filepath,
             as_attachment=True,
             download_name=filename,
             mimetype='text/csv'
         )
 
-    except FileNotFoundError as e:
-        logger.error(f"CSV file not found when serving: {e}")
-        return jsonify({'error': 'CSV file not found. Please try generating again.'}), 404
-    except PermissionError as e:
-        logger.error(f"Permission denied accessing CSV file: {e}")
-        return jsonify({'error': 'Permission denied accessing CSV file.'}), 403
     except Exception as e:
-        logger.error(f"Unexpected error generating CSV: {e}")
-        return jsonify({'error': f'Failed to generate CSV file: {str(e)}'}), 500
+        logger.error(f"Error generating CSV: {e}")
+        return jsonify({'error': 'Failed to generate CSV file'}), 500
 
 @app.route('/download-broken-links-csv/<domain>')
 def download_broken_links_csv(domain):
@@ -5730,8 +5768,7 @@ def download_broken_links_csv(domain):
                 ])
 
         # Generate filename with timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'broken_links_{domain}_{timestamp}.csv'
+        filename = f'broken_links_{domain}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv'
         filepath = os.path.join('reports', filename)
 
         # Ensure reports directory exists
@@ -5888,7 +5925,7 @@ if __name__ == '__main__':
         current_dir = os.getcwd()
         reports_dir = os.path.join(current_dir, 'reports')
         os.makedirs(reports_dir, mode=0o755, exist_ok=True)
-        
+
         # Verify directory permissions
         if not os.access(reports_dir, os.W_OK):
             logger.error(f"Reports directory is not writable: {reports_dir}")
@@ -5897,11 +5934,11 @@ if __name__ == '__main__':
                 logger.info(f"Fixed permissions for reports directory: {reports_dir}")
             except Exception as e:
                 logger.error(f"Could not fix permissions: {e}")
-        
+
         logger.info(f"Reports directory verified: {reports_dir}")
         logger.info(f"Directory writable: {os.access(reports_dir, os.W_OK)}")
         logger.info(f"Directory readable: {os.access(reports_dir, os.R_OK)}")
-        
+
     except Exception as e:
         logger.error(f"Failed to setup reports directory: {e}")
 
