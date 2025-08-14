@@ -5151,13 +5151,22 @@ def generate_pdf():
         filename = f"seo_audit_{domain_for_filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
 
         # Use absolute path to avoid any path issues
-        reports_dir = os.path.abspath('reports')
+        current_dir = os.getcwd()
+        reports_dir = os.path.join(current_dir, 'reports')
         filepath = os.path.join(reports_dir, filename)
 
-        # Create reports directory if it doesn't exist
-        os.makedirs(reports_dir, exist_ok=True)
+        # Create reports directory if it doesn't exist with proper permissions
+        try:
+            os.makedirs(reports_dir, mode=0o755, exist_ok=True)
+            logger.info(f"Reports directory created/verified: {reports_dir}")
+        except Exception as e:
+            logger.error(f"Failed to create reports directory: {e}")
+            return jsonify({'error': f'Failed to create reports directory: {str(e)}'}), 500
 
         logger.info(f"Report will be saved to: {filepath}")
+        logger.info(f"Current working directory: {current_dir}")
+        logger.info(f"Reports directory exists: {os.path.exists(reports_dir)}")
+        logger.info(f"Reports directory writable: {os.access(reports_dir, os.W_OK)}")
 
         # Run crawler audit (optional - can run in background)
         crawler_results = None
@@ -5478,18 +5487,25 @@ def generate_pdf():
             # Double-check file exists before serving
             if not os.path.exists(filepath):
                 logger.error(f"File disappeared before serving: {filepath}")
+                logger.error(f"Directory contents: {os.listdir(reports_dir) if os.path.exists(reports_dir) else 'Directory does not exist'}")
                 return jsonify({'error': 'Report file was deleted before download'}), 500
+
+            # Verify file is readable
+            if not os.access(filepath, os.R_OK):
+                logger.error(f"File not readable: {filepath}")
+                return jsonify({'error': 'Report file is not accessible'}), 500
 
             # Use absolute path for serving
             absolute_filepath = os.path.abspath(filepath)
             logger.info(f"Serving file from absolute path: {absolute_filepath}")
+            logger.info(f"File size before serving: {os.path.getsize(absolute_filepath)} bytes")
 
             return send_file(absolute_filepath, as_attachment=True, download_name=filename, mimetype='application/pdf')
-        except FileNotFoundError:
-            logger.error(f"PDF file not found when serving: {filepath}")
+        except FileNotFoundError as e:
+            logger.error(f"PDF file not found when serving: {filepath} - {e}")
             return jsonify({'error': 'Report file not found. Please try generating the report again.'}), 404
-        except PermissionError:
-            logger.error(f"Permission denied accessing PDF file: {filepath}")
+        except PermissionError as e:
+            logger.error(f"Permission denied accessing PDF file: {filepath} - {e}")
             return jsonify({'error': 'Permission denied accessing report file.'}), 403
         except Exception as e:
             logger.error(f"Unexpected error serving PDF file: {e}")
@@ -5595,6 +5611,8 @@ def generate_crawler_csv(domain):
 def generate_csv(domain):
     """Generate CSV with additional referring domains"""
     try:
+        logger.info(f"Starting CSV generation for domain: {domain}")
+        
         # Create additional domains CSV data
         additional_domains = [
             ['Referring Domain', 'Backlink Type', 'Spam Score'],
@@ -5619,22 +5637,35 @@ def generate_csv(domain):
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f'additional_{domain}_referring_domains_{timestamp}.csv'
         
-        # Use absolute path to avoid any path issues
-        reports_dir = os.path.abspath('reports')
+        # Use absolute path and ensure directory exists
+        current_dir = os.getcwd()
+        reports_dir = os.path.join(current_dir, 'reports')
         filepath = os.path.join(reports_dir, filename)
+        
+        logger.info(f"Creating CSV at: {filepath}")
 
         # Ensure reports directory exists with proper permissions
-        os.makedirs(reports_dir, exist_ok=True)
+        try:
+            os.makedirs(reports_dir, mode=0o755, exist_ok=True)
+            logger.info(f"Reports directory created/verified: {reports_dir}")
+        except Exception as e:
+            logger.error(f"Failed to create reports directory: {e}")
+            return jsonify({'error': f'Failed to create reports directory: {str(e)}'}), 500
 
-        # Write CSV file
-        with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerows(additional_domains)
+        # Write CSV file with explicit error handling
+        try:
+            with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerows(additional_domains)
+            logger.info(f"CSV data written to file: {filepath}")
+        except Exception as e:
+            logger.error(f"Failed to write CSV file: {e}")
+            return jsonify({'error': f'Failed to write CSV file: {str(e)}'}), 500
 
         # Verify file was created and has content
         if not os.path.exists(filepath):
             logger.error(f"CSV file was not created: {filepath}")
-            return jsonify({'error': 'CSV file creation failed'}), 500
+            return jsonify({'error': 'CSV file creation failed - file does not exist'}), 500
 
         file_size = os.path.getsize(filepath)
         if file_size == 0:
@@ -5644,6 +5675,7 @@ def generate_csv(domain):
         # Set proper file permissions
         try:
             os.chmod(filepath, 0o644)
+            logger.info(f"File permissions set to 644: {filepath}")
         except Exception as e:
             logger.warning(f"Could not set file permissions: {e}")
 
@@ -5651,6 +5683,7 @@ def generate_csv(domain):
 
         # Use absolute path for serving
         absolute_filepath = os.path.abspath(filepath)
+        logger.info(f"Serving file from absolute path: {absolute_filepath}")
         
         return send_file(
             absolute_filepath,
@@ -5659,14 +5692,14 @@ def generate_csv(domain):
             mimetype='text/csv'
         )
 
-    except FileNotFoundError:
-        logger.error(f"CSV file not found when serving: {filepath}")
+    except FileNotFoundError as e:
+        logger.error(f"CSV file not found when serving: {e}")
         return jsonify({'error': 'CSV file not found. Please try generating again.'}), 404
-    except PermissionError:
-        logger.error(f"Permission denied accessing CSV file: {filepath}")
+    except PermissionError as e:
+        logger.error(f"Permission denied accessing CSV file: {e}")
         return jsonify({'error': 'Permission denied accessing CSV file.'}), 403
     except Exception as e:
-        logger.error(f"Error generating CSV: {e}")
+        logger.error(f"Unexpected error generating CSV: {e}")
         return jsonify({'error': f'Failed to generate CSV file: {str(e)}'}), 500
 
 @app.route('/download-broken-links-csv/<domain>')
@@ -5850,8 +5883,27 @@ def download_broken_orphan_csv(domain):
         return jsonify({'error': 'Failed to generate combined CSV file'}), 500
 
 if __name__ == '__main__':
-    # Ensure the reports directory exists
-    os.makedirs('reports', exist_ok=True)
+    # Ensure the reports directory exists with proper permissions
+    try:
+        current_dir = os.getcwd()
+        reports_dir = os.path.join(current_dir, 'reports')
+        os.makedirs(reports_dir, mode=0o755, exist_ok=True)
+        
+        # Verify directory permissions
+        if not os.access(reports_dir, os.W_OK):
+            logger.error(f"Reports directory is not writable: {reports_dir}")
+            try:
+                os.chmod(reports_dir, 0o755)
+                logger.info(f"Fixed permissions for reports directory: {reports_dir}")
+            except Exception as e:
+                logger.error(f"Could not fix permissions: {e}")
+        
+        logger.info(f"Reports directory verified: {reports_dir}")
+        logger.info(f"Directory writable: {os.access(reports_dir, os.W_OK)}")
+        logger.info(f"Directory readable: {os.access(reports_dir, os.R_OK)}")
+        
+    except Exception as e:
+        logger.error(f"Failed to setup reports directory: {e}")
 
     # Clean up old report files (keep only last 50 files to prevent disk space issues)
     try:
