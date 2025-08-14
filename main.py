@@ -5768,7 +5768,7 @@ def download_broken_links_csv(domain):
                 ])
 
         # Generate filename with timestamp
-        filename = f'broken_links_{domain}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv'
+        filename = f'broken_links_{domain}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
         filepath = os.path.join('reports', filename)
 
         # Ensure reports directory exists
