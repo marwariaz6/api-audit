@@ -5623,6 +5623,15 @@ def serve_report(filename):
 def run_crawler():
     """Run website crawler for broken links and orphan pages"""
     try:
+        # Ensure we have valid JSON data
+        try:
+            data = request.get_json()
+            if data is None:
+                return jsonify({'error': 'Invalid JSON data provided'}), 400
+        except Exception as json_error:
+            logger.error(f"JSON parsing error: {json_error}")
+            return jsonify({'error': 'Invalid JSON format in request'}), 400
+
         # Re-check crawler availability within the function if it might change dynamically
         global CRAWLER_AVAILABLE
         if not CRAWLER_AVAILABLE:
@@ -5630,52 +5639,63 @@ def run_crawler():
                 from crawler_integration import run_crawler_audit, save_crawler_results_csv
                 CRAWLER_AVAILABLE = True
                 logger.info("Crawler integration module found and available.")
-            except ImportError:
-                logger.warning("Crawler integration module not found. Crawler functionality will be disabled.")
-                return jsonify({'error': 'Crawler integration module not available.'}), 500
+            except ImportError as import_error:
+                logger.warning(f"Crawler integration module not found: {import_error}")
+                return jsonify({'error': 'Crawler integration module not available. Please ensure crawler dependencies are installed.'}), 500
 
         from crawler_integration import run_crawler_audit, save_crawler_results_csv
 
-        data = request.get_json()
+        # Extract and validate parameters
         url = data.get('url', 'https://example.com')
         max_depth = data.get('max_depth', 2)
         max_pages = data.get('max_pages', 50)
         full_crawl = data.get('full_crawl', False)
         
+        # Validate URL format
+        if not url or not isinstance(url, str):
+            return jsonify({'error': 'Invalid URL provided'}), 400
+            
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+
         # If full crawl is enabled, set max_pages to a very high number
         if full_crawl:
             max_pages = 10000  # Effectively unlimited
 
-        # Validate URL format
-        if not url.startswith(('http://', 'https://')):
-            url = 'https://' + url
+        logger.info(f"Starting crawler audit for: {url} (depth: {max_depth}, pages: {max_pages})")
 
-        logger.info(f"Starting crawler audit for: {url}")
+        try:
+            # Run crawler audit
+            results = run_crawler_audit(url, max_depth=max_depth, max_pages=max_pages, delay=0.5)
+            
+            if not results or not isinstance(results, dict):
+                return jsonify({'error': 'Crawler returned invalid results'}), 500
 
-        # Run crawler audit
-        results = run_crawler_audit(url, max_depth=max_depth, max_pages=max_pages, delay=0.5)
+            # Store results in app config for later use by PDF generation
+            domain_key = urllib.parse.urlparse(url).netloc.replace('.', '_')
+            app.config[f'crawler_results_{domain_key}'] = results
 
-        # Store results in app config for later use by PDF generation
-        domain_key = urllib.parse.urlparse(url).netloc.replace('.', '_')
-        app.config[f'crawler_results_{domain_key}'] = results
+            # Save results to CSV
+            broken_file, orphan_file = save_crawler_results_csv(results, url)
 
-        # Save results to CSV
-        broken_file, orphan_file = save_crawler_results_csv(results, url)
+            logger.info(f"Crawler audit complete: {results.get('crawl_stats', {})}")
 
-        logger.info(f"Crawler audit complete: {results['crawl_stats']}")
+            return jsonify({
+                'success': True,
+                'stats': results.get('crawl_stats', {}),
+                'files': {
+                    'broken_links': os.path.basename(broken_file),
+                    'orphan_pages': os.path.basename(orphan_file)
+                }
+            })
 
-        return jsonify({
-            'success': True,
-            'stats': results['crawl_stats'],
-            'files': {
-                'broken_links': os.path.basename(broken_file),
-                'orphan_pages': os.path.basename(orphan_file)
-            }
-        })
+        except Exception as crawler_error:
+            logger.error(f"Crawler execution error: {crawler_error}")
+            return jsonify({'error': f'Crawler execution failed: {str(crawler_error)}'}), 500
 
     except Exception as e:
-        logger.error(f"Error running crawler: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Unexpected error in run_crawler route: {e}")
+        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
 @app.route('/crawler-csv/<domain>')
 def generate_crawler_csv(domain):
