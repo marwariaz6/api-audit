@@ -107,8 +107,9 @@ class PageCollector:
 
 class SEOAuditor:
     def __init__(self):
-        self.login = os.getenv('DATAFORSEO_LOGIN')
-        self.password = os.getenv('DATAFORSEO_PASSWORD')
+        # Force placeholder data by not loading API credentials
+        self.login = None
+        self.password = None
         self.base_url = "https://api.dataforseo.com/v3"
         self.page_collector = PageCollector()
 
@@ -647,7 +648,7 @@ class SEOAuditor:
                 else:
                     logger.error(f"DataForSEO task failed with message: {task_info['status_message']}")
                     return None # Task failed
-            elif task_result and task_result.get('status_code') != 20000:
+                elif task_result and task_result.get('status_code') != 20000:
                     logger.error(f"DataForSEO task status error: {task_result.get('status_message', 'Unknown error')}")
                     return None
                 
