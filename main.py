@@ -5543,7 +5543,16 @@ def generate_pdf():
             logger.info(f"Serving file from absolute path: {absolute_filepath}")
             logger.info(f"File size before serving: {os.path.getsize(absolute_filepath)} bytes")
 
-            return send_file(absolute_filepath, as_attachment=True, download_name=filename, mimetype='application/pdf')
+            # Create response with proper headers
+            response = make_response(send_file(
+                absolute_filepath, 
+                as_attachment=True, 
+                download_name=filename, 
+                mimetype='application/pdf'
+            ))
+            response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+            response.headers['Content-Type'] = 'application/pdf'
+            return response
         except FileNotFoundError as e:
             logger.error(f"PDF file not found when serving: {filepath} - {e}")
             return jsonify({'error': 'Report file not found. Please try generating the report again.'}), 404
@@ -5563,10 +5572,41 @@ def serve_report(filename):
     """Serve report files from the reports directory"""
     try:
         reports_dir = os.path.join(os.getcwd(), 'reports')
-        return send_file(os.path.join(reports_dir, filename), as_attachment=True)
+        filepath = os.path.join(reports_dir, filename)
+        
+        # Security check - ensure filename doesn't contain path traversal
+        if '..' in filename or '/' in filename or '\\' in filename:
+            logger.error(f"Invalid filename attempted: {filename}")
+            return "Invalid filename", 400
+        
+        # Check if file exists
+        if not os.path.exists(filepath):
+            logger.error(f"File not found: {filepath}")
+            logger.info(f"Available files: {os.listdir(reports_dir) if os.path.exists(reports_dir) else 'Directory not found'}")
+            return "File not found", 404
+            
+        # Check file permissions
+        if not os.access(filepath, os.R_OK):
+            logger.error(f"File not readable: {filepath}")
+            return "File access denied", 403
+            
+        logger.info(f"Serving file: {filepath} (size: {os.path.getsize(filepath)} bytes)")
+        
+        # Determine mime type based on file extension
+        if filename.endswith('.pdf'):
+            mimetype = 'application/pdf'
+        elif filename.endswith('.csv'):
+            mimetype = 'text/csv'
+        elif filename.endswith('.xlsx'):
+            mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        else:
+            mimetype = 'application/octet-stream'
+            
+        return send_file(filepath, as_attachment=True, download_name=filename, mimetype=mimetype)
+        
     except Exception as e:
         logger.error(f"Error serving file {filename}: {e}")
-        return "File not found", 404
+        return f"Error accessing file: {str(e)}", 500
 
 @app.route('/run-crawler', methods=['POST'])
 def run_crawler():
@@ -6025,6 +6065,40 @@ def download_additional_report_data(domain):
     except Exception as e:
         logger.error(f"Error generating additional report data Excel: {e}")
         return jsonify({'error': 'Failed to generate additional report data Excel file'}), 500
+
+@app.route('/debug/reports')
+def debug_reports():
+    """Debug endpoint to check what report files are available"""
+    try:
+        reports_dir = os.path.join(os.getcwd(), 'reports')
+        if not os.path.exists(reports_dir):
+            return jsonify({'error': 'Reports directory does not exist', 'path': reports_dir})
+        
+        files = []
+        for filename in os.listdir(reports_dir):
+            filepath = os.path.join(reports_dir, filename)
+            try:
+                stat = os.stat(filepath)
+                files.append({
+                    'name': filename,
+                    'size': stat.st_size,
+                    'readable': os.access(filepath, os.R_OK),
+                    'modified': datetime.fromtimestamp(stat.st_mtime).isoformat()
+                })
+            except Exception as e:
+                files.append({
+                    'name': filename,
+                    'error': str(e)
+                })
+        
+        return jsonify({
+            'reports_dir': reports_dir,
+            'exists': os.path.exists(reports_dir),
+            'writable': os.access(reports_dir, os.W_OK),
+            'files': files
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 if __name__ == '__main__':
     # Ensure the reports directory exists with proper permissions
