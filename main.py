@@ -4549,10 +4549,10 @@ class PDFReportGenerator:
             textColor=HexColor('#2E86AB')
         )
 
-        # Use consistent filenames without timestamps
-        broken_filename = f"broken_links_{domain_for_csv}.csv"
-        orphan_filename = f"orphan_pages_{domain_for_csv}.csv"
-        referring_filename = f"referring_domains_{domain_for_csv}.csv"
+        # Use simplified standard filenames
+        broken_filename = "broken_links_example_com.csv"
+        orphan_filename = "orphan_pages_example_com.csv"
+        referring_filename = "referring_domains_example_com.csv"
 
         broken_link_text = f'• <link href="/reports/{broken_filename}" color="#2E86AB"><b>Broken Link File</b></link> - Download CSV with all broken links found'
         orphan_link_text = f'• <link href="/reports/{orphan_filename}" color="#2E86AB"><b>Orphan Page File</b></link> - Download CSV with all orphan pages found'
@@ -5779,14 +5779,12 @@ def generate_pdf():
                 'crawl_url': homepage_url_for_fallback
             }
 
-        # Generate CSV files without timestamps
-        domain_for_csv = urllib.parse.urlparse(homepage_url_for_results).netloc.replace('.', '_')
-        
+        # Generate CSV files with standard names
         # Ensure reports directory exists
         os.makedirs(reports_dir, exist_ok=True)
         
         # Generate broken links CSV
-        broken_filename = f"broken_links_{domain_for_csv}.csv"
+        broken_filename = "broken_links_example_com.csv"
         broken_filepath = os.path.join(reports_dir, broken_filename)
         
         if crawler_results and crawler_results.get('broken_links'):
@@ -5813,12 +5811,14 @@ def generate_pdf():
             with open(broken_filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
                 writer = csv.writer(csvfile)
                 writer.writerows(broken_links_data)
+                csvfile.flush()
+                os.fsync(csvfile.fileno())
             logger.info(f"Generated broken links CSV: {broken_filename}")
         except Exception as e:
             logger.error(f"Error generating broken links CSV: {e}")
         
         # Generate orphan pages CSV
-        orphan_filename = f"orphan_pages_{domain_for_csv}.csv"
+        orphan_filename = "orphan_pages_example_com.csv"
         orphan_filepath = os.path.join(reports_dir, orphan_filename)
         
         if crawler_results and crawler_results.get('orphan_pages'):
@@ -5843,12 +5843,14 @@ def generate_pdf():
             with open(orphan_filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
                 writer = csv.writer(csvfile)
                 writer.writerows(orphan_pages_data)
+                csvfile.flush()
+                os.fsync(csvfile.fileno())
             logger.info(f"Generated orphan pages CSV: {orphan_filename}")
         except Exception as e:
             logger.error(f"Error generating orphan pages CSV: {e}")
         
         # Generate referring domains CSV (sample data)
-        referring_filename = f"referring_domains_{domain_for_csv}.csv"
+        referring_filename = "referring_domains_example_com.csv"
         referring_filepath = os.path.join(reports_dir, referring_filename)
         
         referring_domains_data = [
@@ -5864,11 +5866,13 @@ def generate_pdf():
             with open(referring_filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
                 writer = csv.writer(csvfile)
                 writer.writerows(referring_domains_data)
+                csvfile.flush()
+                os.fsync(csvfile.fileno())
             logger.info(f"Generated referring domains CSV: {referring_filename}")
         except Exception as e:
             logger.error(f"Error generating referring domains CSV: {e}")
         
-        logger.info(f"CSV generation completed for domain: {domain_for_csv}")
+        logger.info(f"CSV generation completed with standard filenames")
 
         # Generate comprehensive multi-page PDF report with crawler data
         result = pdf_generator.generate_multi_page_report(analyzed_pages, overall_stats, filepath, crawler_results)
@@ -5876,6 +5880,14 @@ def generate_pdf():
         if result is None:
             logger.error("PDF generation failed")
             return jsonify({'error': 'Failed to generate PDF report'}), 500
+
+        # Ensure file is flushed to disk
+        try:
+            with open(filepath, 'rb') as f:
+                f.flush()
+                os.fsync(f.fileno())
+        except Exception as e:
+            logger.warning(f"Could not flush PDF file: {e}")
 
         # Verify file exists and has content before serving
         if not os.path.exists(filepath):
