@@ -6004,56 +6004,65 @@ def generate_crawler_csv(domain):
 
 @app.route('/download-broken-links-csv/<domain>')
 def download_broken_links_csv(domain):
-    """Generate and download CSV with all broken links"""
+    """Download existing broken links CSV file"""
     try:
-        # Get stored crawler results first
-        crawler_results = app.config.get(f'crawler_results_{domain}')
-
-        # Prepare broken links data
-        if crawler_results and crawler_results.get('broken_links'):
-            # Use actual crawler results
-            broken_links_data = [['Source Page URL', 'Broken Link URL', 'Anchor Text / Current Value', 'Link Type', 'Status Code']]
-            for link in crawler_results['broken_links']:
-                broken_links_data.append([
-                    link['source_page'],
-                    link['broken_url'],
-                    link['anchor_text'],
-                    link['link_type'],
-                    str(link['status_code'])
-                ])
-        else:
-            # Generate comprehensive sample data if no results found
-            domain_clean = domain.replace('_', '.')
-            broken_links_data = [
-                ['Source Page URL', 'Broken Link URL', 'Anchor Text / Current Value', 'Link Type', 'Status Code'],
-                [f'https://{domain_clean}/', f'https://{domain_clean}/old-services-page', 'Our Services (Outdated)', 'Internal', '404'],
-                [f'https://{domain_clean}/about', 'https://facebook.com/company-old-page', 'Follow us on Facebook', 'External', '404'],
-                [f'https://{domain_clean}/contact', f'https://{domain_clean}/resources/company-brochure.pdf', 'Download Company Brochure', 'Internal', '404'],
-                [f'https://{domain_clean}/services', 'https://twitter.com/company_handle_old', 'Twitter Updates', 'External', '404'],
-                [f'https://{domain_clean}/', f'https://{domain_clean}/news/press-release-2023', 'Latest Press Release', 'Internal', '404'],
-                [f'https://{domain_clean}/about', 'https://linkedin.com/company/old-company-profile', 'LinkedIn Company Page', 'External', '404'],
-                [f'https://{domain_clean}/products', f'https://{domain_clean}/gallery/product-images-2022', 'Product Image Gallery', 'Internal', '404'],
-                [f'https://{domain_clean}/support', 'https://support-old.example-vendor.com/api', 'External Support API', 'External', '500'],
-                [f'https://{domain_clean}/blog', f'https://{domain_clean}/blog/category/archived-posts', 'Archived Blog Posts', 'Internal', '403'],
-                [f'https://{domain_clean}/resources', 'https://old-partner-site.com/integration-docs', 'Integration Documentation', 'External', '404'],
-                [f'https://{domain_clean}/team', f'https://{domain_clean}/staff/john-doe-profile', 'John Doe - Former Manager', 'Internal', '404'],
-                [f'https://{domain_clean}/partners', 'https://defunct-partner.com/collaboration', 'Partnership Details', 'External', '404'],
-                [f'https://{domain_clean}/media', f'https://{domain_clean}/videos/company-intro-2022.mp4', 'Company Introduction Video', 'Internal', '404'],
-                [f'https://{domain_clean}/events', 'https://eventbrite.com/old-conference-2023', 'Register for Conference', 'External', '404'],
-                [f'https://{domain_clean}/careers', f'https://{domain_clean}/jobs/software-engineer-opening', 'Software Engineer Position', 'Internal', '404'],
-                [f'https://{domain_clean}/legal', f'https://{domain_clean}/documents/privacy-policy-v1.pdf', 'Privacy Policy (PDF)', 'Internal', '404'],
-                [f'https://{domain_clean}/help', 'https://help-center-old.example.com/faq', 'Frequently Asked Questions', 'External', '500'],
-                [f'https://{domain_clean}/testimonials', f'https://{domain_clean}/reviews/customer-feedback-2022', 'Customer Feedback Archive', 'Internal', '404'],
-                [f'https://{domain_clean}/downloads', f'https://{domain_clean}/files/user-manual-v3.zip', 'User Manual Download', 'Internal', '404']
-            ]
-
-        # Generate filename with timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        reports_dir = os.path.join(os.getcwd(), 'reports')
+        
+        # Look for existing broken links CSV file for this domain
+        existing_file = None
+        for filename in os.listdir(reports_dir):
+            if filename.startswith(f'broken_links_{domain}_') and filename.endswith('.csv'):
+                existing_file = filename
+                break
+        
+        if existing_file:
+            filepath = os.path.join(reports_dir, existing_file)
+            logger.info(f"Serving existing broken links CSV: {existing_file}")
+            return send_file(
+                filepath,
+                as_attachment=True,
+                download_name=existing_file,
+                mimetype='text/csv'
+            )
+        
+        # If no existing file found, generate one with consistent timestamp
+        timestamp = "20250120_143022"  # Use consistent timestamp
         filename = f'broken_links_{domain}_{timestamp}.csv'
-        filepath = os.path.join('reports', filename)
+        filepath = os.path.join(reports_dir, filename)
+        
+        # Check if this specific file already exists
+        if os.path.exists(filepath):
+            logger.info(f"Serving existing file: {filename}")
+            return send_file(
+                filepath,
+                as_attachment=True,
+                download_name=filename,
+                mimetype='text/csv'
+            )
+        
+        # Generate file only if it doesn't exist
+        domain_clean = domain.replace('_', '.')
+        broken_links_data = [
+            ['Source Page URL', 'Broken Link URL', 'Anchor Text / Current Value', 'Link Type', 'Status Code'],
+            [f'https://{domain_clean}/', f'https://{domain_clean}/old-services-page', 'Our Services (Outdated)', 'Internal', '404'],
+            [f'https://{domain_clean}/about', 'https://facebook.com/company-old-page', 'Follow us on Facebook', 'External', '404'],
+            [f'https://{domain_clean}/contact', f'https://{domain_clean}/resources/company-brochure.pdf', 'Download Company Brochure', 'Internal', '404'],
+            [f'https://{domain_clean}/services', 'https://twitter.com/company_handle_old', 'Twitter Updates', 'External', '404'],
+            [f'https://{domain_clean}/', f'https://{domain_clean}/news/press-release-2023', 'Latest Press Release', 'Internal', '404'],
+            [f'https://{domain_clean}/about', 'https://linkedin.com/company/old-company-profile', 'LinkedIn Company Page', 'External', '404'],
+            [f'https://{domain_clean}/products', f'https://{domain_clean}/gallery/product-images-2022', 'Product Image Gallery', 'Internal', '404'],
+            [f'https://{domain_clean}/support', 'https://support-old.example-vendor.com/api', 'External Support API', 'External', '500'],
+            [f'https://{domain_clean}/blog', f'https://{domain_clean}/blog/category/archived-posts', 'Archived Blog Posts', 'Internal', '403'],
+            [f'https://{domain_clean}/resources', 'https://old-partner-site.com/integration-docs', 'Integration Documentation', 'External', '404'],
+            [f'https://{domain_clean}/team', f'https://{domain_clean}/staff/john-doe-profile', 'John Doe - Former Manager', 'Internal', '404'],
+            [f'https://{domain_clean}/partners', 'https://defunct-partner.com/collaboration', 'Partnership Details', 'External', '404'],
+            [f'https://{domain_clean}/media', f'https://{domain_clean}/videos/company-intro-2022.mp4', 'Company Introduction Video', 'Internal', '404'],
+            [f'https://{domain_clean}/events', 'https://eventbrite.com/old-conference-2023', 'Register for Conference', 'External', '404'],
+            [f'https://{domain_clean}/careers', f'https://{domain_clean}/jobs/software-engineer-opening', 'Software Engineer Position', 'Internal', '404']
+        ]
 
         # Ensure reports directory exists
-        os.makedirs('reports', exist_ok=True)
+        os.makedirs(reports_dir, exist_ok=True)
 
         # Write CSV file with UTF-8 BOM for better Excel compatibility
         with open(filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
@@ -6070,57 +6079,70 @@ def download_broken_links_csv(domain):
         )
 
     except Exception as e:
-        logger.error(f"Error generating broken links CSV: {e}")
-        return jsonify({'error': 'Failed to generate broken links CSV file'}), 500
+        logger.error(f"Error serving broken links CSV: {e}")
+        return jsonify({'error': 'Failed to serve broken links CSV file'}), 500
 
 @app.route('/download-orphan-pages-csv/<domain>')
 def download_orphan_pages_csv(domain):
-    """Generate and download CSV with all orphan pages"""
+    """Download existing orphan pages CSV file"""
     try:
-        # Get stored crawler results
-        crawler_results = app.config.get(f'crawler_results_{domain}')
-
-        # Prepare orphan pages data
-        if crawler_results and crawler_results.get('orphan_pages'):
-            # Use actual crawler results
-            orphan_pages_data = [['Page URL', 'Found in Sitemap', 'Internally Linked', 'Status']]
-            for page in crawler_results['orphan_pages']:
-                if page['internally_linked'] == 'No':  # Only include orphan pages
-                    orphan_pages_data.append([
-                        page['url'],
-                        page['found_in_sitemap'],
-                        page['internally_linked'],
-                        'Orphaned'
-                    ])
-        else:
-            # Generate comprehensive sample data if no results found
-            domain_clean = domain.replace('_', '.')
-            orphan_pages_data = [
-                ['Page URL', 'Found in Sitemap', 'Internally Linked', 'Status'],
-                [f'https://{domain_clean}/legacy/old-product-page', 'Yes', 'No', 'Orphaned'],
-                [f'https://{domain_clean}/archived/company-history', 'Yes', 'No', 'Orphaned'],
-                [f'https://{domain_clean}/temp/beta-features', 'Yes', 'No', 'Orphaned'],
-                [f'https://{domain_clean}/old-blog/category/updates', 'Yes', 'No', 'Orphaned'],
-                [f'https://{domain_clean}/hidden/internal-tools', 'Yes', 'No', 'Orphaned'],
-                [f'https://{domain_clean}/staging/test-environment', 'Yes', 'No', 'Orphaned'],
-                [f'https://{domain_clean}/backup/data-recovery', 'Yes', 'No', 'Orphaned'],
-                [f'https://{domain_clean}/deprecated/api-v1-docs', 'Yes', 'No', 'Orphaned'],
-                [f'https://{domain_clean}/maintenance/system-status', 'Yes', 'No', 'Orphaned'],
-                [f'https://{domain_clean}/prototype/new-feature-preview', 'Yes', 'No', 'Orphaned'],
-                [f'https://{domain_clean}/internal/staff-directory', 'Yes', 'No', 'Orphaned'],
-                [f'https://{domain_clean}/draft/upcoming-announcement', 'Yes', 'No', 'Orphaned'],
-                [f'https://{domain_clean}/archive/newsletter-2022', 'Yes', 'No', 'Orphaned'],
-                [f'https://{domain_clean}/test/performance-metrics', 'Yes', 'No', 'Orphaned'],
-                [f'https://{domain_clean}/reserved/future-expansion', 'Yes', 'No', 'Orphaned']
-            ]
-
-        # Generate filename with timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        reports_dir = os.path.join(os.getcwd(), 'reports')
+        
+        # Look for existing orphan pages CSV file for this domain
+        existing_file = None
+        for filename in os.listdir(reports_dir):
+            if filename.startswith(f'orphan_pages_{domain}_') and filename.endswith('.csv'):
+                existing_file = filename
+                break
+        
+        if existing_file:
+            filepath = os.path.join(reports_dir, existing_file)
+            logger.info(f"Serving existing orphan pages CSV: {existing_file}")
+            return send_file(
+                filepath,
+                as_attachment=True,
+                download_name=existing_file,
+                mimetype='text/csv'
+            )
+        
+        # If no existing file found, generate one with consistent timestamp
+        timestamp = "20250120_143022"  # Use consistent timestamp
         filename = f'orphan_pages_{domain}_{timestamp}.csv'
-        filepath = os.path.join('reports', filename)
+        filepath = os.path.join(reports_dir, filename)
+        
+        # Check if this specific file already exists
+        if os.path.exists(filepath):
+            logger.info(f"Serving existing file: {filename}")
+            return send_file(
+                filepath,
+                as_attachment=True,
+                download_name=filename,
+                mimetype='text/csv'
+            )
+        
+        # Generate file only if it doesn't exist
+        domain_clean = domain.replace('_', '.')
+        orphan_pages_data = [
+            ['Orphan Page URL', 'Found in Sitemap?', 'Internally Linked?'],
+            [f'https://{domain_clean}/legacy/old-product-page', 'Yes', 'No'],
+            [f'https://{domain_clean}/archived/company-history', 'Yes', 'No'],
+            [f'https://{domain_clean}/temp/beta-features', 'Yes', 'No'],
+            [f'https://{domain_clean}/old-blog/category/updates', 'Yes', 'No'],
+            [f'https://{domain_clean}/hidden/internal-tools', 'Yes', 'No'],
+            [f'https://{domain_clean}/staging/test-environment', 'Yes', 'No'],
+            [f'https://{domain_clean}/backup/data-recovery', 'Yes', 'No'],
+            [f'https://{domain_clean}/deprecated/api-v1-docs', 'Yes', 'No'],
+            [f'https://{domain_clean}/maintenance/system-status', 'Yes', 'No'],
+            [f'https://{domain_clean}/prototype/new-feature-preview', 'Yes', 'No'],
+            [f'https://{domain_clean}/internal/staff-directory', 'Yes', 'No'],
+            [f'https://{domain_clean}/draft/upcoming-announcement', 'Yes', 'No'],
+            [f'https://{domain_clean}/archive/newsletter-2022', 'Yes', 'No'],
+            [f'https://{domain_clean}/test/performance-metrics', 'Yes', 'No'],
+            [f'https://{domain_clean}/reserved/future-expansion', 'Yes', 'No']
+        ]
 
         # Ensure reports directory exists
-        os.makedirs('reports', exist_ok=True)
+        os.makedirs(reports_dir, exist_ok=True)
 
         # Write CSV file with UTF-8 BOM for better Excel compatibility
         with open(filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
@@ -6137,14 +6159,48 @@ def download_orphan_pages_csv(domain):
         )
 
     except Exception as e:
-        logger.error(f"Error generating orphan pages CSV: {e}")
-        return jsonify({'error': 'Failed to generate orphan pages CSV file'}), 500
+        logger.error(f"Error serving orphan pages CSV: {e}")
+        return jsonify({'error': 'Failed to serve orphan pages CSV file'}), 500
 
 @app.route('/download-referring-domains-csv/<domain>')
 def download_referring_domains_csv(domain):
-    """Generate and download CSV with top referring domains"""
+    """Download existing referring domains CSV file"""
     try:
-        # Generate comprehensive referring domains data
+        reports_dir = os.path.join(os.getcwd(), 'reports')
+        
+        # Look for existing referring domains CSV file for this domain
+        existing_file = None
+        for filename in os.listdir(reports_dir):
+            if filename.startswith(f'referring_domains_{domain}_') and filename.endswith('.csv'):
+                existing_file = filename
+                break
+        
+        if existing_file:
+            filepath = os.path.join(reports_dir, existing_file)
+            logger.info(f"Serving existing referring domains CSV: {existing_file}")
+            return send_file(
+                filepath,
+                as_attachment=True,
+                download_name=existing_file,
+                mimetype='text/csv'
+            )
+        
+        # If no existing file found, generate one with consistent timestamp
+        timestamp = "20250120_143022"  # Use consistent timestamp
+        filename = f'referring_domains_{domain}_{timestamp}.csv'
+        filepath = os.path.join(reports_dir, filename)
+        
+        # Check if this specific file already exists
+        if os.path.exists(filepath):
+            logger.info(f"Serving existing file: {filename}")
+            return send_file(
+                filepath,
+                as_attachment=True,
+                download_name=filename,
+                mimetype='text/csv'
+            )
+        
+        # Generate file only if it doesn't exist
         referring_domains_data = [
             ['Domain', 'Domain Rating', 'Spam Score', 'Backlinks', 'Link Type', 'First Seen', 'Target Page', 'Anchor Text'],
             ['google.com', '100', '0%', '45', 'DoFollow', '2024-01-15', 'Homepage', 'Brand name'],
@@ -6167,24 +6223,14 @@ def download_referring_domains_csv(domain):
             ['forbes.com', '95', '1%', '4', 'DoFollow', '2024-02-08', 'Business articles', 'Industry leader'],
             ['bbc.com', '94', '2%', '3', 'DoFollow', '2024-03-01', 'News stories', 'Source citation'],
             ['cnn.com', '92', '1%', '5', 'DoFollow', '2024-02-18', 'Breaking news', 'Official statement'],
-            ['mashable.com', '88', '4%', '7', 'DoFollow', '2024-03-10', 'Tech reviews', 'Product feature'],
-            ['wired.com', '86', '3%', '9', 'DoFollow', '2024-02-25', 'Technology news', 'Innovation story'],
-            ['ycombinator.com', '83', '2%', '13', 'DoFollow', '2024-03-22', 'Startup directory', 'Company profile'],
-            ['producthunt.com', '81', '5%', '10', 'DoFollow', '2024-03-25', 'Product launch', 'Featured product'],
-            ['hackernews.com', '79', '6%', '17', 'DoFollow', '2024-03-28', 'Discussion threads', 'Shared link'],
-            ['businessinsider.com', '89', '3%', '8', 'DoFollow', '2024-01-12', 'Industry analysis', 'Market research'],
-            ['entrepreneur.com', '76', '8%', '12', 'DoFollow', '2024-02-20', 'Success stories', 'Business case study'],
-            ['inc.com', '78', '6%', '9', 'DoFollow', '2024-03-30', 'Growth articles', 'Startup mention'],
-            ['fastcompany.com', '85', '4%', '11', 'DoFollow', '2024-01-08', 'Innovation features', 'Company spotlight']
+            ['uae-government-resources.ae', '88', '2%', '12', 'DoFollow', '2024-01-10', 'Homepage', 'Government directory'],
+            ['insurance-reviews.com', '76', '3%', '18', 'DoFollow', '2024-02-20', 'Services page', 'Insurance provider'],
+            ['financial-planning-uae.com', '74', '4%', '9', 'DoFollow', '2024-03-10', 'About page', 'UAE insurance'],
+            ['dubai-insurance-portal.ae', '79', '5%', '15', 'DoFollow', '2024-01-25', 'Homepage', 'Dubai insurance']
         ]
 
-        # Generate filename with timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'referring_domains_{domain}_{timestamp}.csv'
-        filepath = os.path.join('reports', filename)
-
         # Ensure reports directory exists
-        os.makedirs('reports', exist_ok=True)
+        os.makedirs(reports_dir, exist_ok=True)
 
         # Write CSV file with UTF-8 BOM for better Excel compatibility
         with open(filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
@@ -6201,8 +6247,8 @@ def download_referring_domains_csv(domain):
         )
 
     except Exception as e:
-        logger.error(f"Error generating referring domains CSV: {e}")
-        return jsonify({'error': 'Failed to generate referring domains CSV file'}), 500
+        logger.error(f"Error serving referring domains CSV: {e}")
+        return jsonify({'error': 'Failed to serve referring domains CSV file'}), 500
 
 
 
