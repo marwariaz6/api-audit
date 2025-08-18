@@ -3372,13 +3372,6 @@ class PDFReportGenerator:
                 story.append(Spacer(1, 10))
                 story.append(Paragraph(f"+ {len(orphan_pages) - 10} more orphan pages found", self.body_style))
 
-                # Add combined reference to downloadable file for both broken links and orphan pages
-                homepage_url = crawler_results.get('crawl_url', 'example.com')
-                domain_for_csv = urllib.parse.urlparse(homepage_url).netloc.replace('.', '_')
-                # combined_csv_link = f"/download-broken-orphan-csv/{domain_for_csv}" # Commented out as per new instruction
-                clickable_combined_csv_text = 'For a complete list of all broken links and orphan pages, refer to the downloadable file given at the end of report.'
-                story.append(Paragraph(clickable_combined_csv_text, self.body_style))
-
             story.append(Spacer(1, 30))
 
     def audit_uiux_with_browser(self, url):
@@ -6032,134 +6025,7 @@ def download_broken_links_csv(domain):
         logger.error(f"Error generating broken links CSV: {e}")
         return jsonify({'error': 'Failed to generate broken links CSV file'}), 500
 
-@app.route('/download-broken-orphan-csv/<domain>')
-def download_broken_orphan_csv(domain):
-    """Generate and download combined CSV with all broken links and orphan pages"""
-    try:
-        # Get stored crawler results or use fallback data
-        crawler_results = app.config.get(f'crawler_results_{domain}')
 
-        # Create combined data starting with headers
-        combined_data = [['Type', 'Page URL', 'Details', 'Link Type', 'Status']]
-
-        # Add broken links data
-        if crawler_results and crawler_results.get('broken_links'):
-            for link in crawler_results['broken_links']:
-                combined_data.append([
-                    'Broken Link',
-                    link['source_page'],
-                    f"Broken URL: {link['broken_url']} | Anchor: {link['anchor_text']}",
-                    link['link_type'],
-                    str(link['status_code'])
-                ])
-        else:
-            # Fallback broken links data
-            fallback_broken = [
-                {
-                    'source_page': f'https://{domain.replace("_", ".")}/',
-                    'broken_url': f'https://{domain.replace("_", ".")}/old-services-page',
-                    'anchor_text': 'Old Services Page',
-                    'link_type': 'Internal',
-                    'status_code': '404'
-                },
-                {
-                    'source_page': f'https://{domain.replace("_", ".")}/about',
-                    'broken_url': 'https://external-site.com/missing',
-                    'anchor_text': 'External Reference',
-                    'link_type': 'External',
-                    'status_code': '404'
-                },
-                {
-                    'source_page': f'https://{domain.replace("_", ".")}/services',
-                    'broken_url': f'https://{domain.replace("_", ".")}/contact-old',
-                    'anchor_text': 'Contact Page',
-                    'link_type': 'Internal',
-                    'status_code': '301'
-                }
-            ]
-
-            for link in fallback_broken:
-                combined_data.append([
-                    'Broken Link',
-                    link['source_page'],
-                    f"Broken URL: {link['broken_url']} | Anchor: {link['anchor_text']}",
-                    link['link_type'],
-                    str(link['status_code'])
-                ])
-
-        # Add orphan pages data
-        if crawler_results and crawler_results.get('orphan_pages'):
-            orphan_pages = [p for p in crawler_results['orphan_pages'] if p['internally_linked'] == 'No']
-            for page in orphan_pages:
-                combined_data.append([
-                    'Orphan Page',
-                    page['url'],
-                    f"Found in sitemap: {page['found_in_sitemap']} | Not internally linked",
-                    'N/A',
-                    'Orphaned'
-                ])
-        else:
-            # Fallback orphan pages data
-            fallback_orphan = [
-                {
-                    'url': f'https://{domain.replace("_", ".")}/legacy/old-product-page',
-                    'found_in_sitemap': 'Yes',
-                    'internally_linked': 'No'
-                },
-                {
-                    'url': f'https://{domain.replace("_", ".")}/archived/company-history',
-                    'found_in_sitemap': 'Yes',
-                    'internally_linked': 'No'
-                },
-                {
-                    'url': f'https://{domain.replace("_", ".")}/temp/beta-features',
-                    'found_in_sitemap': 'Yes',
-                    'internally_linked': 'No'
-                },
-                {
-                    'url': f'https://{domain.replace("_", ".")}/old-blog/category/updates',
-                    'found_in_sitemap': 'Yes',
-                    'internally_linked': 'No'
-                },
-                {
-                    'url': f'https://{domain.replace("_", ".")}/hidden/internal-tools',
-                    'found_in_sitemap': 'Yes',
-                    'internally_linked': 'No'
-                }
-            ]
-
-            for page in fallback_orphan:
-                combined_data.append([
-                    'Orphan Page',
-                    page['url'],
-                    f"Found in sitemap: {page['found_in_sitemap']} | Not internally linked",
-                    'N/A',
-                    'Orphaned'
-                ])
-
-        # Generate filename with timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'broken_and_orphan_pages_{domain}_{timestamp}.csv'
-        filepath = os.path.join('reports', filename)
-
-        # Ensure reports directory exists
-        os.makedirs('reports', exist_ok=True)
-
-        # Write CSV file
-        with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerows(combined_data)
-
-        return send_file(
-            filepath,
-            as_attachment=True,
-            download_name=filename,
-            mimetype='text/csv'
-        )
-
-    except Exception as e:
-        logger.error(f"Error generating combined broken links and orphan pages CSV: {e}")
-        return jsonify({'error': 'Failed to generate combined CSV file'}), 500
 
 @app.route('/debug/reports')
 def debug_reports():
