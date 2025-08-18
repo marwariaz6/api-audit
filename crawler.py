@@ -392,8 +392,8 @@ def main():
     # Find orphan pages
     orphan_pages = crawler.find_orphan_pages(args.sitemap)
     
-    # Generate timestamp for filenames
-    timestamp = start_time.strftime('%Y%m%d_%H%M%S')
+    # Prepare domain name for filenames
+    domain_name = urllib.parse.urlparse(args.domain).netloc.replace('.', '_')
     domain_name = urllib.parse.urlparse(args.domain).netloc.replace('.', '_')
     
     # Save results

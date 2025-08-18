@@ -60,13 +60,12 @@ def save_crawler_results_csv(results, domain, output_dir='reports'):
     # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
     
-    # Generate timestamp and clean domain name
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    # Clean domain name
     domain_name = urllib.parse.urlparse(domain).netloc.replace('.', '_')
     
-    # File paths
-    broken_links_file = os.path.join(output_dir, f'broken_links_{domain_name}_{timestamp}.csv')
-    orphan_pages_file = os.path.join(output_dir, f'orphan_pages_{domain_name}_{timestamp}.csv')
+    # File paths without timestamp
+    broken_links_file = os.path.join(output_dir, f'broken_links_{domain_name}.csv')
+    orphan_pages_file = os.path.join(output_dir, f'orphan_pages_{domain_name}.csv')
     
     # Save broken links
     with open(broken_links_file, 'w', newline='', encoding='utf-8') as csvfile:
