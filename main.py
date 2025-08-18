@@ -4362,6 +4362,123 @@ class PDFReportGenerator:
         # Add Backlink Types Distribution
         self.add_backlink_types_distribution(story)
 
+    def add_top_referring_domains_section(self, story, analyzed_pages):
+        """Add Top 20 Referring Domains section"""
+        story.append(PageBreak())
+
+        # Section heading
+        domains_title_style = ParagraphStyle(
+            'DomainsTitle',
+            parent=self.heading_style,
+            fontSize=18,
+            spaceAfter=20,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Top 20 Referring Domains", domains_title_style))
+        story.append(Spacer(1, 15))
+
+        # Create sample top referring domains data
+        domains_data = [
+            ['Domain', 'Domain Rating', 'Links', 'Link Type', 'First Seen'],
+            ['google.com', '100', '1,247', 'DoFollow', '2023-01-15'],
+            ['facebook.com', '96', '892', 'NoFollow', '2023-02-03'],
+            ['linkedin.com', '95', '634', 'DoFollow', '2023-01-28'],
+            ['twitter.com', '94', '578', 'NoFollow', '2023-02-12'],
+            ['wikipedia.org', '93', '423', 'DoFollow', '2023-03-05'],
+            ['medium.com', '87', '367', 'DoFollow', '2023-02-18'],
+            ['reddit.com', '91', '289', 'NoFollow', '2023-03-12'],
+            ['github.com', '85', '234', 'DoFollow', '2023-01-22'],
+            ['stackoverflow.com', '84', '198', 'DoFollow', '2023-02-08'],
+            ['youtube.com', '100', '176', 'NoFollow', '2023-03-01'],
+            ['instagram.com', '94', '145', 'NoFollow', '2023-02-25'],
+            ['quora.com', '78', '123', 'DoFollow', '2023-03-08'],
+            ['pinterest.com', '83', '98', 'NoFollow', '2023-01-30'],
+            ['tumblr.com', '72', '87', 'NoFollow', '2023-02-14'],
+            ['wordpress.com', '82', '76', 'DoFollow', '2023-03-03'],
+            ['blogspot.com', '75', '65', 'DoFollow', '2023-02-20'],
+            ['techcrunch.com', '91', '54', 'DoFollow', '2023-01-18'],
+            ['forbes.com', '95', '43', 'DoFollow', '2023-02-28'],
+            ['bbc.com', '94', '38', 'DoFollow', '2023-03-15'],
+            ['cnn.com', '92', '32', 'DoFollow', '2023-01-25']
+        ]
+
+        # Create table with proper column widths
+        domains_table = Table(domains_data, colWidths=[2.0*inch, 1.2*inch, 0.8*inch, 1.0*inch, 1.2*inch])
+
+        # Define table style
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]
+
+        # Color code based on domain rating and link type
+        for i in range(1, len(domains_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+                table_style.append(('BACKGROUND', (2, i), (2, i), HexColor('#f8f9fa')))
+                table_style.append(('BACKGROUND', (4, i), (4, i), HexColor('#f8f9fa')))
+
+            # Color code domain rating
+            try:
+                domain_rating = int(domains_data[i][1])
+                if domain_rating >= 90:
+                    rating_color = HexColor('#4CAF50')  # Green - Excellent
+                elif domain_rating >= 70:
+                    rating_color = HexColor('#FF9800')  # Orange - Good
+                else:
+                    rating_color = HexColor('#F44336')  # Red - Poor
+
+                table_style.append(('BACKGROUND', (1, i), (1, i), rating_color))
+                table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+                table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+            except (ValueError, IndexError):
+                pass
+
+            # Color code link type
+            try:
+                link_type = domains_data[i][3]
+                if link_type == 'DoFollow':
+                    link_color = HexColor('#4CAF50')  # Green
+                else:  # NoFollow
+                    link_color = HexColor('#FF9800')  # Orange
+
+                table_style.append(('BACKGROUND', (3, i), (3, i), link_color))
+                table_style.append(('TEXTCOLOR', (3, i), (3, i), white))
+                table_style.append(('FONTNAME', (3, i), (3, i), 'Helvetica-Bold'))
+            except IndexError:
+                pass
+
+        domains_table.setStyle(TableStyle(table_style))
+        story.append(domains_table)
+        story.append(Spacer(1, 25))
+
+        # Add summary note
+        summary_style = ParagraphStyle(
+            'DomainsSummary',
+            parent=self.body_style,
+            fontSize=11,
+            spaceAfter=15,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold',
+            textColor=HexColor('#2E86AB')
+        )
+
+        story.append(Paragraph("Download additional report data here", summary_style))
+        story.append(Spacer(1, 30))
+
     def add_backlink_profile_summary(self, story):
         """Add Backlink Profile Summary section"""
         # Section heading
