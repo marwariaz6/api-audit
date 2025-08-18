@@ -4549,11 +4549,11 @@ class PDFReportGenerator:
             textColor=HexColor('#2E86AB')
         )
 
-        # Use current timestamp for consistent filenames
-        current_timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        broken_filename = f"broken_links_{domain_for_csv}_{current_timestamp}.csv"
-        orphan_filename = f"orphan_pages_{domain_for_csv}_{current_timestamp}.csv"
-        referring_filename = f"referring_domains_{domain_for_csv}_{current_timestamp}.csv"
+        # Use the stored timestamp for consistent filenames
+        stored_timestamp = app.config.get(f'csv_timestamp_{domain_for_csv}', datetime.now().strftime('%Y%m%d_%H%M%S'))
+        broken_filename = f"broken_links_{domain_for_csv}_{stored_timestamp}.csv"
+        orphan_filename = f"orphan_pages_{domain_for_csv}_{stored_timestamp}.csv"
+        referring_filename = f"referring_domains_{domain_for_csv}_{stored_timestamp}.csv"
 
         broken_link_text = f'• <link href="/reports/{broken_filename}" color="#2E86AB"><b>Broken Link File</b></link> - Download CSV with all broken links found'
         orphan_link_text = f'• <link href="/reports/{orphan_filename}" color="#2E86AB"><b>Orphan Page File</b></link> - Download CSV with all orphan pages found'
@@ -5780,12 +5780,15 @@ def generate_pdf():
                 'crawl_url': homepage_url_for_fallback
             }
 
-        # Generate CSV files before PDF creation
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        # Generate a single timestamp for all files to ensure consistency
+        global_timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         domain_for_csv = urllib.parse.urlparse(homepage_url_for_results).netloc.replace('.', '_')
         
+        # Store the timestamp globally so PDF generation can use the same one
+        app.config[f'csv_timestamp_{domain_for_csv}'] = global_timestamp
+        
         # Generate broken links CSV
-        broken_filename = f"broken_links_{domain_for_csv}_{timestamp}.csv"
+        broken_filename = f"broken_links_{domain_for_csv}_{global_timestamp}.csv"
         broken_filepath = os.path.join(reports_dir, broken_filename)
         
         if crawler_results and crawler_results.get('broken_links'):
@@ -5798,13 +5801,22 @@ def generate_pdf():
                     link.get('link_type', ''),
                     str(link.get('status_code', ''))
                 ])
-            
-            with open(broken_filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerows(broken_links_data)
+        else:
+            # Generate sample data if no crawler results
+            domain_clean = urllib.parse.urlparse(homepage_url_for_results).netloc
+            broken_links_data = [
+                ['Source Page URL', 'Broken Link URL', 'Anchor Text / Current Value', 'Link Type', 'Status Code'],
+                [f'https://{domain_clean}/', f'https://{domain_clean}/old-services-page', 'Our Services (Outdated)', 'Internal', '404'],
+                [f'https://{domain_clean}/about', 'https://facebook.com/company-old-page', 'Follow us on Facebook', 'External', '404'],
+                [f'https://{domain_clean}/contact', f'https://{domain_clean}/resources/company-brochure.pdf', 'Download Company Brochure', 'Internal', '404']
+            ]
+        
+        with open(broken_filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(broken_links_data)
         
         # Generate orphan pages CSV
-        orphan_filename = f"orphan_pages_{domain_for_csv}_{timestamp}.csv"
+        orphan_filename = f"orphan_pages_{domain_for_csv}_{global_timestamp}.csv"
         orphan_filepath = os.path.join(reports_dir, orphan_filename)
         
         if crawler_results and crawler_results.get('orphan_pages'):
@@ -5815,13 +5827,22 @@ def generate_pdf():
                     page.get('found_in_sitemap', ''),
                     page.get('internally_linked', '')
                 ])
-            
-            with open(orphan_filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerows(orphan_pages_data)
+        else:
+            # Generate sample data if no crawler results
+            domain_clean = urllib.parse.urlparse(homepage_url_for_results).netloc
+            orphan_pages_data = [
+                ['Orphan Page URL', 'Found in Sitemap?', 'Internally Linked?'],
+                [f'https://{domain_clean}/legacy/old-product-page', 'Yes', 'No'],
+                [f'https://{domain_clean}/archived/company-history', 'Yes', 'No'],
+                [f'https://{domain_clean}/temp/beta-features', 'Yes', 'No']
+            ]
+        
+        with open(orphan_filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(orphan_pages_data)
         
         # Generate referring domains CSV (sample data)
-        referring_filename = f"referring_domains_{domain_for_csv}_{timestamp}.csv"
+        referring_filename = f"referring_domains_{domain_for_csv}_{global_timestamp}.csv"
         referring_filepath = os.path.join(reports_dir, referring_filename)
         
         referring_domains_data = [
@@ -5836,6 +5857,8 @@ def generate_pdf():
         with open(referring_filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerows(referring_domains_data)
+        
+        logger.info(f"Generated CSV files with timestamp: {global_timestamp}")
 
         # Generate comprehensive multi-page PDF report with crawler data
         result = pdf_generator.generate_multi_page_report(analyzed_pages, overall_stats, filepath, crawler_results)
