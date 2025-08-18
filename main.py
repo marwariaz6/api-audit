@@ -4381,31 +4381,31 @@ class PDFReportGenerator:
 
         # Create sample top referring domains data
         domains_data = [
-            ['Domain', 'Domain Rating', 'Links', 'Link Type', 'Spam Score'],
-            ['google.com', '100', '1,247', 'DoFollow', '0%'],
-            ['facebook.com', '96', '892', 'NoFollow', '2%'],
-            ['linkedin.com', '95', '634', 'DoFollow', '1%'],
-            ['twitter.com', '94', '578', 'NoFollow', '3%'],
-            ['wikipedia.org', '93', '423', 'DoFollow', '0%'],
-            ['medium.com', '87', '367', 'DoFollow', '5%'],
-            ['reddit.com', '91', '289', 'NoFollow', '8%'],
-            ['github.com', '85', '234', 'DoFollow', '2%'],
-            ['stackoverflow.com', '84', '198', 'DoFollow', '1%'],
-            ['youtube.com', '100', '176', 'NoFollow', '0%'],
-            ['instagram.com', '94', '145', 'NoFollow', '4%'],
-            ['quora.com', '78', '123', 'DoFollow', '12%'],
-            ['pinterest.com', '83', '98', 'NoFollow', '6%'],
-            ['tumblr.com', '72', '87', 'NoFollow', '18%'],
-            ['wordpress.com', '82', '76', 'DoFollow', '7%'],
-            ['blogspot.com', '75', '65', 'DoFollow', '15%'],
-            ['techcrunch.com', '91', '54', 'DoFollow', '3%'],
-            ['forbes.com', '95', '43', 'DoFollow', '1%'],
-            ['bbc.com', '94', '38', 'DoFollow', '2%'],
-            ['cnn.com', '92', '32', 'DoFollow', '1%']
+            ['Domain', 'Domain Rating', 'Spam Score'],
+            ['google.com', '100', '0%'],
+            ['facebook.com', '96', '2%'],
+            ['linkedin.com', '95', '1%'],
+            ['twitter.com', '94', '3%'],
+            ['wikipedia.org', '93', '0%'],
+            ['medium.com', '87', '5%'],
+            ['reddit.com', '91', '8%'],
+            ['github.com', '85', '2%'],
+            ['stackoverflow.com', '84', '1%'],
+            ['youtube.com', '100', '0%'],
+            ['instagram.com', '94', '4%'],
+            ['quora.com', '78', '12%'],
+            ['pinterest.com', '83', '6%'],
+            ['tumblr.com', '72', '18%'],
+            ['wordpress.com', '82', '7%'],
+            ['blogspot.com', '75', '15%'],
+            ['techcrunch.com', '91', '3%'],
+            ['forbes.com', '95', '1%'],
+            ['bbc.com', '94', '2%'],
+            ['cnn.com', '92', '1%']
         ]
 
         # Create table with proper column widths
-        domains_table = Table(domains_data, colWidths=[2.0*inch, 1.2*inch, 0.8*inch, 1.0*inch, 1.2*inch])
+        domains_table = Table(domains_data, colWidths=[3.0*inch, 1.5*inch, 1.5*inch])
 
         # Define table style
         table_style = [
@@ -4423,13 +4423,11 @@ class PDFReportGenerator:
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
         ]
 
-        # Color code based on domain rating and link type
+        # Color code based on domain rating and spam score
         for i in range(1, len(domains_data)):
             # Alternate row backgrounds
             if i % 2 == 0:
                 table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
-                table_style.append(('BACKGROUND', (2, i), (2, i), HexColor('#f8f9fa')))
-                table_style.append(('BACKGROUND', (4, i), (4, i), HexColor('#f8f9fa')))
 
             # Color code domain rating
             try:
@@ -4447,23 +4445,9 @@ class PDFReportGenerator:
             except (ValueError, IndexError):
                 pass
 
-            # Color code link type
-            try:
-                link_type = domains_data[i][3]
-                if link_type == 'DoFollow':
-                    link_color = HexColor('#4CAF50')  # Green
-                else:  # NoFollow
-                    link_color = HexColor('#FF9800')  # Orange
-
-                table_style.append(('BACKGROUND', (3, i), (3, i), link_color))
-                table_style.append(('TEXTCOLOR', (3, i), (3, i), white))
-                table_style.append(('FONTNAME', (3, i), (3, i), 'Helvetica-Bold'))
-            except IndexError:
-                pass
-
             # Color code spam score
             try:
-                spam_score = domains_data[i][4]
+                spam_score = domains_data[i][2]
                 spam_percentage = int(spam_score.rstrip('%'))
                 if spam_percentage <= 5:
                     spam_color = HexColor('#4CAF50')  # Green - Low spam
@@ -4472,9 +4456,9 @@ class PDFReportGenerator:
                 else:
                     spam_color = HexColor('#F44336')  # Red - High spam
 
-                table_style.append(('BACKGROUND', (4, i), (4, i), spam_color))
-                table_style.append(('TEXTCOLOR', (4, i), (4, i), white))
-                table_style.append(('FONTNAME', (4, i), (4, i), 'Helvetica-Bold'))
+                table_style.append(('BACKGROUND', (2, i), (2, i), spam_color))
+                table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
+                table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
             except (IndexError, ValueError):
                 pass
 
