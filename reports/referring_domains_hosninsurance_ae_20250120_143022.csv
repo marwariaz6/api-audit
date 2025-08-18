@@ -1,0 +1,27 @@
+
+Domain,Domain Rating,Spam Score,Backlinks,Link Type,First Seen,Target Page,Anchor Text
+google.com,100,0%,45,DoFollow,2024-01-15,Homepage,Brand name
+facebook.com,96,2%,23,NoFollow,2024-02-10,About page,Company profile
+linkedin.com,95,1%,34,DoFollow,2024-01-20,Homepage,Professional services
+twitter.com,94,3%,18,NoFollow,2024-03-05,Blog posts,Social mention
+wikipedia.org,93,0%,12,DoFollow,2024-01-28,References,Citation link
+medium.com,87,5%,28,DoFollow,2024-02-15,Articles,Source reference
+reddit.com,91,8%,15,NoFollow,2024-03-12,Various pages,Community mention
+github.com,85,2%,19,DoFollow,2024-02-22,Documentation,Project reference
+stackoverflow.com,84,1%,22,DoFollow,2024-01-30,Technical pages,Solution link
+youtube.com,100,0%,31,NoFollow,2024-02-05,Video descriptions,Company website
+instagram.com,94,4%,16,NoFollow,2024-03-08,Bio links,Visit website
+quora.com,78,12%,14,DoFollow,2024-02-28,Answer pages,Helpful resource
+pinterest.com,83,6%,20,NoFollow,2024-03-15,Pin descriptions,Learn more
+tumblr.com,72,18%,8,NoFollow,2024-03-20,Blog posts,External link
+wordpress.com,82,7%,25,DoFollow,2024-02-12,Blog articles,Reference link
+blogspot.com,75,15%,11,DoFollow,2024-03-18,Personal blogs,Recommendation
+techcrunch.com,91,3%,6,DoFollow,2024-01-25,News articles,Company mention
+forbes.com,95,1%,4,DoFollow,2024-02-08,Business articles,Industry leader
+bbc.com,94,2%,3,DoFollow,2024-03-01,News stories,Source citation
+cnn.com,92,1%,5,DoFollow,2024-02-18,Breaking news,Official statement
+uae-government-resources.ae,88,2%,12,DoFollow,2024-01-10,Homepage,Government directory
+insurance-reviews.com,76,3%,18,DoFollow,2024-02-20,Services page,Insurance provider
+financial-planning-uae.com,74,4%,9,DoFollow,2024-03-10,About page,UAE insurance
+dubai-insurance-portal.ae,79,5%,15,DoFollow,2024-01-25,Homepage,Dubai insurance
+insurance-industry-forum.org,82,6%,7,DoFollow,2024-02-15,Forum posts,Industry discussion
