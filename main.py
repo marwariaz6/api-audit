@@ -4381,27 +4381,27 @@ class PDFReportGenerator:
 
         # Create sample top referring domains data
         domains_data = [
-            ['Domain', 'Domain Rating', 'Links', 'Link Type', 'First Seen'],
-            ['google.com', '100', '1,247', 'DoFollow', '2023-01-15'],
-            ['facebook.com', '96', '892', 'NoFollow', '2023-02-03'],
-            ['linkedin.com', '95', '634', 'DoFollow', '2023-01-28'],
-            ['twitter.com', '94', '578', 'NoFollow', '2023-02-12'],
-            ['wikipedia.org', '93', '423', 'DoFollow', '2023-03-05'],
-            ['medium.com', '87', '367', 'DoFollow', '2023-02-18'],
-            ['reddit.com', '91', '289', 'NoFollow', '2023-03-12'],
-            ['github.com', '85', '234', 'DoFollow', '2023-01-22'],
-            ['stackoverflow.com', '84', '198', 'DoFollow', '2023-02-08'],
-            ['youtube.com', '100', '176', 'NoFollow', '2023-03-01'],
-            ['instagram.com', '94', '145', 'NoFollow', '2023-02-25'],
-            ['quora.com', '78', '123', 'DoFollow', '2023-03-08'],
-            ['pinterest.com', '83', '98', 'NoFollow', '2023-01-30'],
-            ['tumblr.com', '72', '87', 'NoFollow', '2023-02-14'],
-            ['wordpress.com', '82', '76', 'DoFollow', '2023-03-03'],
-            ['blogspot.com', '75', '65', 'DoFollow', '2023-02-20'],
-            ['techcrunch.com', '91', '54', 'DoFollow', '2023-01-18'],
-            ['forbes.com', '95', '43', 'DoFollow', '2023-02-28'],
-            ['bbc.com', '94', '38', 'DoFollow', '2023-03-15'],
-            ['cnn.com', '92', '32', 'DoFollow', '2023-01-25']
+            ['Domain', 'Domain Rating', 'Links', 'Link Type', 'Spam Score'],
+            ['google.com', '100', '1,247', 'DoFollow', '0%'],
+            ['facebook.com', '96', '892', 'NoFollow', '2%'],
+            ['linkedin.com', '95', '634', 'DoFollow', '1%'],
+            ['twitter.com', '94', '578', 'NoFollow', '3%'],
+            ['wikipedia.org', '93', '423', 'DoFollow', '0%'],
+            ['medium.com', '87', '367', 'DoFollow', '5%'],
+            ['reddit.com', '91', '289', 'NoFollow', '8%'],
+            ['github.com', '85', '234', 'DoFollow', '2%'],
+            ['stackoverflow.com', '84', '198', 'DoFollow', '1%'],
+            ['youtube.com', '100', '176', 'NoFollow', '0%'],
+            ['instagram.com', '94', '145', 'NoFollow', '4%'],
+            ['quora.com', '78', '123', 'DoFollow', '12%'],
+            ['pinterest.com', '83', '98', 'NoFollow', '6%'],
+            ['tumblr.com', '72', '87', 'NoFollow', '18%'],
+            ['wordpress.com', '82', '76', 'DoFollow', '7%'],
+            ['blogspot.com', '75', '65', 'DoFollow', '15%'],
+            ['techcrunch.com', '91', '54', 'DoFollow', '3%'],
+            ['forbes.com', '95', '43', 'DoFollow', '1%'],
+            ['bbc.com', '94', '38', 'DoFollow', '2%'],
+            ['cnn.com', '92', '32', 'DoFollow', '1%']
         ]
 
         # Create table with proper column widths
@@ -4461,9 +4461,64 @@ class PDFReportGenerator:
             except IndexError:
                 pass
 
+            # Color code spam score
+            try:
+                spam_score = domains_data[i][4]
+                spam_percentage = int(spam_score.rstrip('%'))
+                if spam_percentage <= 5:
+                    spam_color = HexColor('#4CAF50')  # Green - Low spam
+                elif spam_percentage <= 15:
+                    spam_color = HexColor('#FF9800')  # Orange - Medium spam
+                else:
+                    spam_color = HexColor('#F44336')  # Red - High spam
+
+                table_style.append(('BACKGROUND', (4, i), (4, i), spam_color))
+                table_style.append(('TEXTCOLOR', (4, i), (4, i), white))
+                table_style.append(('FONTNAME', (4, i), (4, i), 'Helvetica-Bold'))
+            except (IndexError, ValueError):
+                pass
+
         domains_table.setStyle(TableStyle(table_style))
         story.append(domains_table)
         story.append(Spacer(1, 25))
+
+        # Add Actionable Recommendations section
+        recommendations_title_style = ParagraphStyle(
+            'RecommendationsTitle',
+            parent=self.subheading_style,
+            fontSize=14,
+            spaceAfter=12,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Actionable Recommendations", recommendations_title_style))
+        story.append(Spacer(1, 8))
+
+        # Generate recommendations based on the referring domains data
+        recommendations = [
+            "• Focus on maintaining relationships with high-authority domains (DR 90+) like Google, Facebook, and LinkedIn",
+            "• Monitor and potentially disavow links from domains with spam scores above 15% (tumblr.com, blogspot.com)",
+            "• Seek more DoFollow links from medium-authority domains (DR 70-89) to improve link equity",
+            "• Diversify anchor text in outreach to high-authority domains like TechCrunch and Forbes",
+            "• Review and potentially remove or disavow links from domains with spam scores above 10%",
+            "• Leverage existing relationships with quality domains to request more contextual backlinks",
+            "• Monitor competitor backlink profiles to identify new high-quality linking opportunities"
+        ]
+
+        # Create recommendation style
+        recommendation_style = ParagraphStyle(
+            'RecommendationBullet',
+            parent=self.body_style,
+            fontSize=11,
+            spaceAfter=6,
+            leftIndent=10
+        )
+
+        for recommendation in recommendations:
+            story.append(Paragraph(recommendation, recommendation_style))
+
+        story.append(Spacer(1, 15))
 
         # Add summary note
         summary_style = ParagraphStyle(
