@@ -5782,6 +5782,9 @@ def generate_pdf():
         # Generate CSV files without timestamps
         domain_for_csv = urllib.parse.urlparse(homepage_url_for_results).netloc.replace('.', '_')
         
+        # Ensure reports directory exists
+        os.makedirs(reports_dir, exist_ok=True)
+        
         # Generate broken links CSV
         broken_filename = f"broken_links_{domain_for_csv}.csv"
         broken_filepath = os.path.join(reports_dir, broken_filename)
@@ -5806,9 +5809,13 @@ def generate_pdf():
                 [f'https://{domain_clean}/contact', f'https://{domain_clean}/resources/company-brochure.pdf', 'Download Company Brochure', 'Internal', '404']
             ]
         
-        with open(broken_filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerows(broken_links_data)
+        try:
+            with open(broken_filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerows(broken_links_data)
+            logger.info(f"Generated broken links CSV: {broken_filename}")
+        except Exception as e:
+            logger.error(f"Error generating broken links CSV: {e}")
         
         # Generate orphan pages CSV
         orphan_filename = f"orphan_pages_{domain_for_csv}.csv"
@@ -5832,9 +5839,13 @@ def generate_pdf():
                 [f'https://{domain_clean}/temp/beta-features', 'Yes', 'No']
             ]
         
-        with open(orphan_filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerows(orphan_pages_data)
+        try:
+            with open(orphan_filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerows(orphan_pages_data)
+            logger.info(f"Generated orphan pages CSV: {orphan_filename}")
+        except Exception as e:
+            logger.error(f"Error generating orphan pages CSV: {e}")
         
         # Generate referring domains CSV (sample data)
         referring_filename = f"referring_domains_{domain_for_csv}.csv"
@@ -5849,11 +5860,15 @@ def generate_pdf():
             ['wikipedia.org', '93', '0%', '12', 'DoFollow', '2024-01-28', 'References', 'Citation link']
         ]
         
-        with open(referring_filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerows(referring_domains_data)
+        try:
+            with open(referring_filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerows(referring_domains_data)
+            logger.info(f"Generated referring domains CSV: {referring_filename}")
+        except Exception as e:
+            logger.error(f"Error generating referring domains CSV: {e}")
         
-        logger.info(f"Generated CSV files for domain: {domain_for_csv}")
+        logger.info(f"CSV generation completed for domain: {domain_for_csv}")
 
         # Generate comprehensive multi-page PDF report with crawler data
         result = pdf_generator.generate_multi_page_report(analyzed_pages, overall_stats, filepath, crawler_results)
@@ -5875,54 +5890,32 @@ def generate_pdf():
         logger.info(f"Generated report: {filename} ({file_size} bytes)")
 
         try:
-            # Wait a moment for file system to sync
-            time.sleep(0.5)
+            # Wait for file system to sync
+            time.sleep(1.0)
             
-            # Double-check file exists before serving
+            # Verify file exists and is accessible
             if not os.path.exists(filepath):
-                logger.error(f"File disappeared before serving: {filepath}")
-                logger.info(f"Directory contents: {os.listdir(reports_dir) if os.path.exists(reports_dir) else 'Directory does not exist'}")
-                
-                # Try to find the file with a different approach
-                for file in os.listdir(reports_dir):
-                    if file.endswith('.pdf') and domain_for_filename in file:
-                        found_filepath = os.path.join(reports_dir, file)
-                        logger.info(f"Found alternative file: {found_filepath}")
-                        filepath = found_filepath
-                        filename = file
-                        break
-                else:
-                    return jsonify({'error': 'Report file was deleted before download'}), 500
+                logger.error(f"PDF file not found: {filepath}")
+                return jsonify({'error': 'Report file not found'}), 404
 
-            # Verify file is readable and has content
             if not os.access(filepath, os.R_OK):
                 logger.error(f"File not readable: {filepath}")
-                return jsonify({'error': 'Report file is not accessible'}), 500
+                return jsonify({'error': 'Report file is not accessible'}), 403
             
             file_size = os.path.getsize(filepath)
             if file_size == 0:
                 logger.error(f"File is empty: {filepath}")
                 return jsonify({'error': 'Generated report file is empty'}), 500
 
-            # Use absolute path for serving
-            absolute_filepath = os.path.abspath(filepath)
-            logger.info(f"Serving file from absolute path: {absolute_filepath}")
-            logger.info(f"File size before serving: {file_size} bytes")
+            logger.info(f"Serving PDF: {filepath} ({file_size} bytes)")
 
-            # Create response with proper headers
-            response = make_response(send_file(
-                absolute_filepath,
+            # Send file directly without extra headers that might cause issues
+            return send_file(
+                filepath,
                 as_attachment=True,
                 download_name=filename,
                 mimetype='application/pdf'
-            ))
-            response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
-            response.headers['Content-Type'] = 'application/pdf'
-            response.headers['Content-Length'] = str(file_size)
-            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-            response.headers['Pragma'] = 'no-cache'
-            response.headers['Expires'] = '0'
-            return response
+            )
         except FileNotFoundError as e:
             logger.error(f"PDF file not found when serving: {filepath} - {e}")
             return jsonify({'error': 'Report file not found. Please try generating the report again.'}), 404
