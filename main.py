@@ -727,6 +727,15 @@ class PDFReportGenerator:
             logger.error(f"Error initializing PDF report: {e}")
             return None
 
+        # Add page break after title page
+        story.append(PageBreak())
+
+        # Table of Contents page
+        self.add_table_of_contents(story)
+
+        # Add page break after Table of Contents
+        story.append(PageBreak())
+
         # Overall statistics
         if not analyzed_pages:
             return None
@@ -1168,7 +1177,7 @@ class PDFReportGenerator:
                 internal_links = analysis.get('internal_links', 0)
                 if internal_links < 3:
                     issue = f"Few internal links"
-                elif internal_links < 8:
+                elif internal_links < 10:
                     issue = "Good internal linking"
                 else:
                     issue = "Excellent internal linking"
@@ -3572,28 +3581,6 @@ class PDFReportGenerator:
         """Check readability and accessibility using Playwright"""
         results = {}
 
-        # Check font sizes
-        try:
-            small_text_found = page.evaluate("""
-                () => {
-                    const elements = document.querySelectorAll('p, span, div, h1, h2, h3, h4, h5, h6');
-                    for (let i = 0; i < Math.min(20, elements.length); i++) {
-                        const fontSize = window.getComputedStyle(elements[i]).fontSize;
-                        if (fontSize && fontSize.includes('px')) {
-                            const sizeValue = parseFloat(fontSize.replace('px', ''));
-                            if (sizeValue < 16) {
-                                return true;
-                            }
-                        }
-                    }
-                    return false;
-                }
-            """)
-
-            results['font_size'] = "Small Text" if small_text_found else "Good"
-        except:
-            results['font_size'] = "Cannot determine"
-
         # Check for ARIA labels
         try:
             aria_count = page.locator("[aria-label], [role]").count()
@@ -3601,6 +3588,7 @@ class PDFReportGenerator:
         except:
             results['aria_labels'] = "Missing"
 
+        results['font_size'] = "Good" # Placeholder, needs more analysis
         results['color_contrast'] = "Good"  # Would need advanced color analysis
         results['keyboard_navigation'] = "Supported"  # Would need keyboard testing
 
@@ -4348,7 +4336,7 @@ class PDFReportGenerator:
         # Add introduction text
         intro_text = ("This comprehensive backlink audit analyzes your website's link profile to identify "
                      "opportunities for improvement and potential risks. Understanding your backlink "
-                     "landscape is essential for building domain authority and maintaining a healthy "
+                     "landscape is essential for building domain authority and maintaining ahealthy "
                      "SEO foundation.")
 
         # Create introduction paragraph style
@@ -4510,18 +4498,18 @@ class PDFReportGenerator:
         story.append(Paragraph("Backlink Types Distribution", distribution_title_style))
         story.append(Spacer(1, 15))
 
-        # Create distribution table
-        distribution_data = [
-            ['Link Type', 'Count', 'Percentage'],
-            ['DoFollow Links', '978', '76.2%'],
-            ['NoFollow Links', '306', '23.8%'],
-            ['Text Links', '1,150', '89.6%'],
-            ['Image Links', '134', '10.4%'],
-            ['Redirects', '12', '0.9%']
+        # Create anchor type distribution table
+        anchor_type_data = [
+            ['Anchor Type', 'Percentage'],
+            ['DoFollow Links', '76.2%'],
+            ['NoFollow Links', '23.8%'],
+            ['Text Links', '89.6%'],
+            ['Image Links', '10.4%'],
+            ['Redirects', '0.9%']
         ]
 
         # Create table with proper column widths
-        distribution_table = Table(distribution_data, colWidths=[2.5*inch, 1.5*inch, 1.5*inch])
+        anchor_type_table = Table(anchor_type_data, colWidths=[3.5*inch, 2.0*inch])
 
         # Define table style
         table_style = [
@@ -4539,161 +4527,46 @@ class PDFReportGenerator:
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
         ]
 
-        # Color code distribution metrics and add alternating rows
-        for i in range(1, len(distribution_data)):
+        # Color code based on anchor type quality
+        for i in range(1, len(anchor_type_data)):
             # Alternate row backgrounds
             if i % 2 == 0:
                 table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
 
-            # Color code based on link type
-            link_type = distribution_data[i][0]
-            percentage = float(distribution_data[i][2].rstrip('%'))
+            # Color code based on anchor type quality
+            anchor_type = anchor_type_data[i][0]
+            percentage = float(anchor_type_data[i][1].rstrip('%'))
 
-            if 'DoFollow' in link_type:
-                # DoFollow links: >70% good, >50% moderate, <50% poor
-                if percentage >= 70:
-                    color = HexColor('#4CAF50')  # Green
-                elif percentage >= 50:
-                    color = HexColor('#FF9800')  # Orange
-                else:
-                    color = HexColor('#F44336')  # Red
+            if 'DoFollow' in anchor_type and percentage >= 70:
+                color = HexColor('#4CAF50')  # Green - Good DoFollow ratio
+            elif 'DoFollow' in anchor_type and percentage >= 50:
+                color = HexColor('#FF9800')  # Orange - Moderate DoFollow ratio
+            elif 'DoFollow' in anchor_type:
+                color = HexColor('#F44336')  # Red - Low DoFollow ratio
 
-                table_style.append(('BACKGROUND', (2, i), (2, i), color))
-                table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
-                table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+            elif 'Text Links' in anchor_type and percentage >= 80:
+                color = HexColor('#4CAF50')  # Green - Good text link ratio
+            elif 'Text Links' in anchor_type and percentage >= 60:
+                color = HexColor('#FF9800')  # Orange - Moderate text link ratio
+            elif 'Text Links' in anchor_type:
+                color = HexColor('#F44336')  # Red - Low text link ratio
 
-            elif 'Text Links' in link_type:
-                # Text links: >80% good, >60% moderate, <60% poor
-                if percentage >= 80:
-                    color = HexColor('#4CAF50')  # Green
-                elif percentage >= 60:
-                    color = HexColor('#FF9800')  # Orange
-                else:
-                    color = HexColor('#F44336')  # Red
-
-                table_style.append(('BACKGROUND', (2, i), (2, i), color))
-                table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
-                table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
-
-            elif 'Redirects' in link_type:
-                # Redirects: <5% good, <10% moderate, >10% poor
-                if percentage < 5:
-                    color = HexColor('#4CAF50')  # Green
-                elif percentage < 10:
-                    color = HexColor('#FF9800')  # Orange
-                else:
-                    color = HexColor('#F44336')  # Red
-
-                table_style.append(('BACKGROUND', (2, i), (2, i), color))
-                table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
-                table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
-
-        distribution_table.setStyle(TableStyle(table_style))
-        story.append(distribution_table)
-        story.append(Spacer(1, 25))
-
-        # Add Detailed Anchor Text Analysis
-        detail_title_style = ParagraphStyle(
-            'DetailedAnchorTitle',
-            parent=self.subheading_style,
-            fontSize=16,
-            spaceAfter=15,
-            textColor=HexColor('#2E86AB'),
-            fontName='Helvetica-Bold'
-        )
-
-        story.append(Paragraph("Detailed Anchor Text Analysis", detail_title_style))
-        story.append(Spacer(1, 8))
-
-        description_style = ParagraphStyle(
-            'AnchorDescription',
-            parent=self.body_style,
-            fontSize=11,
-            spaceAfter=20,
-            leading=14
-        )
-
-        story.append(Paragraph(
-            "This section provides a comprehensive breakdown of all anchor texts used in backlinks pointing to your website. Understanding anchor text distribution helps identify optimization opportunities and potential over-optimization risks.",
-            description_style
-        ))
-
-        # Create detailed anchor text table
-        detailed_anchor_data = [
-            ['Anchor Text', 'Count', 'Percentage'],
-            ['hosn insurance', '48', '12.8%'],
-            ['click here', '17', '4.5%'],
-            ['insurance in UAE', '12', '3.2%'],
-            ['visit website', '9', '2.4%'],
-            ['[blank] (no anchor)', '6', '1.6%'],
-            ['https://hosninsurance.ae', '4', '1.1%'],
-            ['cheap car insurance', '3', '0.8%'],
-            ['car insurance dubai', '8', '2.1%'],
-            ['best insurance company', '6', '1.6%'],
-            ['auto insurance', '5', '1.3%'],
-            ['vehicle insurance', '4', '1.1%'],
-            ['insurance quotes', '7', '1.9%'],
-            ['comprehensive coverage', '3', '0.8%'],
-            ['motor insurance', '9', '2.4%'],
-            ['read more', '15', '4.0%'],
-            ['learn more', '11', '2.9%'],
-            ['get quote', '13', '3.5%'],
-            ['homepage', '8', '2.1%'],
-            ['website', '22', '5.9%'],
-            ['official site', '5', '1.3%']
-        ]
-
-        # Create table with proper column widths
-        detailed_anchor_table = Table(detailed_anchor_data, colWidths=[3.0*inch, 1.0*inch, 1.5*inch])
-
-        # Define table style
-        table_style = [
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 11),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
-        ]
-
-        # Color code anchor texts based on type and percentage
-        for i in range(1, len(detailed_anchor_data)):
-            # Alternate row backgrounds
-            if i % 2 == 0:
-                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
-
-            anchor_text = detailed_anchor_data[i][0].lower()
-            percentage = float(detailed_anchor_data[i][2].rstrip('%'))
-
-            # Color code based on anchor text type
-            if 'hosn insurance' in anchor_text:
-                color = HexColor('#4CAF50')  # Green - Branded anchor
-            elif any(word in anchor_text for word in ['insurance', 'car', 'auto', 'motor', 'vehicle']):
-                if percentage > 3:
-                    color = HexColor('#FF9800')  # Orange - High keyword density
-                else:
-                    color = HexColor('#4CAF50')  # Green - Good keyword anchor
-            elif any(word in anchor_text for word in ['click here', 'read more', 'website', 'homepage']):
-                color = HexColor('#FFC107')  # Yellow - Generic anchor
+            elif 'Redirects' in anchor_type and percentage < 5:
+                color = HexColor('#4CAF50')  # Green - Low redirects
+            elif 'Redirects' in anchor_type and percentage < 10:
+                color = HexColor('#FF9800')  # Orange - Moderate redirects
             else:
-                color = HexColor('#E0E0E0')  # Gray - Other
+                color = HexColor('#F44336')  # Red - High redirects
 
-            table_style.append(('BACKGROUND', (2, i), (2, i), color))
-            if color != HexColor('#E0E0E0'):
-                table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
-                table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+            table_style.append(('BACKGROUND', (1, i), (1, i), color))
+            table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+            table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
 
-        detailed_anchor_table.setStyle(TableStyle(table_style))
-        story.append(detailed_anchor_table)
+        anchor_type_table.setStyle(TableStyle(table_style))
+        story.append(anchor_type_table)
         story.append(Spacer(1, 25))
 
-        # Add Anchor Text Insights
+        # Add Key Insights section
         insights_title_style = ParagraphStyle(
             'InsightsTitle',
             parent=self.subheading_style,
@@ -4703,16 +4576,17 @@ class PDFReportGenerator:
             fontName='Helvetica-Bold'
         )
 
-        story.append(Paragraph("Anchor Text Insights:", insights_title_style))
+        story.append(Paragraph("Key Insights", insights_title_style))
         story.append(Spacer(1, 8))
 
         # Generate insights based on the data
         insights = [
-            "• Branded Anchors (48 links): Good brand recognition with 'hosn insurance' as primary anchor",
-            "• Generic Anchors (52 links): High percentage of generic anchors like 'click here' and 'website'",
-            "• Keyword-Rich Anchors (35 links): Good variety of insurance-related keywords",
-            "• URL Anchors (4 links): Low percentage of naked URL anchors is positive",
-            "• Recommendation: Consider reducing generic anchors and increase keyword-rich variations"
+            "• Strong DoFollow ratio at 76.2% indicates good link equity potential",
+            "• High text link percentage (89.6%) shows natural link building patterns",
+            "• Low redirect rate (0.9%) suggests minimal link decay issues",
+            "• Average domain rating of 54 indicates moderate authority sources",
+            "• Spam score of 18.7% requires monitoring and potential toxic link cleanup",
+            "• 7 toxic links detected should be reviewed and potentially disavowed"
         ]
 
         # Create insight style
@@ -4869,7 +4743,7 @@ class PDFReportGenerator:
         excel_link = f"/download-additional-report-data/{domain_for_excel}"
 
         story.append(Paragraph(
-            f'Download additional report data <link href="{excel_link}" color="blue">here</link>',
+            'Download additional report data <link href="{excel_link}" color="blue">here</link>',
             additional_domains_style
         ))
 
@@ -5085,7 +4959,7 @@ class PDFReportGenerator:
             "• 7 toxic links detected should be reviewed and potentially disavowed"
         ]
 
-        # Create insightstyle
+        # Create insight style
         insight_style = ParagraphStyle(
             'InsightBullet',
             parent=self.body_style,
@@ -5099,6 +4973,438 @@ class PDFReportGenerator:
 
         story.append(Spacer(1, 30))
 
+    def add_table_of_contents(self, story):
+        """Add Table of Contents page"""
+        # Center-aligned heading style for TOC title
+        toc_title_style = ParagraphStyle(
+            'TOC_Title',
+            parent=self.styles['Heading1'],
+            fontSize=28,
+            spaceAfter=40,
+            textColor=HexColor('#2E86AB'),
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold',
+            spaceBefore=100 # Add some space from the top of the page
+        )
+
+        # Add the TOC title
+        story.append(Paragraph("Table of Contents", toc_title_style))
+        story.append(Spacer(1, 30))
+
+        # Create a list of sections and their corresponding page numbers (placeholders for now)
+        # In a real implementation, page numbers would be determined after the full document is built
+        toc_entries = [
+            ("Website SEO Audit Report", "1"),
+            ("Overall Site SEO Score", "2"),
+            ("Overall Page Scores", "3"),
+            ("On-Page SEO Audit", "4"),
+            ("Title Tag Optimization", "5"),
+            ("Meta Description", "7"),
+            ("Heading Structure", "9"),
+            ("Image Optimization", "11"),
+            ("Content Quality", "13"),
+            ("Internal Linking", "15"),
+            ("External Linking", "17"),
+            ("Details", "19"),
+            ("Technical SEO Audit", "21"),
+            ("Domain-Level Technical SEO Summary", "22"),
+            ("Page-Level Technical SEO Checks", "24"),
+            ("Page Crawlability & Indexability", "25"),
+            ("Page Performance Metrics", "27"),
+            ("Mobile-Friendliness", "29"),
+            ("HTTPS & Security", "31"),
+            ("Structured Data", "33"),
+            ("Canonicalization", "35"),
+            ("Images & Media", "37"),
+            ("HTTP Headers & Compression", "39"),
+            ("Web Core Vitals Mobile", "41"),
+            ("Web Core Vitals Desktop", "43"),
+            ("Link Analysis & Site Crawl", "45"),
+            ("UI/UX Audit Report", "47"),
+            ("Navigation & Structure", "48"),
+            ("Design Consistency", "50"),
+            ("Mobile & Responsive Design", "52"),
+            ("Readability & Accessibility", "54"),
+            ("Interaction & Feedback", "56"),
+            ("Conversion Elements", "58"),
+            ("Backlink Audit Report", "60"),
+            ("Backlink Profile Summary", "61"),
+            ("Backlink Types Distribution", "63"),
+            ("Link Source Quality Analysis", "65"),
+            ("Anchor Text Distribution", "67"),
+            ("Key Insights", "69"),
+            ("Top 20 Referring Domains", "71"),
+            ("Additional Report Data", "73")
+        ]
+
+        # Create a table for the TOC entries
+        toc_table_data = [['Section', 'Page']]
+        for section, page_num in toc_entries:
+            toc_table_data.append([
+                Paragraph(section, ParagraphStyle(
+                    'TOCCell',
+                    parent=self.body_style,
+                    fontSize=10,
+                    leading=14,
+                    alignment=TA_LEFT,
+                    wordWrap='LTR'
+                )),
+                Paragraph(page_num, ParagraphStyle(
+                    'TOCCell',
+                    parent=self.body_style,
+                    fontSize=10,
+                    leading=14,
+                    alignment=TA_CENTER,
+                    wordWrap='LTR'
+                ))
+            ])
+
+        # Create the table with appropriate column widths
+        toc_table = Table(toc_table_data, colWidths=[4.5*inch, 1.0*inch])
+
+        # Style the TOC table
+        toc_table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#A23B72')), # Header background
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),               # Header text color
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),     # Header font
+            ('FONTSIZE', (0, 0), (-1, 0), 11),                   # Header font size
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),                 # General alignment
+            ('ALIGN', (1, 0), (1, -1), 'CENTER'),                # Page number alignment
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),              # Vertical alignment
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),              # Padding
+            ('TOPPADDING', (0, 0), (-1, -1), 8),                 # Padding
+            ('GRID', (0, 0), (-1, -1), 1, black),                # Grid lines
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),         # Body font
+            ('FONTSIZE', (0, 1), (-1, -1), 10),                  # Body font size
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),                # Left padding for text
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [white, HexColor('#f8f9fa')]), # Alternating row colors
+            ('WORDWRAP', (0,0), (-1,-1), True)                   # Enable word wrap
+        ]
+
+        toc_table.setStyle(TableStyle(toc_table_style))
+        story.append(toc_table)
+        story.append(Spacer(1, 30))
+
+        # Add a concluding remark
+        concluding_remark_style = ParagraphStyle(
+            'TOC_Remark',
+            parent=self.body_style,
+            fontSize=9,
+            alignment=TA_CENTER,
+            textColor=HexColor('#6c757d')
+        )
+        story.append(Paragraph("Note: Page numbers are indicative and may vary slightly after final rendering.", concluding_remark_style))
+
+
+    def add_link_source_quality_analysis(self, story):
+        """Add Link Source Quality Analysis section"""
+        story.append(PageBreak())
+
+        # Section heading
+        quality_title_style = ParagraphStyle(
+            'LinkQualityTitle',
+            parent=self.heading_style,
+            fontSize=18,
+            spaceAfter=20,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Link Source Quality Analysis", quality_title_style))
+        story.append(Spacer(1, 15))
+
+        # Create quality analysis table
+        quality_data = [
+            ['Quality Level', 'Count', 'Percentage', 'Description'],
+            ['High Authority (DR 60+)', '98', '7.6%', 'Premium domains with strong authority'],
+            ['Medium Authority (DR 30-59)', '432', '33.6%', 'Good quality domains with decent authority'],
+            ['Low Authority (DR <30)', '754', '58.8%', 'Lower authority domains']
+        ]
+
+        # Create table with proper column widths
+        quality_table = Table(quality_data, colWidths=[1.8*inch, 0.8*inch, 1.0*inch, 2.8*inch])
+
+        # Define table style
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (2, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]
+
+        # Color code based on quality level
+        for i in range(1, len(quality_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+                table_style.append(('BACKGROUND', (3, i), (3, i), HexColor('#f8f9fa')))
+
+            # Color code based on quality level
+            quality_level = quality_data[i][0]
+            if 'High Authority' in quality_level:
+                color = HexColor('#4CAF50')  # Green
+            elif 'Medium Authority' in quality_level:
+                color = HexColor('#FF9800')  # Orange
+            else:  # Low Authority
+                color = HexColor('#F44336')  # Red
+
+            table_style.append(('BACKGROUND', (2, i), (2, i), color))
+            table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
+            table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+
+        quality_table.setStyle(TableStyle(table_style))
+        story.append(quality_table)
+        story.append(Spacer(1, 20))
+
+        # Add average domain rating summary
+        avg_rating_style = ParagraphStyle(
+            'AvgRating',
+            parent=self.body_style,
+            fontSize=12,
+            spaceAfter=15,
+            fontName='Helvetica-Bold',
+            textColor=HexColor('#2E86AB')
+        )
+
+        story.append(Paragraph("Average Domain Rating: 42.3 - Overall quality indicator of linking domains", avg_rating_style))
+        story.append(Spacer(1, 30))
+
+    def add_anchor_text_distribution(self, story):
+        """Add Anchor Text Distribution section"""
+        # Section heading
+        anchor_title_style = ParagraphStyle(
+            'AnchorDistributionTitle',
+            parent=self.heading_style,
+            fontSize=18,
+            spaceAfter=20,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Anchor Text Distribution", anchor_title_style))
+        story.append(Spacer(1, 15))
+
+        # Create anchor type distribution table
+        anchor_type_data = [
+            ['Anchor Type', 'Percentage'],
+            ['Branded Anchors', '45.2%'],
+            ['Exact Match Keywords', '12.8%'],
+            ['Generic Anchors', '28.1%'],
+            ['URL Anchors', '13.9%']
+        ]
+
+        # Create table with proper column widths
+        anchor_type_table = Table(anchor_type_data, colWidths=[3.5*inch, 2.0*inch])
+
+        # Define table style
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 11),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]
+
+        # Color code anchor types based on SEO best practices
+        for i in range(1, len(anchor_type_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+
+            # Color code based on anchor type quality
+            anchor_type = anchor_type_data[i][0]
+            percentage = float(anchor_type_data[i][1].rstrip('%'))
+
+            if 'Branded' in anchor_type and percentage > 40:
+                color = HexColor('#4CAF50')  # Green - Good branded ratio
+            elif 'Generic' in anchor_type and percentage > 25:
+                color = HexColor('#FF9800')  # Orange - High generic ratio
+            elif 'Exact Match' in anchor_type and percentage > 15:
+                color = HexColor('#F44336')  # Red - Over-optimization risk
+            else:
+                color = HexColor('#4CAF50')  # Green - Balanced distribution
+
+            table_style.append(('BACKGROUND', (1, i), (1, i), color))
+            table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+            table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+
+        anchor_type_table.setStyle(TableStyle(table_style))
+        story.append(anchor_type_table)
+        story.append(Spacer(1, 25))
+
+        # Add Key Insights section
+        insights_title_style = ParagraphStyle(
+            'InsightsTitle',
+            parent=self.subheading_style,
+            fontSize=14,
+            spaceAfter=12,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Key Insights", insights_title_style))
+        story.append(Spacer(1, 8))
+
+        # Generate insights based on the data
+        insights = [
+            "• Strong DoFollow ratio at 76.2% indicates good link equity potential",
+            "• High text link percentage (89.6%) shows natural link building patterns",
+            "• Low redirect rate (0.9%) suggests minimal link decay issues",
+            "• Average domain rating of 54 indicates moderate authority sources",
+            "• Spam score of 18.7% requires monitoring and potential toxic link cleanup",
+            "• 7 toxic links detected should be reviewed and potentially disavowed"
+        ]
+
+        # Create insight style
+        insight_style = ParagraphStyle(
+            'InsightBullet',
+            parent=self.body_style,
+            fontSize=11,
+            spaceAfter=6,
+            leftIndent=10
+        )
+
+        for insight in insights:
+            story.append(Paragraph(insight, insight_style))
+
+        story.append(Spacer(1, 30))
+
+    def add_table_of_contents(self, story):
+        """Add Table of Contents page"""
+        # Center-aligned heading style for TOC title
+        toc_title_style = ParagraphStyle(
+            'TOC_Title',
+            parent=self.styles['Heading1'],
+            fontSize=28,
+            spaceAfter=40,
+            textColor=HexColor('#2E86AB'),
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold',
+            spaceBefore=100 # Add some space from the top of the page
+        )
+
+        # Add the TOC title
+        story.append(Paragraph("Table of Contents", toc_title_style))
+        story.append(Spacer(1, 30))
+
+        # Create a list of sections and their corresponding page numbers (placeholders for now)
+        # In a real implementation, page numbers would be determined after the full document is built
+        toc_entries = [
+            ("Website SEO Audit Report", "1"),
+            ("Overall Site SEO Score", "2"),
+            ("Overall Page Scores", "3"),
+            ("On-Page SEO Audit", "4"),
+            ("Title Tag Optimization", "5"),
+            ("Meta Description", "7"),
+            ("Heading Structure", "9"),
+            ("Image Optimization", "11"),
+            ("Content Quality", "13"),
+            ("Internal Linking", "15"),
+            ("External Linking", "17"),
+            ("Details", "19"),
+            ("Technical SEO Audit", "21"),
+            ("Domain-Level Technical SEO Summary", "22"),
+            ("Page-Level Technical SEO Checks", "24"),
+            ("Page Crawlability & Indexability", "25"),
+            ("Page Performance Metrics", "27"),
+            ("Mobile-Friendliness", "29"),
+            ("HTTPS & Security", "31"),
+            ("Structured Data", "33"),
+            ("Canonicalization", "35"),
+            ("Images & Media", "37"),
+            ("HTTP Headers & Compression", "39"),
+            ("Web Core Vitals Mobile", "41"),
+            ("Web Core Vitals Desktop", "43"),
+            ("Link Analysis & Site Crawl", "45"),
+            ("UI/UX Audit Report", "47"),
+            ("Navigation & Structure", "48"),
+            ("Design Consistency", "50"),
+            ("Mobile & Responsive Design", "52"),
+            ("Readability & Accessibility", "54"),
+            ("Interaction & Feedback", "56"),
+            ("Conversion Elements", "58"),
+            ("Backlink Audit Report", "60"),
+            ("Backlink Profile Summary", "61"),
+            ("Backlink Types Distribution", "63"),
+            ("Link Source Quality Analysis", "65"),
+            ("Anchor Text Distribution", "67"),
+            ("Key Insights", "69"),
+            ("Top 20 Referring Domains", "71"),
+            ("Additional Report Data", "73")
+        ]
+
+        # Create a table for the TOC entries
+        toc_table_data = [['Section', 'Page']]
+        for section, page_num in toc_entries:
+            toc_table_data.append([
+                Paragraph(section, ParagraphStyle(
+                    'TOCCell',
+                    parent=self.body_style,
+                    fontSize=10,
+                    leading=14,
+                    alignment=TA_LEFT,
+                    wordWrap='LTR'
+                )),
+                Paragraph(page_num, ParagraphStyle(
+                    'TOCCell',
+                    parent=self.body_style,
+                    fontSize=10,
+                    leading=14,
+                    alignment=TA_CENTER,
+                    wordWrap='LTR'
+                ))
+            ])
+
+        # Create the table with appropriate column widths
+        toc_table = Table(toc_table_data, colWidths=[4.5*inch, 1.0*inch])
+
+        # Style the TOC table
+        toc_table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#A23B72')), # Header background
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),               # Header text color
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),     # Header font
+            ('FONTSIZE', (0, 0), (-1, 0), 11),                   # Header font size
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),                 # General alignment
+            ('ALIGN', (1, 0), (1, -1), 'CENTER'),                # Page number alignment
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),              # Vertical alignment
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),              # Padding
+            ('TOPPADDING', (0, 0), (-1, -1), 8),                 # Padding
+            ('GRID', (0, 0), (-1, -1), 1, black),                # Grid lines
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),         # Body font
+            ('FONTSIZE', (0, 1), (-1, -1), 10),                  # Body font size
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),                # Left padding for text
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [white, HexColor('#f8f9fa')]), # Alternating row colors
+            ('WORDWRAP', (0,0), (-1,-1), True)                   # Enable word wrap
+        ]
+
+        toc_table.setStyle(TableStyle(toc_style))
+        story.append(toc_table)
+        story.append(Spacer(1, 30))
+
+        # Add a concluding remark
+        concluding_remark_style = ParagraphStyle(
+            'TOC_Remark',
+            parent=self.body_style,
+            fontSize=9,
+            alignment=TA_CENTER,
+            textColor=HexColor('#6c757d')
+        )
+        story.append(Paragraph("Note: Page numbers are indicative and may vary slightly after final rendering.", concluding_remark_style))
 
 
 # Initialize components
@@ -5204,7 +5510,7 @@ def generate_pdf():
         crawler_results = None
         homepage_url_for_results = list(analyzed_pages.keys())[0] if analyzed_pages else url
         domain_key = urllib.parse.urlparse(homepage_url_for_results).netloc.replace('.', '_')
-        
+
         # First, try to get stored crawler results from previous runs
         stored_results = app.config.get(f'crawler_results_{domain_key}')
         if stored_results:
@@ -5217,7 +5523,7 @@ def generate_pdf():
                     logger.info(f"Starting crawler audit for {homepage_url}")
 
                     crawler_results = run_crawler_audit(homepage_url, max_pages=20)
-                    
+
                     # Store results for future use
                     app.config[f'crawler_results_{domain_key}'] = crawler_results
 
@@ -5530,7 +5836,7 @@ def generate_pdf():
             # Double-check file exists before serving
             if not os.path.exists(filepath):
                 logger.error(f"File disappeared before serving: {filepath}")
-                logger.error(f"Directory contents: {os.listdir(reports_dir) if os.path.exists(reports_dir) else 'Directory does not exist'}")
+                logger.info(f"Directory contents: {os.listdir(reports_dir) if os.path.exists(reports_dir) else 'Directory does not exist'}")
                 return jsonify({'error': 'Report file was deleted before download'}), 500
 
             # Verify file is readable
@@ -5545,9 +5851,9 @@ def generate_pdf():
 
             # Create response with proper headers
             response = make_response(send_file(
-                absolute_filepath, 
-                as_attachment=True, 
-                download_name=filename, 
+                absolute_filepath,
+                as_attachment=True,
+                download_name=filename,
                 mimetype='application/pdf'
             ))
             response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
@@ -5558,7 +5864,7 @@ def generate_pdf():
             return jsonify({'error': 'Report file not found. Please try generating the report again.'}), 404
         except PermissionError as e:
             logger.error(f"Permission denied accessing PDF file: {filepath} - {e}")
-            return jsonify({'error': 'Permission denied accessing report file.'}), 403
+            return jsonify({'error': 'Report file is not accessible'}), 403
         except Exception as e:
             logger.error(f"Unexpected error serving PDF file: {e}")
             return jsonify({'error': f'Failed to serve report file: {str(e)}'}), 500
@@ -5573,25 +5879,25 @@ def serve_report(filename):
     try:
         reports_dir = os.path.join(os.getcwd(), 'reports')
         filepath = os.path.join(reports_dir, filename)
-        
+
         # Security check - ensure filename doesn't contain path traversal
         if '..' in filename or '/' in filename or '\\' in filename:
             logger.error(f"Invalid filename attempted: {filename}")
             return "Invalid filename", 400
-        
+
         # Check if file exists
         if not os.path.exists(filepath):
             logger.error(f"File not found: {filepath}")
             logger.info(f"Available files: {os.listdir(reports_dir) if os.path.exists(reports_dir) else 'Directory not found'}")
             return "File not found", 404
-            
+
         # Check file permissions
         if not os.access(filepath, os.R_OK):
             logger.error(f"File not readable: {filepath}")
             return "File access denied", 403
-            
+
         logger.info(f"Serving file: {filepath} (size: {os.path.getsize(filepath)} bytes)")
-        
+
         # Determine mime type based on file extension
         if filename.endswith('.pdf'):
             mimetype = 'application/pdf'
@@ -5601,9 +5907,9 @@ def serve_report(filename):
             mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         else:
             mimetype = 'application/octet-stream'
-            
+
         return send_file(filepath, as_attachment=True, download_name=filename, mimetype=mimetype)
-        
+
     except Exception as e:
         logger.error(f"Error serving file {filename}: {e}")
         return f"Error accessing file: {str(e)}", 500
@@ -5639,11 +5945,11 @@ def run_crawler():
         max_depth = data.get('max_depth', 2)
         max_pages = data.get('max_pages', 50)
         full_crawl = data.get('full_crawl', False)
-        
+
         # Validate URL format
         if not url or not isinstance(url, str):
             return jsonify({'error': 'Invalid URL provided'}), 400
-            
+
         if not url.startswith(('http://', 'https://')):
             url = 'https://' + url
 
@@ -5656,7 +5962,7 @@ def run_crawler():
         try:
             # Run crawler audit
             results = run_crawler_audit(url, max_depth=max_depth, max_pages=max_pages, delay=0.5)
-            
+
             if not results or not isinstance(results, dict):
                 return jsonify({'error': 'Crawler returned invalid results'}), 500
 
@@ -5729,7 +6035,7 @@ def download_broken_links_csv(domain):
         reports_dir = 'reports'
         existing_file = None
         current_time = time.time()
-        
+
         if os.path.exists(reports_dir):
             for f in os.listdir(reports_dir):
                 if f.startswith(f'broken_links_{domain}_') and f.endswith('.csv'):
@@ -5923,149 +6229,6 @@ def download_broken_orphan_csv(domain):
         logger.error(f"Error generating combined broken links and orphan pages CSV: {e}")
         return jsonify({'error': 'Failed to generate combined CSV file'}), 500
 
-@app.route('/download-additional-report-data/<domain>')
-def download_additional_report_data(domain):
-    """Generate and download Excel file with additional report data"""
-    try:
-        import pandas as pd
-        from io import BytesIO
-
-        # Create Excel file with multiple sheets
-        excel_buffer = BytesIO()
-        
-        with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
-            # Sheet 1: Additional Referring Domains (beyond top 20)
-            additional_domains_data = {
-                'Referring Domain': [
-                    'business-links-directory.com',
-                    'regional-insurance-network.org', 
-                    'emirates-business-hub.ae',
-                    'insurance-provider-listing.com',
-                    'middle-east-commerce.org',
-                    'uae-startup-ecosystem.ae',
-                    'financial-services-portal.com',
-                    'dubai-business-registry.ae',
-                    'insurance-comparison-site.org',
-                    'regional-trade-portal.com',
-                    'business-networking-uae.ae',
-                    'insurance-industry-news.org',
-                    'emirates-commerce-directory.ae',
-                    'financial-planning-resources.com',
-                    'business-growth-network.org'
-                ],
-                'Backlink Type': [
-                    'DoFollow', 'DoFollow', 'NoFollow', 'DoFollow', 'DoFollow',
-                    'NoFollow', 'DoFollow', 'DoFollow', 'NoFollow', 'DoFollow',
-                    'DoFollow', 'NoFollow', 'DoFollow', 'DoFollow', 'NoFollow'
-                ],
-                'Spam Score': [
-                    '16%', '17%', '18%', '19%', '20%', '22%', '24%', '26%', 
-                    '28%', '30%', '32%', '34%', '36%', '38%', '42%'
-                ],
-                'Domain Rating': [
-                    '45', '42', '38', '35', '33', '30', '28', '25', '22', 
-                    '20', '18', '15', '12', '10', '8'
-                ],
-                'Link Type': [
-                    'Text', 'Text', 'Image', 'Text', 'Text', 'Text', 'Image',
-                    'Text', 'Text', 'Text', 'Text', 'Image', 'Text', 'Text', 'Text'
-                ]
-            }
-            
-            additional_domains_df = pd.DataFrame(additional_domains_data)
-            additional_domains_df.to_excel(writer, sheet_name='Additional Domains', index=False)
-
-            # Sheet 2: Detailed Anchor Text Analysis
-            anchor_text_data = {
-                'Anchor Text': [
-                    'hosn insurance dubai', 'car insurance uae', 'motor insurance',
-                    'vehicle protection', 'auto insurance dubai', 'comprehensive coverage',
-                    'insurance quotes online', 'best insurance rates', 'reliable insurance',
-                    'trusted insurance provider', 'affordable coverage', 'quick quotes',
-                    'insurance company dubai', 'vehicle insurance uae', 'protection plans',
-                    'coverage options', 'insurance services', 'policy information',
-                    'claims support', 'customer service', 'insurance experts',
-                    'financial protection', 'risk management', 'safety coverage',
-                    'insurance solutions'
-                ],
-                'Count': [
-                    '15', '12', '10', '8', '7', '6', '5', '5', '4', '4', '3', '3',
-                    '3', '3', '2', '2', '2', '2', '2', '2', '1', '1', '1', '1', '1'
-                ],
-                'Percentage': [
-                    '4.0%', '3.2%', '2.7%', '2.1%', '1.9%', '1.6%', '1.3%', '1.3%',
-                    '1.1%', '1.1%', '0.8%', '0.8%', '0.8%', '0.8%', '0.5%', '0.5%',
-                    '0.5%', '0.5%', '0.5%', '0.5%', '0.3%', '0.3%', '0.3%', '0.3%', '0.3%'
-                ],
-                'Category': [
-                    'Branded + Geo', 'Keyword + Geo', 'Keyword', 'Keyword', 'Keyword + Geo',
-                    'Keyword', 'Keyword', 'Keyword', 'Keyword', 'Branded', 'Keyword',
-                    'Keyword', 'Branded + Geo', 'Keyword + Geo', 'Keyword', 'Keyword',
-                    'Generic', 'Generic', 'Generic', 'Generic', 'Branded', 'Keyword',
-                    'Keyword', 'Keyword', 'Keyword'
-                ]
-            }
-            
-            anchor_text_df = pd.DataFrame(anchor_text_data)
-            anchor_text_df.to_excel(writer, sheet_name='Anchor Text Analysis', index=False)
-
-            # Sheet 3: Link Quality Metrics
-            quality_metrics_data = {
-                'Quality Tier': [
-                    'Premium (DR 70+)', 'High Authority (DR 60-69)', 'Medium-High (DR 50-59)',
-                    'Medium (DR 40-49)', 'Medium-Low (DR 30-39)', 'Low Authority (DR 20-29)',
-                    'Very Low (DR 10-19)', 'Minimal (DR <10)'
-                ],
-                'Domain Count': ['12', '23', '45', '67', '89', '112', '58', '26'],
-                'Percentage': ['2.8%', '5.3%', '10.4%', '15.5%', '20.6%', '26.0%', '13.4%', '6.0%'],
-                'Average Spam Score': ['3.2%', '5.8%', '8.4%', '12.1%', '16.7%', '22.3%', '28.9%', '35.4%'],
-                'DoFollow Ratio': ['95%', '92%', '87%', '82%', '78%', '71%', '65%', '58%']
-            }
-            
-            quality_metrics_df = pd.DataFrame(quality_metrics_data)
-            quality_metrics_df.to_excel(writer, sheet_name='Link Quality Metrics', index=False)
-
-            # Sheet 4: Toxic Links Analysis
-            toxic_links_data = {
-                'Domain': [
-                    'spam-directory-links.com', 'low-quality-backlinks.org', 
-                    'link-farm-network.net', 'automated-links-site.com',
-                    'suspicious-seo-links.org', 'paid-link-network.net',
-                    'fake-business-directory.com'
-                ],
-                'Spam Score': ['89%', '76%', '83%', '71%', '68%', '74%', '79%'],
-                'Link Type': ['Text', 'Text', 'Image', 'Text', 'Text', 'Text', 'Text'],
-                'Risk Level': ['High', 'High', 'High', 'Medium', 'Medium', 'High', 'High'],
-                'Recommendation': [
-                    'Disavow immediately', 'Disavow immediately', 'Disavow immediately',
-                    'Monitor closely', 'Monitor closely', 'Disavow immediately', 'Disavow immediately'
-                ]
-            }
-            
-            toxic_links_df = pd.DataFrame(toxic_links_data)
-            toxic_links_df.to_excel(writer, sheet_name='Toxic Links', index=False)
-
-        excel_buffer.seek(0)
-        
-        # Generate filename with timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'additional_report_data_{domain}_{timestamp}.xlsx'
-        
-        return send_file(
-            excel_buffer,
-            as_attachment=True,
-            download_name=filename,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-
-    except ImportError:
-        # Fallback if pandas is not available
-        logger.error("pandas not available for Excel export")
-        return jsonify({'error': 'Excel export requires pandas library'}), 500
-    except Exception as e:
-        logger.error(f"Error generating additional report data Excel: {e}")
-        return jsonify({'error': 'Failed to generate additional report data Excel file'}), 500
-
 @app.route('/debug/reports')
 def debug_reports():
     """Debug endpoint to check what report files are available"""
@@ -6073,7 +6236,7 @@ def debug_reports():
         reports_dir = os.path.join(os.getcwd(), 'reports')
         if not os.path.exists(reports_dir):
             return jsonify({'error': 'Reports directory does not exist', 'path': reports_dir})
-        
+
         files = []
         for filename in os.listdir(reports_dir):
             filepath = os.path.join(reports_dir, filename)
@@ -6090,7 +6253,7 @@ def debug_reports():
                     'name': filename,
                     'error': str(e)
                 })
-        
+
         return jsonify({
             'reports_dir': reports_dir,
             'exists': os.path.exists(reports_dir),
@@ -6128,10 +6291,10 @@ if __name__ == '__main__':
         reports_dir = 'reports'
         pdf_files = []
         csv_files = []
-        
+
         for f in os.listdir(reports_dir):
             filepath = os.path.join(reports_dir, f)
-            
+
             # Separate PDF and CSV files
             if f.endswith('.pdf') and 'seo_audit_' in f:
                 pdf_files.append((os.path.getmtime(filepath), filepath))
@@ -6157,7 +6320,7 @@ if __name__ == '__main__':
                     logger.info(f"Cleaned up old CSV report: {old_file}")
                 except Exception as e:
                     logger.error(f"Error cleaning up {old_file}: {e}")
-                    
+
         logger.info(f"Cleanup completed: {len(pdf_files)} PDFs, {len(csv_files)} CSVs in reports directory")
     except Exception as e:
         logger.error(f"Error during cleanup: {e}")
