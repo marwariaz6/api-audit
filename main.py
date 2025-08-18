@@ -4549,11 +4549,10 @@ class PDFReportGenerator:
             textColor=HexColor('#2E86AB')
         )
 
-        # Use the stored timestamp for consistent filenames
-        stored_timestamp = app.config.get(f'csv_timestamp_{domain_for_csv}', datetime.now().strftime('%Y%m%d_%H%M%S'))
-        broken_filename = f"broken_links_{domain_for_csv}_{stored_timestamp}.csv"
-        orphan_filename = f"orphan_pages_{domain_for_csv}_{stored_timestamp}.csv"
-        referring_filename = f"referring_domains_{domain_for_csv}_{stored_timestamp}.csv"
+        # Use consistent filenames without timestamps
+        broken_filename = f"broken_links_{domain_for_csv}.csv"
+        orphan_filename = f"orphan_pages_{domain_for_csv}.csv"
+        referring_filename = f"referring_domains_{domain_for_csv}.csv"
 
         broken_link_text = f'• <link href="/reports/{broken_filename}" color="#2E86AB"><b>Broken Link File</b></link> - Download CSV with all broken links found'
         orphan_link_text = f'• <link href="/reports/{orphan_filename}" color="#2E86AB"><b>Orphan Page File</b></link> - Download CSV with all orphan pages found'
@@ -5421,7 +5420,7 @@ def generate_pdf():
         # Generate filename with absolute path
         domain = urllib.parse.urlparse(url).netloc
         domain_for_filename = re.sub(r'[^\w\-_\.]', '_', domain)
-        filename = f"seo_audit_{domain_for_filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        filename = f"seo_audit_{domain_for_filename}.pdf"
 
         # Use absolute path to avoid any path issues
         current_dir = os.getcwd()
@@ -5780,15 +5779,11 @@ def generate_pdf():
                 'crawl_url': homepage_url_for_fallback
             }
 
-        # Generate a single timestamp for all files to ensure consistency
-        global_timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        # Generate CSV files without timestamps
         domain_for_csv = urllib.parse.urlparse(homepage_url_for_results).netloc.replace('.', '_')
         
-        # Store the timestamp globally so PDF generation can use the same one
-        app.config[f'csv_timestamp_{domain_for_csv}'] = global_timestamp
-        
         # Generate broken links CSV
-        broken_filename = f"broken_links_{domain_for_csv}_{global_timestamp}.csv"
+        broken_filename = f"broken_links_{domain_for_csv}.csv"
         broken_filepath = os.path.join(reports_dir, broken_filename)
         
         if crawler_results and crawler_results.get('broken_links'):
@@ -5816,7 +5811,7 @@ def generate_pdf():
             writer.writerows(broken_links_data)
         
         # Generate orphan pages CSV
-        orphan_filename = f"orphan_pages_{domain_for_csv}_{global_timestamp}.csv"
+        orphan_filename = f"orphan_pages_{domain_for_csv}.csv"
         orphan_filepath = os.path.join(reports_dir, orphan_filename)
         
         if crawler_results and crawler_results.get('orphan_pages'):
@@ -5842,7 +5837,7 @@ def generate_pdf():
             writer.writerows(orphan_pages_data)
         
         # Generate referring domains CSV (sample data)
-        referring_filename = f"referring_domains_{domain_for_csv}_{global_timestamp}.csv"
+        referring_filename = f"referring_domains_{domain_for_csv}.csv"
         referring_filepath = os.path.join(reports_dir, referring_filename)
         
         referring_domains_data = [
@@ -5858,7 +5853,7 @@ def generate_pdf():
             writer = csv.writer(csvfile)
             writer.writerows(referring_domains_data)
         
-        logger.info(f"Generated CSV files with timestamp: {global_timestamp}")
+        logger.info(f"Generated CSV files for domain: {domain_for_csv}")
 
         # Generate comprehensive multi-page PDF report with crawler data
         result = pdf_generator.generate_multi_page_report(analyzed_pages, overall_stats, filepath, crawler_results)
@@ -6111,9 +6106,8 @@ def download_broken_links_csv(domain):
                 mimetype='text/csv'
             )
         
-        # If no existing file found, generate one with consistent timestamp
-        timestamp = "20250120_143022"  # Use consistent timestamp
-        filename = f'broken_links_{domain}_{timestamp}.csv'
+        # If no existing file found, generate one without timestamp
+        filename = f'broken_links_{domain}.csv'
         filepath = os.path.join(reports_dir, filename)
         
         # Check if this specific file already exists
@@ -6191,9 +6185,8 @@ def download_orphan_pages_csv(domain):
                 mimetype='text/csv'
             )
         
-        # If no existing file found, generate one with consistent timestamp
-        timestamp = "20250120_143022"  # Use consistent timestamp
-        filename = f'orphan_pages_{domain}_{timestamp}.csv'
+        # If no existing file found, generate one without timestamp
+        filename = f'orphan_pages_{domain}.csv'
         filepath = os.path.join(reports_dir, filename)
         
         # Check if this specific file already exists
@@ -6271,9 +6264,8 @@ def download_referring_domains_csv(domain):
                 mimetype='text/csv'
             )
         
-        # If no existing file found, generate one with consistent timestamp
-        timestamp = "20250120_143022"  # Use consistent timestamp
-        filename = f'referring_domains_{domain}_{timestamp}.csv'
+        # If no existing file found, generate one without timestamp
+        filename = f'referring_domains_{domain}.csv'
         filepath = os.path.join(reports_dir, filename)
         
         # Check if this specific file already exists
