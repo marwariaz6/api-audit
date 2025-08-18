@@ -4992,7 +4992,8 @@ class PDFReportGenerator:
             ('TEXTCOLOR', (0, 0), (-1, 0), white),               # Header text color
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),     # Header font
             ('FONTSIZE', (0, 0), (-1, 0), 11),                   # Header font size
-            ('ALIGN', (0, 0), (-1, -1), '                ('ALIGN', (1, 0), (1, -1), 'CENTER'),                # Page number alignment
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),                 # General alignment
+            ('ALIGN', (1, 0), (1, -1), 'CENTER'),                # Page number alignment
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),              # Vertical alignment
             ('BOTTOMPADDING', (0, 0), (-1, -1), 8),              # Padding
             ('TOPPADDING', (0, 0), (-1, -1), 8),                 # Padding
