@@ -5392,7 +5392,7 @@ class PDFReportGenerator:
             ('WORDWRAP', (0,0), (-1,-1), True)                   # Enable word wrap
         ]
 
-        toc_table.setStyle(TableStyle(toc_style))
+        toc_table.setStyle(TableStyle(toc_table_style))
         story.append(toc_table)
         story.append(Spacer(1, 30))
 
