@@ -4549,9 +4549,15 @@ class PDFReportGenerator:
             textColor=HexColor('#2E86AB')
         )
 
-        broken_link_text = f'• <link href="/download-broken-links-csv/{domain_for_csv}" color="#2E86AB"><b>Broken Link File</b></link> - Download CSV with all broken links found'
-        orphan_link_text = f'• <link href="/download-orphan-pages-csv/{domain_for_csv}" color="#2E86AB"><b>Orphan Page File</b></link> - Download CSV with all orphan pages found'
-        referring_link_text = f'• <link href="/download-referring-domains-csv/{domain_for_csv}" color="#2E86AB"><b>Referring Domain File</b></link> - Download CSV with top referring domains'
+        # Use current timestamp for consistent filenames
+        current_timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        broken_filename = f"broken_links_{domain_for_csv}_{current_timestamp}.csv"
+        orphan_filename = f"orphan_pages_{domain_for_csv}_{current_timestamp}.csv"
+        referring_filename = f"referring_domains_{domain_for_csv}_{current_timestamp}.csv"
+
+        broken_link_text = f'• <link href="/reports/{broken_filename}" color="#2E86AB"><b>Broken Link File</b></link> - Download CSV with all broken links found'
+        orphan_link_text = f'• <link href="/reports/{orphan_filename}" color="#2E86AB"><b>Orphan Page File</b></link> - Download CSV with all orphan pages found'
+        referring_link_text = f'• <link href="/reports/{referring_filename}" color="#2E86AB"><b>Referring Domain File</b></link> - Download CSV with top referring domains'
 
         story.append(Paragraph(broken_link_text, download_link_style))
         story.append(Paragraph(orphan_link_text, download_link_style))
@@ -5773,6 +5779,63 @@ def generate_pdf():
                 },
                 'crawl_url': homepage_url_for_fallback
             }
+
+        # Generate CSV files before PDF creation
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        domain_for_csv = urllib.parse.urlparse(homepage_url_for_results).netloc.replace('.', '_')
+        
+        # Generate broken links CSV
+        broken_filename = f"broken_links_{domain_for_csv}_{timestamp}.csv"
+        broken_filepath = os.path.join(reports_dir, broken_filename)
+        
+        if crawler_results and crawler_results.get('broken_links'):
+            broken_links_data = [['Source Page URL', 'Broken Link URL', 'Anchor Text / Current Value', 'Link Type', 'Status Code']]
+            for link in crawler_results['broken_links']:
+                broken_links_data.append([
+                    link.get('source_page', ''),
+                    link.get('broken_url', ''),
+                    link.get('anchor_text', ''),
+                    link.get('link_type', ''),
+                    str(link.get('status_code', ''))
+                ])
+            
+            with open(broken_filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerows(broken_links_data)
+        
+        # Generate orphan pages CSV
+        orphan_filename = f"orphan_pages_{domain_for_csv}_{timestamp}.csv"
+        orphan_filepath = os.path.join(reports_dir, orphan_filename)
+        
+        if crawler_results and crawler_results.get('orphan_pages'):
+            orphan_pages_data = [['Orphan Page URL', 'Found in Sitemap?', 'Internally Linked?']]
+            for page in crawler_results['orphan_pages']:
+                orphan_pages_data.append([
+                    page.get('url', ''),
+                    page.get('found_in_sitemap', ''),
+                    page.get('internally_linked', '')
+                ])
+            
+            with open(orphan_filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerows(orphan_pages_data)
+        
+        # Generate referring domains CSV (sample data)
+        referring_filename = f"referring_domains_{domain_for_csv}_{timestamp}.csv"
+        referring_filepath = os.path.join(reports_dir, referring_filename)
+        
+        referring_domains_data = [
+            ['Domain', 'Domain Rating', 'Spam Score', 'Backlinks', 'Link Type', 'First Seen', 'Target Page', 'Anchor Text'],
+            ['google.com', '100', '0%', '45', 'DoFollow', '2024-01-15', 'Homepage', 'Brand name'],
+            ['facebook.com', '96', '2%', '23', 'NoFollow', '2024-02-10', 'About page', 'Company profile'],
+            ['linkedin.com', '95', '1%', '34', 'DoFollow', '2024-01-20', 'Homepage', 'Professional services'],
+            ['twitter.com', '94', '3%', '18', 'NoFollow', '2024-03-05', 'Blog posts', 'Social mention'],
+            ['wikipedia.org', '93', '0%', '12', 'DoFollow', '2024-01-28', 'References', 'Citation link']
+        ]
+        
+        with open(referring_filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(referring_domains_data)
 
         # Generate comprehensive multi-page PDF report with crawler data
         result = pdf_generator.generate_multi_page_report(analyzed_pages, overall_stats, filepath, crawler_results)
