@@ -4520,18 +4520,6 @@ class PDFReportGenerator:
 
         story.append(Spacer(1, 15))
 
-        # Add summary note
-        summary_style = ParagraphStyle(
-            'DomainsSummary',
-            parent=self.body_style,
-            fontSize=11,
-            spaceAfter=15,
-            alignment=TA_CENTER,
-            fontName='Helvetica-Bold',
-            textColor=HexColor('#2E86AB')
-        )
-
-        story.append(Paragraph("Download additional report data here", summary_style))
         story.append(Spacer(1, 30))
 
     def add_backlink_profile_summary(self, story):
