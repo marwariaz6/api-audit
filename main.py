@@ -4504,6 +4504,30 @@ class PDFReportGenerator:
 
         story.append(Spacer(1, 15))
 
+        # Add Download Additional Report Data section
+        download_title_style = ParagraphStyle(
+            'DownloadTitle',
+            parent=self.subheading_style,
+            fontSize=14,
+            spaceAfter=12,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )
+
+        story.append(Paragraph("Download Additional Report Data", download_title_style))
+        story.append(Spacer(1, 8))
+
+        # Add download information text
+        download_info_style = ParagraphStyle(
+            'DownloadInfo',
+            parent=self.body_style,
+            fontSize=11,
+            spaceAfter=6,
+            leftIndent=10
+        )
+
+        story.append(Paragraph("• Download additional report data here", download_info_style))
+
         story.append(Spacer(1, 30))
 
     def add_backlink_profile_summary(self, story):
