@@ -4666,7 +4666,77 @@ class PDFReportGenerator:
         story.append(Paragraph("Backlink Types Distribution", distribution_title_style))
         story.append(Spacer(1, 15))
 
-        # Create anchor type distribution table
+        # Create backlink types distribution table
+        backlink_types_data = [
+            ['Link Type', 'Count', 'Percentage'],
+            ['DoFollow Links', '978', '76.2%'],
+            ['NoFollow Links', '306', '23.8%'],
+            ['Text Links', '1,150', '89.6%'],
+            ['Image Links', '134', '10.4%'],
+            ['Redirects', '12', '0.9%']
+        ]
+
+        # Create table with proper column widths
+        backlink_types_table = Table(backlink_types_data, colWidths=[2.5*inch, 1.5*inch, 1.5*inch])
+
+        # Define table style
+        table_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 11),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]
+
+        # Color code based on link type quality
+        for i in range(1, len(backlink_types_data)):
+            # Alternate row backgrounds
+            if i % 2 == 0:
+                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+
+            # Color code based on link type quality
+            link_type = backlink_types_data[i][0]
+            percentage = float(backlink_types_data[i][2].rstrip('%'))
+
+            if 'DoFollow' in link_type and percentage > 70:
+                color = HexColor('#4CAF50')  # Green - Good DoFollow ratio
+            elif 'NoFollow' in link_type and percentage < 30:
+                color = HexColor('#4CAF50')  # Green - Balanced NoFollow ratio
+            elif 'Text Links' in link_type and percentage > 85:
+                color = HexColor('#4CAF50')  # Green - Good text link ratio
+            elif 'Image Links' in link_type and percentage < 15:
+                color = HexColor('#4CAF50')  # Green - Balanced image link ratio
+            elif 'Redirects' in link_type and percentage < 5:
+                color = HexColor('#4CAF50')  # Green - Low redirect rate
+            else:
+                color = HexColor('#FF9800')  # Orange - Moderate
+
+            table_style.append(('BACKGROUND', (2, i), (2, i), color))
+            table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
+            table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
+
+        backlink_types_table.setStyle(TableStyle(table_style))
+        story.append(backlink_types_table)
+        story.append(Spacer(1, 25))
+
+        # Add anchor type distribution table
+        story.append(Paragraph("Anchor Text Types Distribution", ParagraphStyle(
+            'AnchorTypesTitle',
+            parent=self.subheading_style,
+            fontSize=16,
+            spaceAfter=15,
+            textColor=HexColor('#2E86AB'),
+            fontName='Helvetica-Bold'
+        )))
+        story.append(Spacer(1, 10))
+
         anchor_type_data = [
             ['Anchor Type', 'Percentage'],
             ['Branded Anchors', '45.2%'],
@@ -4679,7 +4749,7 @@ class PDFReportGenerator:
         anchor_type_table = Table(anchor_type_data, colWidths=[3.5*inch, 2.0*inch])
 
         # Define table style
-        table_style = [
+        anchor_table_style = [
             ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
             ('TEXTCOLOR', (0, 0), (-1, 0), white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -4698,7 +4768,7 @@ class PDFReportGenerator:
         for i in range(1, len(anchor_type_data)):
             # Alternate row backgrounds
             if i % 2 == 0:
-                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
+                anchor_table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
 
             # Color code based on anchor type quality
             anchor_type = anchor_type_data[i][0]
@@ -4713,11 +4783,11 @@ class PDFReportGenerator:
             else:
                 color = HexColor('#4CAF50')  # Green - Balanced distribution
 
-            table_style.append(('BACKGROUND', (1, i), (1, i), color))
-            table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
-            table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
+            anchor_table_style.append(('BACKGROUND', (1, i), (1, i), color))
+            anchor_table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
+            anchor_table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
 
-        anchor_type_table.setStyle(TableStyle(table_style))
+        anchor_type_table.setStyle(TableStyle(anchor_table_style))
         story.append(anchor_type_table)
         story.append(Spacer(1, 25))
 
