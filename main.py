@@ -5875,21 +5875,39 @@ def generate_pdf():
         logger.info(f"Generated report: {filename} ({file_size} bytes)")
 
         try:
+            # Wait a moment for file system to sync
+            time.sleep(0.5)
+            
             # Double-check file exists before serving
             if not os.path.exists(filepath):
                 logger.error(f"File disappeared before serving: {filepath}")
                 logger.info(f"Directory contents: {os.listdir(reports_dir) if os.path.exists(reports_dir) else 'Directory does not exist'}")
-                return jsonify({'error': 'Report file was deleted before download'}), 500
+                
+                # Try to find the file with a different approach
+                for file in os.listdir(reports_dir):
+                    if file.endswith('.pdf') and domain_for_filename in file:
+                        found_filepath = os.path.join(reports_dir, file)
+                        logger.info(f"Found alternative file: {found_filepath}")
+                        filepath = found_filepath
+                        filename = file
+                        break
+                else:
+                    return jsonify({'error': 'Report file was deleted before download'}), 500
 
-            # Verify file is readable
+            # Verify file is readable and has content
             if not os.access(filepath, os.R_OK):
                 logger.error(f"File not readable: {filepath}")
                 return jsonify({'error': 'Report file is not accessible'}), 500
+            
+            file_size = os.path.getsize(filepath)
+            if file_size == 0:
+                logger.error(f"File is empty: {filepath}")
+                return jsonify({'error': 'Generated report file is empty'}), 500
 
             # Use absolute path for serving
             absolute_filepath = os.path.abspath(filepath)
             logger.info(f"Serving file from absolute path: {absolute_filepath}")
-            logger.info(f"File size before serving: {os.path.getsize(absolute_filepath)} bytes")
+            logger.info(f"File size before serving: {file_size} bytes")
 
             # Create response with proper headers
             response = make_response(send_file(
@@ -5900,6 +5918,10 @@ def generate_pdf():
             ))
             response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
             response.headers['Content-Type'] = 'application/pdf'
+            response.headers['Content-Length'] = str(file_size)
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
             return response
         except FileNotFoundError as e:
             logger.error(f"PDF file not found when serving: {filepath} - {e}")
