@@ -5140,31 +5140,31 @@ class PDFReportGenerator:
 
         # Create detailed anchor text table
         detailed_anchor_data = [
-            ['Anchor Text', 'Count', 'Percentage', 'Link Type', 'Risk Level'],
-            ['Hosn Insurance', '234', '18.2%', 'Branded', 'Low'],
-            ['car insurance UAE', '98', '7.6%', 'Exact Match', 'Medium'],
-            ['click here', '156', '12.1%', 'Generic', 'Low'],
-            ['https://hosninsurance.ae', '89', '6.9%', 'URL', 'Low'],
-            ['best insurance company', '67', '5.2%', 'Partial Match', 'Medium'],
-            ['Dubai insurance', '54', '4.2%', 'Partial Match', 'Medium'],
-            ['auto insurance', '43', '3.3%', 'Exact Match', 'High'],
-            ['visit website', '87', '6.8%', 'Generic', 'Low'],
-            ['Hosn Insurance Dubai', '76', '5.9%', 'Branded', 'Low'],
-            ['insurance services', '45', '3.5%', 'Partial Match', 'Medium'],
-            ['read more', '123', '9.6%', 'Generic', 'Low'],
-            ['vehicle insurance UAE', '32', '2.5%', 'Exact Match', 'High'],
-            ['UAE insurance provider', '28', '2.2%', 'Partial Match', 'Medium'],
-            ['learn more', '91', '7.1%', 'Generic', 'Low'],
-            ['comprehensive coverage', '21', '1.6%', 'Partial Match', 'Medium'],
-            ['motor insurance', '19', '1.5%', 'Exact Match', 'High'],
-            ['insurance quotes', '17', '1.3%', 'Partial Match', 'Medium'],
-            ['get quote', '25', '1.9%', 'Generic', 'Low'],
-            ['Hosn', '35', '2.7%', 'Branded', 'Low'],
-            ['homepage', '14', '1.1%', 'Generic', 'Low']
+            ['Anchor Text', 'Count', 'Percentage', 'Link Type'],
+            ['Hosn Insurance', '234', '18.2%', 'Branded'],
+            ['car insurance UAE', '98', '7.6%', 'Exact Match'],
+            ['click here', '156', '12.1%', 'Generic'],
+            ['https://hosninsurance.ae', '89', '6.9%', 'URL'],
+            ['best insurance company', '67', '5.2%', 'Partial Match'],
+            ['Dubai insurance', '54', '4.2%', 'Partial Match'],
+            ['auto insurance', '43', '3.3%', 'Exact Match'],
+            ['visit website', '87', '6.8%', 'Generic'],
+            ['Hosn Insurance Dubai', '76', '5.9%', 'Branded'],
+            ['insurance services', '45', '3.5%', 'Partial Match'],
+            ['read more', '123', '9.6%', 'Generic'],
+            ['vehicle insurance UAE', '32', '2.5%', 'Exact Match'],
+            ['UAE insurance provider', '28', '2.2%', 'Partial Match'],
+            ['learn more', '91', '7.1%', 'Generic'],
+            ['comprehensive coverage', '21', '1.6%', 'Partial Match'],
+            ['motor insurance', '19', '1.5%', 'Exact Match'],
+            ['insurance quotes', '17', '1.3%', 'Partial Match'],
+            ['get quote', '25', '1.9%', 'Generic'],
+            ['Hosn', '35', '2.7%', 'Branded'],
+            ['homepage', '14', '1.1%', 'Generic']
         ]
 
         # Create table with proper column widths
-        detailed_anchor_table = Table(detailed_anchor_data, colWidths=[2.2*inch, 0.8*inch, 1.0*inch, 1.2*inch, 1.0*inch])
+        detailed_anchor_table = Table(detailed_anchor_data, colWidths=[2.5*inch, 1.0*inch, 1.2*inch, 1.5*inch])
 
         # Define table style
         table_style = [
@@ -5182,7 +5182,7 @@ class PDFReportGenerator:
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
         ]
 
-        # Color code based on risk level and link type
+        # Color code based on link type
         for i in range(1, len(detailed_anchor_data)):
             # Alternate row backgrounds
             if i % 2 == 0:
@@ -5206,19 +5206,6 @@ class PDFReportGenerator:
             table_style.append(('BACKGROUND', (3, i), (3, i), type_color))
             table_style.append(('TEXTCOLOR', (3, i), (3, i), white))
             table_style.append(('FONTNAME', (3, i), (3, i), 'Helvetica-Bold'))
-
-            # Color code risk level
-            risk_level = detailed_anchor_data[i][4]
-            if risk_level == 'Low':
-                risk_color = HexColor('#4CAF50')  # Green
-            elif risk_level == 'Medium':
-                risk_color = HexColor('#FF9800')  # Orange
-            else:  # High
-                risk_color = HexColor('#F44336')  # Red
-
-            table_style.append(('BACKGROUND', (4, i), (4, i), risk_color))
-            table_style.append(('TEXTCOLOR', (4, i), (4, i), white))
-            table_style.append(('FONTNAME', (4, i), (4, i), 'Helvetica-Bold'))
 
         detailed_anchor_table.setStyle(TableStyle(table_style))
         story.append(detailed_anchor_table)
