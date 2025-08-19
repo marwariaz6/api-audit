@@ -4535,9 +4535,11 @@ class PDFReportGenerator:
             leftIndent=10
         )
 
-        # Get domain for file links
+        # Get domain for file links - consistent with other naming
         homepage_url = list(analyzed_pages.keys())[0] if analyzed_pages else 'https://example.com'
-        domain_for_csv = urllib.parse.urlparse(homepage_url).netloc.replace('.', '_')
+        domain_raw = urllib.parse.urlparse(homepage_url).netloc
+        clean_domain = domain_raw.replace('www.', '')
+        domain_for_csv = re.sub(r'[^\w\-_]', '_', clean_domain)
 
         # Create clickable download links with proper styling
         download_link_style = ParagraphStyle(
@@ -5419,7 +5421,9 @@ def generate_pdf():
 
         # Generate filename with absolute path
         domain = urllib.parse.urlparse(url).netloc
-        domain_for_filename = re.sub(r'[^\w\-_\.]', '_', domain)
+        # Remove 'www.' prefix and clean domain name consistently
+        clean_domain = domain.replace('www.', '')
+        domain_for_filename = re.sub(r'[^\w\-_]', '_', clean_domain)
         filename = f"seo_audit_{domain_for_filename}.pdf"
 
         # Use absolute path to avoid any path issues
@@ -5783,8 +5787,10 @@ def generate_pdf():
         # Ensure reports directory exists
         os.makedirs(reports_dir, exist_ok=True)
         
-        # Get domain for file naming
-        domain_clean = urllib.parse.urlparse(homepage_url_for_results).netloc.replace('.', '_')
+        # Get domain for file naming - consistent with PDF naming
+        domain_raw = urllib.parse.urlparse(homepage_url_for_results).netloc
+        clean_domain = domain_raw.replace('www.', '')
+        domain_clean = re.sub(r'[^\w\-_]', '_', clean_domain)
         
         # Generate broken links CSV
         broken_filename = f"broken_links_{domain_clean}.csv"
