@@ -146,7 +146,7 @@ class SEOAuditor:
         # If custom URLs are provided, use only those
         if custom_urls:
             all_urls = custom_urls
-            logger.info(f"Using custom URLs only: {len(all_urls)} URLs provided")
+            logger.info(f"Using custom URLs only: {len(all_urls)} URLs provided - skipping navigation discovery")
         else:
             # Get navigation links (existing behavior)
             nav_links = self.page_collector.get_navigation_links(homepage_url, max_pages)
@@ -5418,9 +5418,9 @@ def generate_pdf():
                     custom_url = 'https://' + custom_url
                 validated_urls.append(custom_url)
             
-            # Start audit for custom URLs only
-            task_ids = auditor.start_multi_page_audit(url, max_pages=0, custom_urls=validated_urls)
-            logger.info(f"Started custom URL audit for {len(validated_urls)} pages only")
+            # Start audit for custom URLs only - completely bypass navigation discovery
+            task_ids = auditor.start_multi_page_audit(None, max_pages=0, custom_urls=validated_urls)
+            logger.info(f"Started custom URL audit for {len(validated_urls)} pages only - no navigation discovery")
         else:
             # Start multi-page audit (existing behavior)
             task_ids = auditor.start_multi_page_audit(url, max_pages)
