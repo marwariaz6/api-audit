@@ -5393,6 +5393,7 @@ def generate_pdf():
         data = request.get_json()
         url = data.get('url', 'https://example.com')
         max_pages = data.get('max_pages', 5)
+        custom_urls = data.get('custom_urls', [])
         # Keep the run_crawler flag if it exists, otherwise default to False
         run_crawler = data.get('run_crawler', False)
 
@@ -5402,9 +5403,47 @@ def generate_pdf():
 
         logger.info(f"Starting multi-page audit for: {url}")
 
-        # Start multi-page audit
-        task_ids = auditor.start_multi_page_audit(url, max_pages)
-        logger.info(f"Started audit for {len(task_ids)} pages")
+        # Check if custom URLs are provided
+        if max_pages == 'custom' and custom_urls:
+            # Validate and clean custom URLs
+            validated_urls = []
+            for custom_url in custom_urls[:50]:  # Limit to 50 URLs
+                custom_url = custom_url.strip()
+                if not custom_url.startswith(('http://', 'https://')):
+                    custom_url = 'https://' + custom_url
+                validated_urls.append(custom_url)
+            
+            # Create task IDs for custom URLs
+            task_ids = {}
+            if not auditor.login or not auditor.password:
+                # Use placeholder task IDs for custom URLs
+                for i, custom_url in enumerate(validated_urls):
+                    task_ids[custom_url] = f"placeholder_task_{i}"
+            else:
+                # Start audit tasks for custom URLs
+                endpoint = "/on_page/task_post"
+                for custom_url in validated_urls:
+                    audit_data = [{
+                        "target": custom_url,
+                        "max_crawl_pages": 1,
+                        "load_resources": True,
+                        "enable_javascript": True,
+                        "enable_browser_rendering": True,
+                        "custom_js": "meta",
+                        "browser_preset": "desktop"
+                    }]
+                    
+                    result = auditor.make_request(endpoint, audit_data, 'POST')
+                    if result and result.get('status_code') == 20000:
+                        task_ids[custom_url] = result['tasks'][0]['id']
+                    else:
+                        task_ids[custom_url] = f"placeholder_task_{len(task_ids)}"
+            
+            logger.info(f"Started custom URL audit for {len(task_ids)} pages")
+        else:
+            # Start multi-page audit (existing behavior)
+            task_ids = auditor.start_multi_page_audit(url, max_pages)
+            logger.info(f"Started audit for {len(task_ids)} pages")
 
         # Wait a moment for tasks to process
         time.sleep(2)

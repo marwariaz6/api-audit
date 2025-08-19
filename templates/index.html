@@ -268,7 +268,14 @@
                             <option value="5" selected>Homepage + 5 pages</option>
                             <option value="8">Homepage + 8 pages</option>
                             <option value="10">Homepage + 10 pages</option>
+                            <option value="custom">Custom URL List</option>
                         </select>
+                    </div>
+
+                    <div class="form-group" id="customUrlsGroup" style="display: none;">
+                        <label for="customUrls">Custom URLs to Audit (one per line, max 50)</label>
+                        <textarea id="customUrls" name="custom_urls" placeholder="https://example.com/page1&#10;https://example.com/page2&#10;https://example.com/page3" rows="8" style="width: 100%; padding: 15px; border: 2px solid #e1e5e9; border-radius: 10px; font-size: 1rem; font-family: 'Segoe UI', monospace; background: #f8f9fa; resize: vertical; line-height: 1.4;"></textarea>
+                        <small style="color: #666; font-size: 0.9rem; margin-top: 5px; display: block;">Enter up to 50 URLs, one per line. These URLs will be analyzed for on-page and technical SEO factors.</small>
                     </div>
 
                     <button type="submit" class="btn" id="submitBtn">
@@ -430,15 +437,39 @@
 
             try {
                 console.log('Making request to /generate-pdf');
+                
+                // Prepare request data
+                const requestData = { 
+                    url: url,
+                    max_pages: maxPages
+                };
+
+                // Handle custom URLs if selected
+                if (maxPages === 'custom') {
+                    const customUrlsText = document.getElementById('customUrls').value.trim();
+                    const customUrls = customUrlsText.split('\n')
+                        .map(url => url.trim())
+                        .filter(url => url.length > 0);
+                    
+                    if (customUrls.length === 0) {
+                        alert('Please enter at least one URL for custom audit');
+                        return;
+                    }
+                    
+                    if (customUrls.length > 50) {
+                        alert('Maximum 50 URLs allowed');
+                        return;
+                    }
+                    
+                    requestData.custom_urls = customUrls;
+                }
+
                 const response = await fetch('/generate-pdf', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ 
-                        url: url,
-                        max_pages: maxPages
-                    })
+                    body: JSON.stringify(requestData)
                 });
 
                 console.log('Response status:', response.status);
@@ -465,7 +496,7 @@
                             <div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0; border: 2px solid #4CAF50;">
                                 <h3 style="color: #2e7d32; margin-bottom: 10px;">📊 Report Features:</h3>
                                 <ul style="text-align: left; color: #555; line-height: 1.8;">
-                                    <li>✓ Homepage + up to ${maxPages} navigation pages analyzed</li>
+                                    <li>✓ ${maxPages === 'custom' ? 'Custom URLs' : 'Homepage + up to ' + maxPages + ' navigation pages'} analyzed</li>
                                     <li>✓ Site-wide SEO score and metrics</li>
                                     <li>✓ Page-by-page detailed analysis</li>
                                     <li>✓ Color-coded performance indicators</li>
@@ -526,6 +557,42 @@
             } else {
                 e.target.setCustomValidity('');
             }
+        });
+
+        // Handle max pages dropdown change
+        document.getElementById('maxPages').addEventListener('change', function(e) {
+            const customUrlsGroup = document.getElementById('customUrlsGroup');
+            const customUrls = document.getElementById('customUrls');
+            
+            if (e.target.value === 'custom') {
+                customUrlsGroup.style.display = 'block';
+                customUrls.required = true;
+            } else {
+                customUrlsGroup.style.display = 'none';
+                customUrls.required = false;
+                customUrls.value = '';
+            }
+        });
+
+        // Validate custom URLs
+        document.getElementById('customUrls').addEventListener('input', function(e) {
+            const urls = e.target.value.trim().split('\n').filter(url => url.trim());
+            const submitBtn = document.getElementById('submitBtn');
+            
+            if (urls.length > 50) {
+                e.target.setCustomValidity('Maximum 50 URLs allowed');
+                return;
+            }
+            
+            for (let url of urls) {
+                url = url.trim();
+                if (url && !url.match(/^https?:\/\//)) {
+                    e.target.setCustomValidity('All URLs must start with http:// or https://');
+                    return;
+                }
+            }
+            
+            e.target.setCustomValidity('');
         });
 
         // Handle full crawl checkbox
