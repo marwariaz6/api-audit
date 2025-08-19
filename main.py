@@ -4549,11 +4549,7 @@ class PDFReportGenerator:
             textColor=HexColor('#2E86AB')
         )
 
-        # Use simplified standard filenames
-        broken_filename = "broken_links_example_com.csv"
-        orphan_filename = "orphan_pages_example_com.csv"
-        referring_filename = "referring_domains_example_com.csv"
-
+        # Use proper domain-based filenames for download links
         broken_link_text = f'• <link href="/reports/{broken_filename}" color="#2E86AB"><b>Broken Link File</b></link> - Download CSV with all broken links found'
         orphan_link_text = f'• <link href="/reports/{orphan_filename}" color="#2E86AB"><b>Orphan Page File</b></link> - Download CSV with all orphan pages found'
         referring_link_text = f'• <link href="/reports/{referring_filename}" color="#2E86AB"><b>Referring Domain File</b></link> - Download CSV with top referring domains'
@@ -5779,12 +5775,15 @@ def generate_pdf():
                 'crawl_url': homepage_url_for_fallback
             }
 
-        # Generate CSV files with standard names
+        # Generate CSV files with proper domain-based names
         # Ensure reports directory exists
         os.makedirs(reports_dir, exist_ok=True)
         
+        # Get domain for file naming
+        domain_clean = urllib.parse.urlparse(homepage_url_for_results).netloc.replace('.', '_')
+        
         # Generate broken links CSV
-        broken_filename = "broken_links_example_com.csv"
+        broken_filename = f"broken_links_{domain_clean}.csv"
         broken_filepath = os.path.join(reports_dir, broken_filename)
         
         if crawler_results and crawler_results.get('broken_links'):
@@ -5818,7 +5817,7 @@ def generate_pdf():
             logger.error(f"Error generating broken links CSV: {e}")
         
         # Generate orphan pages CSV
-        orphan_filename = "orphan_pages_example_com.csv"
+        orphan_filename = f"orphan_pages_{domain_clean}.csv"
         orphan_filepath = os.path.join(reports_dir, orphan_filename)
         
         if crawler_results and crawler_results.get('orphan_pages'):
@@ -5850,7 +5849,7 @@ def generate_pdf():
             logger.error(f"Error generating orphan pages CSV: {e}")
         
         # Generate referring domains CSV (sample data)
-        referring_filename = "referring_domains_example_com.csv"
+        referring_filename = f"referring_domains_{domain_clean}.csv"
         referring_filepath = os.path.join(reports_dir, referring_filename)
         
         referring_domains_data = [
@@ -5930,17 +5929,54 @@ def generate_pdf():
             )
         except FileNotFoundError as e:
             logger.error(f"PDF file not found when serving: {filepath} - {e}")
-            return jsonify({'error': 'Report file not found. Please try generating the report again.'}), 404
+            available_files = []
+            try:
+                available_files = os.listdir(reports_dir) if os.path.exists(reports_dir) else []
+            except Exception:
+                pass
+            return jsonify({
+                'error': 'Report file not found. Please try generating the report again.',
+                'status': 'not_found',
+                'available_files': available_files
+            }), 404
         except PermissionError as e:
             logger.error(f"Permission denied accessing PDF file: {filepath} - {e}")
-            return jsonify({'error': 'Report file is not accessible'}), 403
+            available_files = []
+            try:
+                available_files = os.listdir(reports_dir) if os.path.exists(reports_dir) else []
+            except Exception:
+                pass
+            return jsonify({
+                'error': 'Report file is not accessible',
+                'status': 'permission_denied',
+                'available_files': available_files
+            }), 403
         except Exception as e:
             logger.error(f"Unexpected error serving PDF file: {e}")
-            return jsonify({'error': f'Failed to serve report file: {str(e)}'}), 500
+            available_files = []
+            try:
+                available_files = os.listdir(reports_dir) if os.path.exists(reports_dir) else []
+            except Exception:
+                pass
+            return jsonify({
+                'error': f'Failed to serve report file: {str(e)}',
+                'status': 'server_error',
+                'available_files': available_files
+            }), 500
 
     except Exception as e:
         logger.error(f"Error generating PDF: {e}")
-        return jsonify({'error': str(e)}), 500
+        available_files = []
+        try:
+            reports_dir = os.path.join(os.getcwd(), 'reports')
+            available_files = os.listdir(reports_dir) if os.path.exists(reports_dir) else []
+        except Exception:
+            pass
+        return jsonify({
+            'error': str(e),
+            'status': 'generation_error',
+            'available_files': available_files
+        }), 500
 
 @app.route('/reports/<filename>')
 def serve_report(filename):
@@ -5949,22 +5985,42 @@ def serve_report(filename):
         reports_dir = os.path.join(os.getcwd(), 'reports')
         filepath = os.path.join(reports_dir, filename)
 
+        # Get available files for debugging
+        available_files = []
+        try:
+            if os.path.exists(reports_dir):
+                available_files = os.listdir(reports_dir)
+        except Exception:
+            available_files = []
+
         # Security check - ensure filename doesn't contain path traversal
         if '..' in filename or '/' in filename or '\\' in filename:
             logger.error(f"Invalid filename attempted: {filename}")
-            return jsonify({'error': 'Invalid filename'}), 400
+            return jsonify({
+                'error': 'Invalid filename',
+                'status': 'security_error',
+                'available_files': available_files
+            }), 400
 
         # Check if file exists
         if not os.path.exists(filepath):
             logger.error(f"File not found: {filepath}")
-            available_files = os.listdir(reports_dir) if os.path.exists(reports_dir) else []
             logger.info(f"Available files: {available_files}")
-            return jsonify({'error': 'File not found', 'available_files': available_files}), 404
+            return jsonify({
+                'error': 'File not found',
+                'status': 'not_found',
+                'available_files': available_files,
+                'requested_file': filename
+            }), 404
 
         # Check file permissions
         if not os.access(filepath, os.R_OK):
             logger.error(f"File not readable: {filepath}")
-            return jsonify({'error': 'File access denied'}), 403
+            return jsonify({
+                'error': 'File access denied',
+                'status': 'permission_denied',
+                'available_files': available_files
+            }), 403
 
         file_size = os.path.getsize(filepath)
         logger.info(f"Serving file: {filepath} (size: {file_size} bytes)")
@@ -5995,7 +6051,19 @@ def serve_report(filename):
 
     except Exception as e:
         logger.error(f"Error serving file {filename}: {e}")
-        return jsonify({'error': f'Error accessing file: {str(e)}'}), 500
+        available_files = []
+        try:
+            reports_dir = os.path.join(os.getcwd(), 'reports')
+            if os.path.exists(reports_dir):
+                available_files = os.listdir(reports_dir)
+        except Exception:
+            pass
+        
+        return jsonify({
+            'error': f'Error accessing file: {str(e)}',
+            'status': 'server_error',
+            'available_files': available_files
+        }), 500
 
 @app.route('/run-crawler', methods=['POST'])
 def run_crawler():
@@ -6019,7 +6087,11 @@ def run_crawler():
                 logger.info("Crawler integration module found and available.")
             except ImportError as import_error:
                 logger.warning(f"Crawler integration module not found: {import_error}")
-                return jsonify({'error': 'Crawler integration module not available. Please ensure crawler dependencies are installed.'}), 500
+                return jsonify({
+                    'error': 'Crawler integration module not available. Please ensure crawler dependencies are installed.',
+                    'status': 'dependency_error',
+                    'available_files': []
+                }), 500
 
         from crawler_integration import run_crawler_audit, save_crawler_results_csv
 
@@ -6031,7 +6103,11 @@ def run_crawler():
 
         # Validate URL format
         if not url or not isinstance(url, str):
-            return jsonify({'error': 'Invalid URL provided'}), 400
+            return jsonify({
+                'error': 'Invalid URL provided',
+                'status': 'validation_error',
+                'available_files': []
+            }), 400
 
         if not url.startswith(('http://', 'https://')):
             url = 'https://' + url
@@ -6047,7 +6123,11 @@ def run_crawler():
             results = run_crawler_audit(url, max_depth=max_depth, max_pages=max_pages, delay=0.5)
 
             if not results or not isinstance(results, dict):
-                return jsonify({'error': 'Crawler returned invalid results'}), 500
+                return jsonify({
+                    'error': 'Crawler returned invalid results',
+                    'status': 'invalid_results',
+                    'available_files': []
+                }), 500
 
             # Store results in app config for later use by PDF generation
             domain_key = urllib.parse.urlparse(url).netloc.replace('.', '_')
@@ -6069,11 +6149,19 @@ def run_crawler():
 
         except Exception as crawler_error:
             logger.error(f"Crawler execution error: {crawler_error}")
-            return jsonify({'error': f'Crawler execution failed: {str(crawler_error)}'}), 500
+            return jsonify({
+                'error': f'Crawler execution failed: {str(crawler_error)}',
+                'status': 'execution_error',
+                'available_files': []
+            }), 500
 
     except Exception as e:
         logger.error(f"Unexpected error in run_crawler route: {e}")
-        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+        return jsonify({
+            'error': f'Internal server error: {str(e)}',
+            'status': 'internal_error',
+            'available_files': []
+        }), 500
 
 @app.route('/crawler-csv/<domain>')
 def generate_crawler_csv(domain):
@@ -6106,254 +6194,15 @@ def generate_crawler_csv(domain):
 
     except Exception as e:
         logger.error(f"Error generating crawler CSV: {e}")
-        return jsonify({'error': 'Failed to generate crawler CSV file'}), 500
+        return jsonify({
+            'error': 'Failed to generate crawler CSV file',
+            'status': 'generation_error',
+            'available_files': []
+        }), 500
 
 
 
-@app.route('/download-broken-links-csv/<domain>')
-def download_broken_links_csv(domain):
-    """Download existing broken links CSV file"""
-    try:
-        reports_dir = os.path.join(os.getcwd(), 'reports')
-        
-        # Look for existing broken links CSV file for this domain
-        existing_file = None
-        for filename in os.listdir(reports_dir):
-            if filename.startswith(f'broken_links_{domain}_') and filename.endswith('.csv'):
-                existing_file = filename
-                break
-        
-        if existing_file:
-            filepath = os.path.join(reports_dir, existing_file)
-            logger.info(f"Serving existing broken links CSV: {existing_file}")
-            return send_file(
-                filepath,
-                as_attachment=True,
-                download_name=existing_file,
-                mimetype='text/csv'
-            )
-        
-        # If no existing file found, generate one without timestamp
-        filename = f'broken_links_{domain}.csv'
-        filepath = os.path.join(reports_dir, filename)
-        
-        # Check if this specific file already exists
-        if os.path.exists(filepath):
-            logger.info(f"Serving existing file: {filename}")
-            return send_file(
-                filepath,
-                as_attachment=True,
-                download_name=filename,
-                mimetype='text/csv'
-            )
-        
-        # Generate file only if it doesn't exist
-        domain_clean = domain.replace('_', '.')
-        broken_links_data = [
-            ['Source Page URL', 'Broken Link URL', 'Anchor Text / Current Value', 'Link Type', 'Status Code'],
-            [f'https://{domain_clean}/', f'https://{domain_clean}/old-services-page', 'Our Services (Outdated)', 'Internal', '404'],
-            [f'https://{domain_clean}/about', 'https://facebook.com/company-old-page', 'Follow us on Facebook', 'External', '404'],
-            [f'https://{domain_clean}/contact', f'https://{domain_clean}/resources/company-brochure.pdf', 'Download Company Brochure', 'Internal', '404'],
-            [f'https://{domain_clean}/services', 'https://twitter.com/company_handle_old', 'Twitter Updates', 'External', '404'],
-            [f'https://{domain_clean}/', f'https://{domain_clean}/news/press-release-2023', 'Latest Press Release', 'Internal', '404'],
-            [f'https://{domain_clean}/about', 'https://linkedin.com/company/old-company-profile', 'LinkedIn Company Page', 'External', '404'],
-            [f'https://{domain_clean}/products', f'https://{domain_clean}/gallery/product-images-2022', 'Product Image Gallery', 'Internal', '404'],
-            [f'https://{domain_clean}/support', 'https://support-old.example-vendor.com/api', 'External Support API', 'External', '500'],
-            [f'https://{domain_clean}/blog', f'https://{domain_clean}/blog/category/archived-posts', 'Archived Blog Posts', 'Internal', '403'],
-            [f'https://{domain_clean}/resources', 'https://old-partner-site.com/integration-docs', 'Integration Documentation', 'External', '404'],
-            [f'https://{domain_clean}/team', f'https://{domain_clean}/staff/john-doe-profile', 'John Doe - Former Manager', 'Internal', '404'],
-            [f'https://{domain_clean}/partners', 'https://defunct-partner.com/collaboration', 'Partnership Details', 'External', '404'],
-            [f'https://{domain_clean}/media', f'https://{domain_clean}/videos/company-intro-2022.mp4', 'Company Introduction Video', 'Internal', '404'],
-            [f'https://{domain_clean}/events', 'https://eventbrite.com/old-conference-2023', 'Register for Conference', 'External', '404'],
-            [f'https://{domain_clean}/careers', f'https://{domain_clean}/jobs/software-engineer-opening', 'Software Engineer Position', 'Internal', '404']
-        ]
 
-        # Ensure reports directory exists
-        os.makedirs(reports_dir, exist_ok=True)
-
-        # Write CSV file with UTF-8 BOM for better Excel compatibility
-        with open(filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerows(broken_links_data)
-
-        logger.info(f"Generated broken links CSV: {filename} with {len(broken_links_data)-1} entries")
-
-        return send_file(
-            filepath,
-            as_attachment=True,
-            download_name=filename,
-            mimetype='text/csv'
-        )
-
-    except Exception as e:
-        logger.error(f"Error serving broken links CSV: {e}")
-        return jsonify({'error': 'Failed to serve broken links CSV file'}), 500
-
-@app.route('/download-orphan-pages-csv/<domain>')
-def download_orphan_pages_csv(domain):
-    """Download existing orphan pages CSV file"""
-    try:
-        reports_dir = os.path.join(os.getcwd(), 'reports')
-        
-        # Look for existing orphan pages CSV file for this domain
-        existing_file = None
-        for filename in os.listdir(reports_dir):
-            if filename.startswith(f'orphan_pages_{domain}_') and filename.endswith('.csv'):
-                existing_file = filename
-                break
-        
-        if existing_file:
-            filepath = os.path.join(reports_dir, existing_file)
-            logger.info(f"Serving existing orphan pages CSV: {existing_file}")
-            return send_file(
-                filepath,
-                as_attachment=True,
-                download_name=existing_file,
-                mimetype='text/csv'
-            )
-        
-        # If no existing file found, generate one without timestamp
-        filename = f'orphan_pages_{domain}.csv'
-        filepath = os.path.join(reports_dir, filename)
-        
-        # Check if this specific file already exists
-        if os.path.exists(filepath):
-            logger.info(f"Serving existing file: {filename}")
-            return send_file(
-                filepath,
-                as_attachment=True,
-                download_name=filename,
-                mimetype='text/csv'
-            )
-        
-        # Generate file only if it doesn't exist
-        domain_clean = domain.replace('_', '.')
-        orphan_pages_data = [
-            ['Orphan Page URL', 'Found in Sitemap?', 'Internally Linked?'],
-            [f'https://{domain_clean}/legacy/old-product-page', 'Yes', 'No'],
-            [f'https://{domain_clean}/archived/company-history', 'Yes', 'No'],
-            [f'https://{domain_clean}/temp/beta-features', 'Yes', 'No'],
-            [f'https://{domain_clean}/old-blog/category/updates', 'Yes', 'No'],
-            [f'https://{domain_clean}/hidden/internal-tools', 'Yes', 'No'],
-            [f'https://{domain_clean}/staging/test-environment', 'Yes', 'No'],
-            [f'https://{domain_clean}/backup/data-recovery', 'Yes', 'No'],
-            [f'https://{domain_clean}/deprecated/api-v1-docs', 'Yes', 'No'],
-            [f'https://{domain_clean}/maintenance/system-status', 'Yes', 'No'],
-            [f'https://{domain_clean}/prototype/new-feature-preview', 'Yes', 'No'],
-            [f'https://{domain_clean}/internal/staff-directory', 'Yes', 'No'],
-            [f'https://{domain_clean}/draft/upcoming-announcement', 'Yes', 'No'],
-            [f'https://{domain_clean}/archive/newsletter-2022', 'Yes', 'No'],
-            [f'https://{domain_clean}/test/performance-metrics', 'Yes', 'No'],
-            [f'https://{domain_clean}/reserved/future-expansion', 'Yes', 'No']
-        ]
-
-        # Ensure reports directory exists
-        os.makedirs(reports_dir, exist_ok=True)
-
-        # Write CSV file with UTF-8 BOM for better Excel compatibility
-        with open(filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerows(orphan_pages_data)
-
-        logger.info(f"Generated orphan pages CSV: {filename} with {len(orphan_pages_data)-1} entries")
-
-        return send_file(
-            filepath,
-            as_attachment=True,
-            download_name=filename,
-            mimetype='text/csv'
-        )
-
-    except Exception as e:
-        logger.error(f"Error serving orphan pages CSV: {e}")
-        return jsonify({'error': 'Failed to serve orphan pages CSV file'}), 500
-
-@app.route('/download-referring-domains-csv/<domain>')
-def download_referring_domains_csv(domain):
-    """Download existing referring domains CSV file"""
-    try:
-        reports_dir = os.path.join(os.getcwd(), 'reports')
-        
-        # Look for existing referring domains CSV file for this domain
-        existing_file = None
-        for filename in os.listdir(reports_dir):
-            if filename.startswith(f'referring_domains_{domain}_') and filename.endswith('.csv'):
-                existing_file = filename
-                break
-        
-        if existing_file:
-            filepath = os.path.join(reports_dir, existing_file)
-            logger.info(f"Serving existing referring domains CSV: {existing_file}")
-            return send_file(
-                filepath,
-                as_attachment=True,
-                download_name=existing_file,
-                mimetype='text/csv'
-            )
-        
-        # If no existing file found, generate one without timestamp
-        filename = f'referring_domains_{domain}.csv'
-        filepath = os.path.join(reports_dir, filename)
-        
-        # Check if this specific file already exists
-        if os.path.exists(filepath):
-            logger.info(f"Serving existing file: {filename}")
-            return send_file(
-                filepath,
-                as_attachment=True,
-                download_name=filename,
-                mimetype='text/csv'
-            )
-        
-        # Generate file only if it doesn't exist
-        referring_domains_data = [
-            ['Domain', 'Domain Rating', 'Spam Score', 'Backlinks', 'Link Type', 'First Seen', 'Target Page', 'Anchor Text'],
-            ['google.com', '100', '0%', '45', 'DoFollow', '2024-01-15', 'Homepage', 'Brand name'],
-            ['facebook.com', '96', '2%', '23', 'NoFollow', '2024-02-10', 'About page', 'Company profile'],
-            ['linkedin.com', '95', '1%', '34', 'DoFollow', '2024-01-20', 'Homepage', 'Professional services'],
-            ['twitter.com', '94', '3%', '18', 'NoFollow', '2024-03-05', 'Blog posts', 'Social mention'],
-            ['wikipedia.org', '93', '0%', '12', 'DoFollow', '2024-01-28', 'References', 'Citation link'],
-            ['medium.com', '87', '5%', '28', 'DoFollow', '2024-02-15', 'Articles', 'Source reference'],
-            ['reddit.com', '91', '8%', '15', 'NoFollow', '2024-03-12', 'Various pages', 'Community mention'],
-            ['github.com', '85', '2%', '19', 'DoFollow', '2024-02-22', 'Documentation', 'Project reference'],
-            ['stackoverflow.com', '84', '1%', '22', 'DoFollow', '2024-01-30', 'Technical pages', 'Solution link'],
-            ['youtube.com', '100', '0%', '31', 'NoFollow', '2024-02-05', 'Video descriptions', 'Company website'],
-            ['instagram.com', '94', '4%', '16', 'NoFollow', '2024-03-08', 'Bio links', 'Visit website'],
-            ['quora.com', '78', '12%', '14', 'DoFollow', '2024-02-28', 'Answer pages', 'Helpful resource'],
-            ['pinterest.com', '83', '6%', '20', 'NoFollow', '2024-03-15', 'Pin descriptions', 'Learn more'],
-            ['tumblr.com', '72', '18%', '8', 'NoFollow', '2024-03-20', 'Blog posts', 'External link'],
-            ['wordpress.com', '82', '7%', '25', 'DoFollow', '2024-02-12', 'Blog articles', 'Reference link'],
-            ['blogspot.com', '75', '15%', '11', 'DoFollow', '2024-03-18', 'Personal blogs', 'Recommendation'],
-            ['techcrunch.com', '91', '3%', '6', 'DoFollow', '2024-01-25', 'News articles', 'Company mention'],
-            ['forbes.com', '95', '1%', '4', 'DoFollow', '2024-02-08', 'Business articles', 'Industry leader'],
-            ['bbc.com', '94', '2%', '3', 'DoFollow', '2024-03-01', 'News stories', 'Source citation'],
-            ['cnn.com', '92', '1%', '5', 'DoFollow', '2024-02-18', 'Breaking news', 'Official statement'],
-            ['uae-government-resources.ae', '88', '2%', '12', 'DoFollow', '2024-01-10', 'Homepage', 'Government directory'],
-            ['insurance-reviews.com', '76', '3%', '18', 'DoFollow', '2024-02-20', 'Services page', 'Insurance provider'],
-            ['financial-planning-uae.com', '74', '4%', '9', 'DoFollow', '2024-03-10', 'About page', 'UAE insurance'],
-            ['dubai-insurance-portal.ae', '79', '5%', '15', 'DoFollow', '2024-01-25', 'Homepage', 'Dubai insurance']
-        ]
-
-        # Ensure reports directory exists
-        os.makedirs(reports_dir, exist_ok=True)
-
-        # Write CSV file with UTF-8 BOM for better Excel compatibility
-        with open(filepath, 'w', newline='', encoding='utf-8-sig') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerows(referring_domains_data)
-
-        logger.info(f"Generated referring domains CSV: {filename} with {len(referring_domains_data)-1} entries")
-
-        return send_file(
-            filepath,
-            as_attachment=True,
-            download_name=filename,
-            mimetype='text/csv'
-        )
-
-    except Exception as e:
-        logger.error(f"Error serving referring domains CSV: {e}")
-        return jsonify({'error': 'Failed to serve referring domains CSV file'}), 500
 
 
 
