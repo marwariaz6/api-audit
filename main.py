@@ -19,6 +19,7 @@ import csv
 import io # Import io for StringIO
 import subprocess # For checking mount options
 import sys # For checking system information
+from openpyxl import Workbook
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -4555,14 +4556,17 @@ class PDFReportGenerator:
         broken_filename = f"broken_links_{domain_for_csv}.csv"
         orphan_filename = f"orphan_pages_{domain_for_csv}.csv"
         referring_filename = f"referring_domains_{domain_for_csv}.csv"
+        excel_filename = f"report_{domain_for_csv}.xlsx"
         
         broken_link_text = f'• <link href="/reports/{broken_filename}" color="#2E86AB"><b>Broken Link File</b></link> - Download CSV with all broken links found'
         orphan_link_text = f'• <link href="/reports/{orphan_filename}" color="#2E86AB"><b>Orphan Page File</b></link> - Download CSV with all orphan pages found'
         referring_link_text = f'• <link href="/reports/{referring_filename}" color="#2E86AB"><b>Referring Domain File</b></link> - Download CSV with top referring domains'
+        excel_link_text = f'• <link href="/reports/{excel_filename}" color="#2E86AB"><b>Combined Excel Report</b></link> - Download Excel file with all data in separate sheets'
 
         story.append(Paragraph(broken_link_text, download_link_style))
         story.append(Paragraph(orphan_link_text, download_link_style))
         story.append(Paragraph(referring_link_text, download_link_style))
+        story.append(Paragraph(excel_link_text, download_link_style))
 
         story.append(Spacer(1, 30))
 
@@ -5882,6 +5886,40 @@ def generate_pdf():
             logger.error(f"Error generating referring domains CSV: {e}")
         
         logger.info(f"CSV generation completed with standard filenames")
+
+        # Generate combined Excel file with all data
+        try:
+            from openpyxl import Workbook
+            
+            # Create workbook
+            wb = Workbook()
+            
+            # Create Excel filename
+            excel_filename = f"report_{domain_clean}.xlsx"
+            excel_filepath = os.path.join(reports_dir, excel_filename)
+            
+            # 1. Broken Links Sheet
+            ws1 = wb.active
+            ws1.title = "Broken"
+            for row in broken_links_data:
+                ws1.append(row)
+            
+            # 2. Orphan Pages Sheet
+            ws2 = wb.create_sheet("Orphan")
+            for row in orphan_pages_data:
+                ws2.append(row)
+            
+            # 3. Referring Domains Sheet
+            ws3 = wb.create_sheet("Referring")
+            for row in referring_domains_data:
+                ws3.append(row)
+            
+            # Save Excel file
+            wb.save(excel_filepath)
+            logger.info(f"Generated combined Excel report: {excel_filename}")
+            
+        except Exception as e:
+            logger.error(f"Error generating Excel file: {e}")
 
         # Generate comprehensive multi-page PDF report with crawler data
         result = pdf_generator.generate_multi_page_report(analyzed_pages, overall_stats, filepath, crawler_results)
