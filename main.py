@@ -4550,6 +4550,10 @@ class PDFReportGenerator:
         )
 
         # Use proper domain-based filenames for download links
+        broken_filename = f"broken_links_{domain_for_csv}.csv"
+        orphan_filename = f"orphan_pages_{domain_for_csv}.csv"
+        referring_filename = f"referring_domains_{domain_for_csv}.csv"
+        
         broken_link_text = f'• <link href="/reports/{broken_filename}" color="#2E86AB"><b>Broken Link File</b></link> - Download CSV with all broken links found'
         orphan_link_text = f'• <link href="/reports/{orphan_filename}" color="#2E86AB"><b>Orphan Page File</b></link> - Download CSV with all orphan pages found'
         referring_link_text = f'• <link href="/reports/{referring_filename}" color="#2E86AB"><b>Referring Domain File</b></link> - Download CSV with top referring domains'
