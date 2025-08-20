@@ -5443,7 +5443,7 @@ class PDFReportGenerator:
             story.append(Paragraph(
                 f"Note: This table shows the top anchor texts. "
                 f"Complete anchor text data with all {len(detailed_anchor_data)-1} entries is available "
-                "in the downloadable Excel file at the end of this report.",
+                f"in the downloadable Excel file at the end of this report.",
                 excel_note_style
             ))
 
