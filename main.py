@@ -5936,6 +5936,44 @@ def generate_pdf():
             for row in referring_domains_data:
                 ws3.append(row)
             
+            # 4. Anchor Text Analysis Sheet (if more than 20 anchors)
+            # Generate detailed anchor text data (same as used in PDF)
+            detailed_anchor_data = [
+                ['Anchor Text', 'Count', 'Percentage', 'Link Type'],
+                ['Hosn Insurance', '234', '18.2%', 'Branded'],
+                ['car insurance UAE', '98', '7.6%', 'Exact Match'],
+                ['click here', '156', '12.1%', 'Generic'],
+                ['https://hosninsurance.ae', '89', '6.9%', 'URL'],
+                ['best insurance company', '67', '5.2%', 'Partial Match'],
+                ['Dubai insurance', '54', '4.2%', 'Partial Match'],
+                ['auto insurance', '43', '3.3%', 'Exact Match'],
+                ['visit website', '87', '6.8%', 'Generic'],
+                ['Hosn Insurance Dubai', '76', '5.9%', 'Branded'],
+                ['insurance services', '45', '3.5%', 'Partial Match'],
+                ['read more', '123', '9.6%', 'Generic'],
+                ['vehicle insurance UAE', '32', '2.5%', 'Exact Match'],
+                ['UAE insurance provider', '28', '2.2%', 'Partial Match'],
+                ['learn more', '91', '7.1%', 'Generic'],
+                ['comprehensive coverage', '21', '1.6%', 'Partial Match'],
+                ['motor insurance', '19', '1.5%', 'Exact Match'],
+                ['insurance quotes', '17', '1.3%', 'Partial Match'],
+                ['get quote', '25', '1.9%', 'Generic'],
+                ['Hosn', '35', '2.7%', 'Branded'],
+                ['homepage', '14', '1.1%', 'Generic'],
+                ['insurance brokers', '12', '0.9%', 'Partial Match'],
+                ['contact us', '18', '1.4%', 'Generic'],
+                ['about company', '16', '1.2%', 'Generic'],
+                ['UAE car insurance', '13', '1.0%', 'Exact Match'],
+                ['professional services', '11', '0.9%', 'Partial Match']
+            ]
+            
+            # Add Anchor sheet if there are more than 20 anchors (excluding header)
+            if len(detailed_anchor_data) > 21:  # 20 anchors + 1 header row
+                ws4 = wb.create_sheet("Anchor")
+                for row in detailed_anchor_data:
+                    ws4.append(row)
+                logger.info(f"Added Anchor sheet with {len(detailed_anchor_data)-1} anchor text entries")
+            
             # Save Excel file
             wb.save(excel_filepath)
             logger.info(f"Generated combined Excel report: {excel_filename}")
