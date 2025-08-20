@@ -5422,9 +5422,11 @@ def generate_pdf():
             task_ids = auditor.start_multi_page_audit(None, max_pages=0, custom_urls=validated_urls)
             logger.info(f"Started custom URL audit for {len(validated_urls)} pages only - no navigation discovery")
         else:
-            # Start multi-page audit (existing behavior)
-            task_ids = auditor.start_multi_page_audit(url, max_pages)
-            logger.info(f"Started audit for {len(task_ids)} pages")
+            # Convert max_pages to integer for navigation discovery
+            max_pages_int = int(max_pages) if isinstance(max_pages, str) and max_pages.isdigit() else max_pages
+            # Start multi-page audit with navigation discovery
+            task_ids = auditor.start_multi_page_audit(url, max_pages_int)
+            logger.info(f"Started navigation-based audit for homepage + {max_pages_int} pages")
 
         # Wait a moment for tasks to process
         time.sleep(2)

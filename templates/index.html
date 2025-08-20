@@ -411,10 +411,92 @@
             e.preventDefault();
 
             const url = document.getElementById('urlInput').value.trim();
-            const maxPages = parseInt(document.getElementById('maxPages').value);
+            const maxPages = document.getElementById('maxPages').value; // Keep as string to handle 'custom'
             const submitBtn = document.getElementById('submitBtn');
             const originalText = submitBtn.textContent;
             const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const results = document.getElementById('resultsSection');
+
+            // Validate URL
+            if (!url) {
+                alert('Please enter a valid URL');
+                return;
+            }
+
+            console.log('Starting audit for:', url, 'with max pages:', maxPages);
+
+            // Reset UI
+            error.style.display = 'none';
+            results.style.display = 'none';
+            loading.style.display = 'block';
+
+            // Show loading state
+            submitBtn.textContent = 'Analyzing Pages...';
+            submitBtn.disabled = true;
+
+            try {
+                console.log('Making request to /generate-pdf');
+                
+                // Prepare request data
+                const requestData = { 
+                    url: url,
+                    max_pages: maxPages
+                };
+
+                // Handle custom URLs if selected
+                if (maxPages === 'custom') {
+                    const customUrlsText = document.getElementById('customUrls').value.trim();
+                    const customUrls = customUrlsText.split('\n')
+                        .map(url => url.trim())
+                        .filter(url => url.length > 0);
+                    
+                    if (customUrls.length === 0) {
+                        alert('Please enter at least one URL for custom audit');
+                        return;
+                    }
+                    
+                    requestData.custom_urls = customUrls;
+                    console.log('Custom URLs provided:', customUrls.length, 'URLs');
+                }
+
+                const response = await fetch('/generate-pdf', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (response.ok) {
+                    console.log('PDF generation successful');
+                    const blob = await response.blob();
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = downloadUrl;
+                    a.download = 'seo-audit-report.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(downloadUrl);
+                    
+                    // Show success message
+                    loading.style.display = 'none';
+                    alert('✅ SEO audit complete! Your comprehensive report has been downloaded.');
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'PDF generation failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                loading.style.display = 'none';
+                error.style.display = 'block';
+                error.textContent = 'Error: ' + error.message;
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });ent.getElementById('loading');
             const error = document.getElementById('error');
             const results = document.getElementById('resultsSection');
 
