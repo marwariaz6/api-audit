@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SEO Audit Tool</title>
+    <title>Website SEO Audit Tool</title>
     <style>
         * {
             margin: 0;
@@ -25,188 +24,99 @@
         .container {
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            padding: 40px;
-            max-width: 500px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            max-width: 600px;
             width: 100%;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E86AB 0%, #A23B72 100%);
+            color: white;
+            padding: 40px 30px;
             text-align: center;
         }
 
-        h1 {
-            color: #333;
+        .header h1 {
+            font-size: 2.5rem;
             margin-bottom: 10px;
-            font-size: 2.5em;
             font-weight: 700;
         }
 
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 1.1em;
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px 30px;
+        }
+
+        .audit-form h2 {
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+            text-align: center;
         }
 
         .form-group {
             margin-bottom: 20px;
-            text-align: left;
         }
 
-        label {
+        .form-group label {
             display: block;
             margin-bottom: 8px;
-            color: #333;
+            color: #555;
             font-weight: 600;
+            font-size: 1rem;
         }
 
-        input[type="url"], select, textarea {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 15px;
             border: 2px solid #e1e5e9;
             border-radius: 10px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
-        }
-
-        input[type="url"]:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 100px;
-            font-family: inherit;
-        }
-
-        .pages-options {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 10px;
-        }
-
-        .page-option {
-            flex: 1;
-            min-width: 80px;
-            padding: 10px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            background: white;
-            cursor: pointer;
+            font-size: 1rem;
             transition: all 0.3s ease;
-            text-align: center;
+            background: #f8f9fa;
         }
 
-        .page-option:hover {
-            border-color: #667eea;
-            background: #f8f9ff;
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #2E86AB;
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 134, 171, 0.2);
         }
 
-        .page-option.selected {
-            border-color: #667eea;
-            background: #667eea;
-            color: white;
+        .form-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 15px;
+            align-items: end;
         }
 
-        .custom-url-section {
-            display: none;
-            margin-top: 15px;
-        }
-
-        .custom-url-section.show {
-            display: block;
-        }
-
-        .crawler-section {
-            margin-top: 20px;
-            padding: 20px;
-            background: #f8f9ff;
-            border-radius: 10px;
-            border: 2px solid #e1e5e9;
-        }
-
-        .crawler-toggle {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 15px;
-        }
-
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 60px;
-            height: 34px;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 34px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 26px;
-            width: 26px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked + .slider {
-            background-color: #667eea;
-        }
-
-        input:checked + .slider:before {
-            transform: translateX(26px);
-        }
-
-        .crawler-info {
-            font-size: 0.9em;
-            color: #666;
-            margin-top: 10px;
-        }
-
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
             color: white;
             border: none;
-            padding: 18px 40px;
-            font-size: 18px;
+            border-radius: 10px;
+            font-size: 1.1rem;
             font-weight: 600;
-            border-radius: 50px;
             cursor: pointer;
             transition: all 0.3s ease;
-            width: 100%;
-            margin-top: 20px;
+            margin-top: 10px;
         }
 
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(76, 175, 80, 0.3);
         }
 
-        button:active {
-            transform: translateY(0);
-        }
-
-        button:disabled {
-            background: #ccc;
+        .btn:disabled {
+            background: #cccccc;
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
@@ -214,17 +124,18 @@
 
         .loading {
             display: none;
-            margin-top: 20px;
+            text-align: center;
+            padding: 40px;
         }
 
         .spinner {
             border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
+            border-top: 4px solid #2E86AB;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
+            margin: 0 auto 20px;
         }
 
         @keyframes spin {
@@ -232,23 +143,45 @@
             100% { transform: rotate(360deg); }
         }
 
+        .loading p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .results-section {
+            display: none;
+            margin-top: 30px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #c33;
+        }
+
         .feature-list {
-            text-align: left;
-            margin: 20px 0;
-            padding: 20px;
-            background: #f8f9ff;
-            border-radius: 10px;
+            margin-top: 30px;
+            padding: 25px;
+            background: #f1f8ff;
+            border-radius: 15px;
+            border-left: 5px solid #2E86AB;
         }
 
         .feature-list h3 {
-            color: #333;
+            color: #2E86AB;
             margin-bottom: 15px;
-            text-align: center;
+            font-size: 1.3rem;
         }
 
         .feature-list ul {
             list-style: none;
-            padding: 0;
+            padding-left: 0;
         }
 
         .feature-list li {
@@ -262,264 +195,380 @@
             content: "✓";
             position: absolute;
             left: 0;
-            color: #667eea;
+            color: #4CAF50;
             font-weight: bold;
+            font-size: 1.2rem;
         }
 
-        .error {
-            color: #e74c3c;
-            margin-top: 10px;
-            padding: 10px;
-            background: #ffeaea;
-            border-radius: 5px;
-            display: none;
+        .info-box {
+            background: #e8f5e8;
+            border: 1px solid #4CAF50;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
         }
 
-        .success {
-            color: #27ae60;
-            margin-top: 10px;
-            padding: 10px;
-            background: #eafaf1;
-            border-radius: 5px;
-            display: none;
+        .info-box h4 {
+            color: #2e7d32;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
         }
 
-        @media (max-width: 600px) {
+        .info-box p {
+            color: #2e7d32;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
             .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .header {
                 padding: 30px 20px;
             }
-            
-            h1 {
-                font-size: 2em;
+
+            .header h1 {
+                font-size: 2rem;
             }
-            
-            .pages-options {
-                flex-direction: column;
+
+            .main-content {
+                padding: 30px 20px;
             }
-            
-            .page-option {
-                min-width: auto;
+
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🚀 SEO Audit Tool</h1>
-        <p class="subtitle">Comprehensive website analysis and optimization</p>
-        
-        <div class="feature-list">
-            <h3>What's Included:</h3>
-            <ul>
-                <li>On-Page SEO Analysis</li>
-                <li>Technical SEO Audit</li>
-                <li>UI/UX Assessment</li>
-                <li>Backlink Profile Analysis</li>
-                <li>Broken Link Detection</li>
-                <li>Mobile Responsiveness</li>
-                <li>Core Web Vitals</li>
-                <li>Downloadable Reports</li>
-            </ul>
+        <div class="header">
+            <h1>🔍 Website SEO Audit Tool</h1>
+            <p>Comprehensive SEO analysis for homepage + navigation pages</p>
         </div>
 
-        <form id="auditForm">
-            <div class="form-group">
-                <label for="url">Website URL:</label>
-                <input type="url" id="url" name="url" placeholder="https://example.com" required>
-            </div>
+        <div class="main-content">
+            <div class="audit-form">
+                <h2>Generate Comprehensive SEO Report</h2>
+                <form id="auditForm">
+                    <div class="form-group">
+                        <label for="urlInput">Website URL</label>
+                        <input type="url" id="urlInput" name="url" placeholder="https://example.com" required>
+                    </div>
 
-            <div class="form-group">
-                <label>Pages to Audit:</label>
-                <div class="pages-options">
-                    <div class="page-option selected" data-pages="5">
-                        <div>Homepage + 5</div>
-                        <small>Quick Audit</small>
+                    <div class="form-group">
+                        <label for="maxPages">Maximum Pages to Audit</label>
+                        <select id="maxPages" name="max_pages">
+                            <option value="3">Homepage + 3 pages</option>
+                            <option value="5" selected>Homepage + 5 pages</option>
+                            <option value="8">Homepage + 8 pages</option>
+                            <option value="10">Homepage + 10 pages</option>
+                            <option value="custom">Custom URL List</option>
+                        </select>
                     </div>
-                    <div class="page-option" data-pages="10">
-                        <div>Homepage + 10</div>
-                        <small>Standard</small>
+
+                    <div class="form-group" id="customUrlsGroup" style="display: none;">
+                        <label for="customUrls">Custom URLs to Audit (one per line, max 50)</label>
+                        <textarea id="customUrls" name="custom_urls" placeholder="https://example.com/page1&#10;https://example.com/page2&#10;https://example.com/page3" rows="8" style="width: 100%; padding: 15px; border: 2px solid #e1e5e9; border-radius: 10px; font-size: 1rem; font-family: 'Segoe UI', monospace; background: #f8f9fa; resize: vertical; line-height: 1.4;"></textarea>
+                        <small style="color: #666; font-size: 0.9rem; margin-top: 5px; display: block;">Enter up to 50 URLs, one per line. These URLs will be analyzed for on-page and technical SEO factors.</small>
                     </div>
-                    <div class="page-option" data-pages="20">
-                        <div>Homepage + 20</div>
-                        <small>Comprehensive</small>
-                    </div>
-                    <div class="page-option" data-pages="custom">
-                        <div>Custom URLs</div>
-                        <small>Specific Pages</small>
-                    </div>
+
+                    <button type="submit" class="btn" id="submitBtn">
+                        📄 Generate Website SEO Report
+                    </button>
+                </form>
+
+                <div class="info-box">
+                    <h4>🚀 What This Tool Does:</h4>
+                    <p>Automatically discovers and audits your homepage plus main navigation pages. Generates a comprehensive PDF report with page-by-page analysis, site-wide metrics, and actionable recommendations.</p>
                 </div>
             </div>
 
-            <div class="custom-url-section" id="customUrlSection">
-                <label for="customUrls">Custom URLs (one per line, max 50):</label>
-                <textarea id="customUrls" name="customUrls" placeholder="https://example.com/page1&#10;https://example.com/page2&#10;https://example.com/page3"></textarea>
+            <div class="audit-form">
+                <h2>Run Custom Website Crawler</h2>
+                <form id="crawlerForm">
+                    <div class="form-group">
+                        <label for="crawlerUrl">Website URL</label>
+                        <input type="url" id="crawlerUrl" name="url" placeholder="https://example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="crawlerDepth">Max Crawl Depth</label>
+                        <input type="number" id="crawlerDepth" name="max_depth" value="2" min="1" max="5" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="crawlerPages">Max Pages to Crawl</label>
+                        <input type="number" id="crawlerPages" name="max_pages" value="100" min="10" max="500" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="fullCrawl">
+                            <input type="checkbox" id="fullCrawl" name="full_crawl" style="margin-right: 8px;">
+                            Full Website Crawl (ignores page limit)
+                        </label>
+                    </div>
+                    <button type="submit" class="btn" id="crawlerBtn">
+                        🕷️ Run Custom Crawler
+                    </button>
+                </form>
+                 <div class="info-box" style="background: #fff2e0; border-color: #f57c00;">
+                    <h4>✨ Crawler Features:</h4>
+                    <p>Finds broken internal/external links, identifies anchor text/alt text context, and detects orphan pages. Outputs clean CSV tables for technical SEO reports.</p>
+                </div>
             </div>
 
-            <div class="crawler-section">
-                <div class="crawler-toggle">
-                    <label for="runCrawler"><strong>Advanced Link Analysis</strong></label>
-                    <label class="switch">
-                        <input type="checkbox" id="runCrawler" name="runCrawler">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="crawler-info">
-                    Enable to scan for broken links and orphan pages across your website. This may take additional time but provides comprehensive link analysis.
-                </div>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Discovering pages and running comprehensive SEO analysis...</p>
+                <p style="font-size: 0.9rem; margin-top: 10px; color: #888;">This may take 30-60 seconds depending on the number of pages.</p>
             </div>
 
-            <button type="submit" id="submitBtn">Generate SEO Report</button>
-        </form>
+            <div class="error" id="error" style="display: none;">
+                <strong>Error:</strong> <span id="errorMessage"></span>
+            </div>
 
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p>Analyzing your website... This may take a few minutes.</p>
+            <div class="results-section" id="resultsSection">
+                <!-- Results will be inserted here -->
+            </div>
+
+            <div class="feature-list">
+                <h3>🎯 Comprehensive Analysis Includes:</h3>
+                <ul>
+                    <li>Automatic navigation menu discovery</li>
+                    <li>Multi-page On-Page SEO auditing</li>
+                    <li>Technical SEO analysis</li>
+                    <li>Page speed and Core Web Vitals</li>
+                    <li>Schema markup detection</li>
+                    <li>Mobile-friendliness testing</li>
+                    <li>Internal/external link analysis</li>
+                    <li>Image optimization review</li>
+                    <li>Meta tags and headings structure</li>
+                    <li>Color-coded PDF report with actionable recommendations</li>
+                </ul>
+            </div>
         </div>
-
-        <div class="error" id="error"></div>
-        <div class="success" id="success"></div>
     </div>
 
     <script>
-        // Page selection logic
-        const pageOptions = document.querySelectorAll('.page-option');
-        const customUrlSection = document.getElementById('customUrlSection');
-        let selectedPages = '5';
+        // Handle crawler form submission
+            document.getElementById('crawlerForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
 
-        pageOptions.forEach(option => {
-            option.addEventListener('click', function() {
-                // Remove selected class from all options
-                pageOptions.forEach(opt => opt.classList.remove('selected'));
-                
-                // Add selected class to clicked option
-                this.classList.add('selected');
-                
-                // Get selected value
-                selectedPages = this.dataset.pages;
-                
-                // Show/hide custom URL section
-                if (selectedPages === 'custom') {
-                    customUrlSection.classList.add('show');
-                } else {
-                    customUrlSection.classList.remove('show');
+                const submitBtn = document.getElementById('crawlerBtn');
+                const originalText = submitBtn.textContent;
+
+                try {
+                    submitBtn.textContent = '🕷️ Crawling...';
+                    submitBtn.disabled = true;
+
+                    console.log('Starting crawler analysis for:', document.getElementById('crawlerUrl').value);
+
+                    const fullCrawl = document.getElementById('fullCrawl').checked;
+                    const formData = {
+                        url: document.getElementById('crawlerUrl').value,
+                        max_depth: parseInt(document.getElementById('crawlerDepth').value),
+                        max_pages: fullCrawl ? -1 : parseInt(document.getElementById('crawlerPages').value),
+                        full_crawl: fullCrawl
+                    };
+
+                    console.log('Making request to /run-crawler');
+
+                    const response = await fetch('/run-crawler', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    console.log('Response status:', response.status);
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
+                            alert(`Crawler analysis complete!\n\nResults:\n- Pages crawled: ${result.stats.pages_crawled}\n- Broken links: ${result.stats.broken_links_count}\n- Orphan pages: ${result.stats.orphan_pages_count}\n\nCSV files saved to reports folder.`);
+                        } else {
+                            throw new Error('Crawler analysis failed');
+                        }
+                    } else {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Crawler request failed');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error running crawler analysis: ' + error.message);
+                } finally {
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
                 }
             });
-        });
 
-        // Form submission
-        document.getElementById('auditForm').addEventListener('submit', function(e) {
+            // Handle form submission
+            document.getElementById('auditForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
-            const url = document.getElementById('url').value;
-            const customUrls = document.getElementById('customUrls').value;
-            const runCrawler = document.getElementById('runCrawler').checked;
+
+            const url = document.getElementById('urlInput').value.trim();
+            const maxPages = document.getElementById('maxPages').value; // Keep as string to handle 'custom'
             const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.textContent;
             const loading = document.getElementById('loading');
-            const errorDiv = document.getElementById('error');
-            const successDiv = document.getElementById('success');
+            const error = document.getElementById('error');
+            const results = document.getElementById('resultsSection');
 
-            // Hide previous messages
-            errorDiv.style.display = 'none';
-            successDiv.style.display = 'none';
-
-            // Validate custom URLs if selected
-            if (selectedPages === 'custom') {
-                if (!customUrls.trim()) {
-                    showError('Please enter at least one custom URL.');
-                    return false;
-                }
-                
-                const urlList = customUrls.trim().split('\n').filter(u => u.trim());
-                if (urlList.length === 0) {
-                    showError('Please enter at least one valid custom URL.');
-                    return false;
-                }
-                
-                if (urlList.length > 50) {
-                    showError('Maximum 50 custom URLs allowed.');
-                    return false;
-                }
+            // Validate URL
+            if (!url) {
+                alert('Please enter a valid URL');
+                return;
             }
 
-            // Prepare data
-            const formData = {
-                url: url,
-                max_pages: selectedPages === 'custom' ? 'custom' : parseInt(selectedPages),
-                run_crawler: runCrawler
-            };
+            console.log('Starting audit for:', url, 'with max pages:', maxPages);
 
-            // Add custom URLs if selected
-            if (selectedPages === 'custom') {
-                const urlList = customUrls.trim().split('\n')
-                    .map(u => u.trim())
-                    .filter(u => u);
-                formData.custom_urls = urlList;
-            }
-
-            // Show loading state
-            submitBtn.disabled = true;
+            // Reset UI
+            error.style.display = 'none';
+            results.style.display = 'none';
             loading.style.display = 'block';
 
-            // Make request
-            fetch('/generate-pdf', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData)
-            })
-            .then(response => {
-                if (response.ok) {
-                    // Get filename from response headers or create default
-                    const contentDisposition = response.headers.get('content-disposition');
-                    let filename = 'seo_audit_report.pdf';
+            // Show loading state
+            submitBtn.textContent = 'Analyzing Pages...';
+            submitBtn.disabled = true;
+
+            try {
+                console.log('Making request to /generate-pdf');
+                
+                // Prepare request data
+                const requestData = { 
+                    url: url,
+                    max_pages: maxPages
+                };
+
+                // Handle custom URLs if selected
+                if (maxPages === 'custom') {
+                    const customUrlsText = document.getElementById('customUrls').value.trim();
+                    const customUrls = customUrlsText.split('\n')
+                        .map(url => url.trim())
+                        .filter(url => url.length > 0);
                     
-                    if (contentDisposition) {
-                        const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-                        if (fileNameMatch && fileNameMatch[1]) {
-                            filename = fileNameMatch[1].replace(/['"]/g, '');
-                        }
+                    if (customUrls.length === 0) {
+                        alert('Please enter at least one URL for custom audit');
+                        return;
                     }
-
-                    // Handle file download
-                    response.blob().then(blob => {
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.style.display = 'none';
-                        a.href = url;
-                        a.download = filename;
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
-                        
-                        showSuccess('SEO audit report generated successfully! Check your downloads.');
-                    });
-                } else {
-                    response.json().then(data => {
-                        showError(data.error || 'An error occurred while generating the report.');
-                    }).catch(() => {
-                        showError('An error occurred while generating the report.');
-                    });
+                    
+                    requestData.custom_urls = customUrls;
+                    console.log('Custom URLs provided:', customUrls.length, 'URLs');
                 }
-            })
-            .catch(error => {
+
+                const response = await fetch('/generate-pdf', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (response.ok) {
+                    console.log('PDF generation successful');
+                    const blob = await response.blob();
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = downloadUrl;
+                    a.download = 'seo-audit-report.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(downloadUrl);
+                    
+                    // Show success message
+                    loading.style.display = 'none';
+                    alert('✅ SEO audit complete! Your comprehensive report has been downloaded.');
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'PDF generation failed');
+                }
+            } catch (error) {
                 console.error('Error:', error);
-                showError('Network error occurred. Please try again.');
-            })
-            .finally(() => {
-                submitBtn.disabled = false;
                 loading.style.display = 'none';
-            });
-
-            function showError(message) {
-                errorDiv.textContent = message;
-                errorDiv.style.display = 'block';
+                error.style.display = 'block';
+                error.textContent = 'Error: ' + error.message;
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
             }
+        });
 
-            function showSuccess(message) {
-                successDiv.textContent = message;
-                successDiv.style.display = 'block';
+            
+
+        // Add URL validation
+        document.getElementById('urlInput').addEventListener('input', function(e) {
+            const url = e.target.value;
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (url && !url.match(/^https?:\/\//)) {
+                e.target.setCustomValidity('Please enter a valid URL starting with http:// or https://');
+            } else {
+                e.target.setCustomValidity('');
+            }
+        });
+
+        // Add URL validation for crawler
+        document.getElementById('crawlerUrl').addEventListener('input', function(e) {
+            const url = e.target.value;
+            const crawlerBtn = document.getElementById('crawlerBtn');
+
+            if (url && !url.match(/^https?:\/\//)) {
+                e.target.setCustomValidity('Please enter a valid URL starting with http:// or https://');
+            } else {
+                e.target.setCustomValidity('');
+            }
+        });
+
+        // Handle max pages dropdown change
+        document.getElementById('maxPages').addEventListener('change', function(e) {
+            const customUrlsGroup = document.getElementById('customUrlsGroup');
+            const customUrls = document.getElementById('customUrls');
+            
+            if (e.target.value === 'custom') {
+                customUrlsGroup.style.display = 'block';
+                customUrls.required = true;
+            } else {
+                customUrlsGroup.style.display = 'none';
+                customUrls.required = false;
+                customUrls.value = '';
+            }
+        });
+
+        // Validate custom URLs
+        document.getElementById('customUrls').addEventListener('input', function(e) {
+            const urls = e.target.value.trim().split('\n').filter(url => url.trim());
+            const submitBtn = document.getElementById('submitBtn');
+            
+            if (urls.length > 50) {
+                e.target.setCustomValidity('Maximum 50 URLs allowed');
+                return;
+            }
+            
+            for (let url of urls) {
+                url = url.trim();
+                if (url && !url.match(/^https?:\/\//)) {
+                    e.target.setCustomValidity('All URLs must start with http:// or https://');
+                    return;
+                }
+            }
+            
+            e.target.setCustomValidity('');
+        });
+
+        // Handle full crawl checkbox
+        document.getElementById('fullCrawl').addEventListener('change', function(e) {
+            const crawlerPagesInput = document.getElementById('crawlerPages');
+            if (e.target.checked) {
+                crawlerPagesInput.disabled = true;
+                crawlerPagesInput.style.opacity = '0.5';
+            } else {
+                crawlerPagesInput.disabled = false;
+                crawlerPagesInput.style.opacity = '1';
             }
         });
     </script>
