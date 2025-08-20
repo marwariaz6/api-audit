@@ -5222,6 +5222,27 @@ class PDFReportGenerator:
         for insight in analysis_insights:
             story.append(Paragraph(insight, analysis_style))
 
+        story.append(Spacer(1, 20))
+
+        # Add note about additional anchor text data in Excel file if more than 20 anchors
+        if len(detailed_anchor_data) > 21:  # More than 20 anchors (excluding header)
+            excel_note_style = ParagraphStyle(
+                'ExcelNote',
+                parent=self.body_style,
+                fontSize=10,
+                spaceAfter=15,
+                alignment=TA_CENTER,
+                textColor=HexColor('#6c757d'),
+                fontStyle='italic'
+            )
+            
+            story.append(Paragraph(
+                f"Note: This table shows the top {len(detailed_anchor_data)-1} anchor texts. "
+                "Complete anchor text data with all {len(detailed_anchor_data)-1} entries is available "
+                "in the downloadable Excel file at the end of this report.",
+                excel_note_style
+            ))
+
         story.append(Spacer(1, 30))
 
         # Add Key Insights section
