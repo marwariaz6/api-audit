@@ -957,15 +957,24 @@ class PDFReportGenerator:
             self.add_backlink_title_page(story)
             # Add the new sections
             self.add_link_source_quality_analysis(story)
-            self.add_anchor_text_distribution(story)
+            self.add_anchor_text_distribution(story, analyzed_pages)
             story.append(Spacer(1, 30))
 
             # Add Top 20 Referring Domains section
             self.add_top_referring_domains_section(story, analyzed_pages)
         except Exception as e:
             logger.error(f"Error adding backlink pages: {e}")
-            # Add fallback message
-            story.append(Paragraph("Backlink audit data temporarily unavailable", self.body_style))
+            logger.error(f"Exception details: {str(e)}")
+            # Add fallback message with better styling
+            fallback_style = ParagraphStyle(
+                'BacklinkFallback',
+                parent=self.body_style,
+                fontSize=12,
+                spaceAfter=20,
+                alignment=TA_CENTER,
+                textColor=HexColor('#6c757d')
+            )
+            story.append(Paragraph("Backlink audit data temporarily unavailable", fallback_style))
 
         try:
             doc.build(story)
@@ -5198,7 +5207,7 @@ class PDFReportGenerator:
         story.append(Paragraph("Average Domain Rating: 42.3 - Overall quality indicator of linking domains", avg_rating_style))
         story.append(Spacer(1, 30))
 
-    def add_anchor_text_distribution(self, story):
+    def add_anchor_text_distribution(self, story, analyzed_pages=None):
         """Add Anchor Text Distribution section"""
         # Section heading
         anchor_title_style = ParagraphStyle(
