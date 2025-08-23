@@ -5463,7 +5463,7 @@ def generate_pdf():
         selected_checks = data.get('selected_checks', {
             'on_page': ['titles', 'meta_description', 'headings', 'images', 'content', 'internal_links', 'external_links'],
             'technical': ['ssl', 'mobile', 'sitemap', 'robots', 'performance', 'core_vitals', 'structured_data'],
-            'link_analysis': ['broken_links', 'orphan_pages', 'redirect_chains', 'internal_structure'],
+            'link_analysis': ['broken_links', 'orphan_pages'],
             'uiux': ['navigation', 'design_consistency', 'mobile_responsive', 'accessibility', 'conversion'],
             'backlink': ['profile_summary', 'anchor_text', 'referring_domains', 'link_quality']
         })
