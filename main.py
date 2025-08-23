@@ -862,14 +862,17 @@ class PDFReportGenerator:
             self.add_technical_seo_intro_page(story)
 
             technical_checks = selected_checks.get('technical', [])
+            
+            # Domain-level checks: ssl, sitemap, robots
             if any(check in technical_checks for check in ['ssl', 'sitemap', 'robots']):
                 self.add_domain_level_audit_page(story)
 
+            # Page-level checks: mobile, performance, structured_data
             if any(check in technical_checks for check in ['mobile', 'performance', 'structured_data']):
                 self.add_page_level_technical_seo_page(story)
 
-            # Add the Web Core Vitals sections if performance is selected
-            if 'core_vitals' in technical_checks or 'performance' in technical_checks:
+            # Core Web Vitals sections - separate check for core_vitals
+            if 'core_vitals' in technical_checks:
                 self.add_web_core_vitals_mobile_section(story)
                 self.add_web_core_vitals_desktop_section(story)
 
@@ -887,13 +890,25 @@ class PDFReportGenerator:
                 self.add_backlink_title_page(story)
                 
                 backlink_checks = selected_checks.get('backlink', [])
+                
+                # Profile summary includes backlink profile summary and types distribution
                 if 'profile_summary' in backlink_checks:
+                    # This is already included in add_backlink_title_page method
+                    pass
+                
+                # Link quality analysis
+                if 'link_quality' in backlink_checks:
                     self.add_link_source_quality_analysis(story)
+                
+                # Anchor text analysis
                 if 'anchor_text' in backlink_checks:
                     self.add_anchor_text_distribution(story)
                     story.append(Spacer(1, 30))
+                
+                # Referring domains analysis
                 if 'referring_domains' in backlink_checks:
                     self.add_top_referring_domains_section(story, analyzed_pages)
+                    
             except Exception as e:
                 logger.error(f"Error adding backlink pages: {e}")
                 # Add fallback message
@@ -1804,18 +1819,19 @@ class PDFReportGenerator:
         # Add space for content
         story.append(Spacer(1, 30))
 
+        # Always include core sections for page-level analysis
         # Section 1: Page Crawlability & Indexability
         self.add_crawlability_indexability_section(story)
 
-        # Section 2: Page Performance Metrics
+        # Section 2: Page Performance Metrics (performance check)
         self.add_page_performance_section(story)
 
-        # Section 3: Mobile-Friendliness
+        # Section 3: Mobile-Friendliness (mobile check)
         self.add_mobile_friendliness_section(story)
 
-        # Add the new sections
+        # Additional technical sections
         self.add_https_security_section(story)
-        self.add_structured_data_section(story)
+        self.add_structured_data_section(story)  # structured_data check
         self.add_canonicalization_section(story)
         self.add_images_media_section(story)
         self.add_http_headers_compression_section(story)
