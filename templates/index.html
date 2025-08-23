@@ -264,6 +264,90 @@
             margin: 20px 0;
             display: none;
         }
+
+        /* SEO Check Selection Styles */
+        .check-category {
+            background: #f8f9fa;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .category-header {
+            background: #5a67d8;
+            color: white;
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .category-header:hover {
+            background: #4c51bf;
+        }
+
+        .category-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .category-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .category-title {
+            flex: 1;
+        }
+
+        .sub-checks {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+        }
+
+        .sub-check {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .sub-check:hover {
+            background: #f0f4f8;
+            border-color: #5a67d8;
+        }
+
+        .sub-check input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .sub-check input[type="checkbox"]:checked + span {
+            color: #5a67d8;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .sub-checks {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -274,7 +358,7 @@
         </div>
 
         <div class="main-content">
-            <div class="audit-form">
+            <div class="audit-form" id="urlInputForm">
                 <h2>Generate Comprehensive SEO Report</h2>
                 <form id="auditForm">
                     <div class="form-group">
@@ -307,6 +391,115 @@
                 <div class="info-box">
                     <h4>🚀 What This Tool Does:</h4>
                     <p>Automatically discovers and audits your homepage plus main navigation pages. Generates a comprehensive PDF report with page-by-page analysis, site-wide metrics, and actionable recommendations.</p>
+                </div>
+            </div>
+
+            <!-- SEO Check Selection Form (initially hidden) -->
+            <div class="audit-form" id="checkSelectionForm" style="display: none;">
+                <h2>Select SEO Checks to Run</h2>
+                <p style="color: #4a5568; margin-bottom: 20px;">Choose which SEO analysis modules to include in your report for <strong id="selectedUrl"></strong></p>
+
+                <form id="checkSelectionFormElement">
+                    <!-- On-Page SEO Category -->
+                    <div class="check-category">
+                        <div class="category-header">
+                            <label class="category-checkbox">
+                                <input type="checkbox" id="onPageSelectAll" checked>
+                                <span class="category-title">📝 On-Page SEO</span>
+                            </label>
+                        </div>
+                        <div class="sub-checks">
+                            <label class="sub-check"><input type="checkbox" name="on_page" value="titles" checked> Title Tag Optimization</label>
+                            <label class="sub-check"><input type="checkbox" name="on_page" value="meta_description" checked> Meta Descriptions</label>
+                            <label class="sub-check"><input type="checkbox" name="on_page" value="headings" checked> Heading Structure</label>
+                            <label class="sub-check"><input type="checkbox" name="on_page" value="images" checked> Image Optimization</label>
+                            <label class="sub-check"><input type="checkbox" name="on_page" value="content" checked> Content Quality</label>
+                            <label class="sub-check"><input type="checkbox" name="on_page" value="internal_links" checked> Internal Linking</label>
+                            <label class="sub-check"><input type="checkbox" name="on_page" value="external_links" checked> External Linking</label>
+                        </div>
+                    </div>
+
+                    <!-- Technical SEO Category -->
+                    <div class="check-category">
+                        <div class="category-header">
+                            <label class="category-checkbox">
+                                <input type="checkbox" id="technicalSelectAll" checked>
+                                <span class="category-title">⚙️ Technical SEO</span>
+                            </label>
+                        </div>
+                        <div class="sub-checks">
+                            <label class="sub-check"><input type="checkbox" name="technical" value="ssl" checked> HTTPS/SSL Security</label>
+                            <label class="sub-check"><input type="checkbox" name="technical" value="mobile" checked> Mobile Friendliness</label>
+                            <label class="sub-check"><input type="checkbox" name="technical" value="sitemap" checked> Sitemap Analysis</label>
+                            <label class="sub-check"><input type="checkbox" name="technical" value="robots" checked> Robots.txt</label>
+                            <label class="sub-check"><input type="checkbox" name="technical" value="performance" checked> Page Performance</label>
+                            <label class="sub-check"><input type="checkbox" name="technical" value="core_vitals" checked> Core Web Vitals</label>
+                            <label class="sub-check"><input type="checkbox" name="technical" value="structured_data" checked> Structured Data</label>
+                        </div>
+                    </div>
+
+                    <!-- Link Analysis Category -->
+                    <div class="check-category">
+                        <div class="category-header">
+                            <label class="category-checkbox">
+                                <input type="checkbox" id="linkAnalysisSelectAll" checked>
+                                <span class="category-title">🔍 Link Analysis & Site Crawl</span>
+                            </label>
+                        </div>
+                        <div class="sub-checks">
+                            <label class="sub-check"><input type="checkbox" name="link_analysis" value="broken_links" checked> Broken Links Detection</label>
+                            <label class="sub-check"><input type="checkbox" name="link_analysis" value="orphan_pages" checked> Orphan Pages</label>
+                            <label class="sub-check"><input type="checkbox" name="link_analysis" value="redirect_chains" checked> Redirect Chains</label>
+                            <label class="sub-check"><input type="checkbox" name="link_analysis" value="internal_structure" checked> Internal Link Structure</label>
+                        </div>
+                    </div>
+
+                    <!-- UI/UX Audit Category -->
+                    <div class="check-category">
+                        <div class="category-header">
+                            <label class="category-checkbox">
+                                <input type="checkbox" id="uiuxSelectAll" checked>
+                                <span class="category-title">🎨 UI/UX Audit</span>
+                            </label>
+                        </div>
+                        <div class="sub-checks">
+                            <label class="sub-check"><input type="checkbox" name="uiux" value="navigation" checked> Navigation Structure</label>
+                            <label class="sub-check"><input type="checkbox" name="uiux" value="design_consistency" checked> Design Consistency</label>
+                            <label class="sub-check"><input type="checkbox" name="uiux" value="mobile_responsive" checked> Mobile Responsiveness</label>
+                            <label class="sub-check"><input type="checkbox" name="uiux" value="accessibility" checked> Accessibility</label>
+                            <label class="sub-check"><input type="checkbox" name="uiux" value="conversion" checked> Conversion Elements</label>
+                        </div>
+                    </div>
+
+                    <!-- Backlink Audit Category -->
+                    <div class="check-category">
+                        <div class="category-header">
+                            <label class="category-checkbox">
+                                <input type="checkbox" id="backlinkSelectAll" checked>
+                                <span class="category-title">🔗 Backlink Audit</span>
+                            </label>
+                        </div>
+                        <div class="sub-checks">
+                            <label class="sub-check"><input type="checkbox" name="backlink" value="profile_summary" checked> Profile Summary</label>
+                            <label class="sub-check"><input type="checkbox" name="backlink" value="anchor_text" checked> Anchor Text Analysis</label>
+                            <label class="sub-check"><input type="checkbox" name="backlink" value="referring_domains" checked> Referring Domains</label>
+                            <label class="sub-check"><input type="checkbox" name="backlink" value="link_quality" checked> Link Quality Analysis</label>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 15px; margin-top: 30px;">
+                        <button type="button" class="btn" id="backToUrlBtn" style="background: #6c757d; flex: 1;">
+                            ← Back to URL Input
+                        </button>
+                        <button type="submit" class="btn" id="runSelectedChecksBtn" style="flex: 2;">
+                            🚀 Run Selected Checks
+                        </button>
+                    </div>
+                </form>
+
+                <div class="info-box">
+                    <h4>💡 Customize Your Report:</h4>
+                    <p>Select only the SEO checks you need. Unselected categories will be excluded from the final PDF report, making it faster to generate and more focused on your specific requirements.</p>
                 </div>
             </div>
 
@@ -414,41 +607,89 @@
             }
         });
 
-        // Handle main audit form submission
-        document.getElementById('auditForm').addEventListener('submit', async function(e) {
+        // Store form data for check selection step
+        let auditFormData = {};
+
+        // Handle main audit form submission - now shows check selection
+        document.getElementById('auditForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
             const url = document.getElementById('urlInput').value;
             const maxPages = document.getElementById('maxPages').value;
             const customUrls = document.getElementById('customUrls').value;
-            const submitBtn = document.getElementById('submitBtn');
+            
+            // Store form data
+            auditFormData = {
+                url: url,
+                max_pages: maxPages,
+                custom_urls: customUrls
+            };
+
+            // Show check selection form
+            document.getElementById('urlInputForm').style.display = 'none';
+            document.getElementById('checkSelectionForm').style.display = 'block';
+            document.getElementById('selectedUrl').textContent = url;
+        });
+
+        // Handle back to URL input
+        document.getElementById('backToUrlBtn').addEventListener('click', function() {
+            document.getElementById('checkSelectionForm').style.display = 'none';
+            document.getElementById('urlInputForm').style.display = 'block';
+        });
+
+        // Handle check selection form submission - runs the actual audit
+        document.getElementById('checkSelectionFormElement').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const runBtn = document.getElementById('runSelectedChecksBtn');
             const loading = document.getElementById('loading');
             
-            console.log('Starting audit for:', url, 'with max pages:', maxPages);
+            // Collect selected checks
+            const selectedChecks = {
+                on_page: [],
+                technical: [],
+                link_analysis: [],
+                uiux: [],
+                backlink: []
+            };
+
+            // Get all checked checkboxes
+            const checkboxes = document.querySelectorAll('#checkSelectionFormElement input[type="checkbox"][name]');
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    const category = checkbox.name;
+                    const value = checkbox.value;
+                    if (selectedChecks[category]) {
+                        selectedChecks[category].push(value);
+                    }
+                }
+            });
+
+            console.log('Selected checks:', selectedChecks);
             
             // Show loading state
-            submitBtn.disabled = true;
+            runBtn.disabled = true;
             loading.style.display = 'block';
             
             try {
                 const requestData = {
-                    url: url,
-                    max_pages: maxPages,
-                    run_crawler: false
+                    ...auditFormData,
+                    selected_checks: selectedChecks,
+                    run_crawler: selectedChecks.link_analysis.length > 0
                 };
 
                 // If custom URLs are selected, parse and add them
-                if (maxPages === 'custom' && customUrls) {
-                    const urls = customUrls.split('\n')
+                if (auditFormData.max_pages === 'custom' && auditFormData.custom_urls) {
+                    const urls = auditFormData.custom_urls.split('\n')
                         .map(url => url.trim())
                         .filter(url => url.length > 0)
-                        .slice(0, 50); // Limit to 50 URLs
+                        .slice(0, 50);
                     
                     requestData.custom_urls = urls;
                     console.log('Custom URLs provided:', urls.length, 'URLs');
                 }
 
-                console.log('Making request to /generate-pdf');
+                console.log('Making request to /generate-pdf with selected checks');
                 const response = await fetch('/generate-pdf', {
                     method: 'POST',
                     headers: {
@@ -469,9 +710,11 @@
                     a.click();
                     window.URL.revokeObjectURL(downloadUrl);
                     
-                    // Show success message
+                    // Show success message and go back to URL form
                     loading.style.display = 'none';
-                    showMessage('✅ SEO audit complete! Your comprehensive report has been downloaded.', 'success');
+                    document.getElementById('checkSelectionForm').style.display = 'none';
+                    document.getElementById('urlInputForm').style.display = 'block';
+                    showMessage('✅ SEO audit complete! Your customized report has been downloaded.', 'success');
                 } else {
                     const errorData = await response.json();
                     throw new Error(errorData.error || 'PDF generation failed');
@@ -481,9 +724,62 @@
                 loading.style.display = 'none';
                 showMessage('❌ Error: ' + error.message, 'error');
             } finally {
-                submitBtn.disabled = false;
+                runBtn.disabled = false;
             }
         });
+
+        // Handle category select all checkboxes
+        document.getElementById('onPageSelectAll').addEventListener('change', function() {
+            toggleCategoryChecks('on_page', this.checked);
+        });
+
+        document.getElementById('technicalSelectAll').addEventListener('change', function() {
+            toggleCategoryChecks('technical', this.checked);
+        });
+
+        document.getElementById('linkAnalysisSelectAll').addEventListener('change', function() {
+            toggleCategoryChecks('link_analysis', this.checked);
+        });
+
+        document.getElementById('uiuxSelectAll').addEventListener('change', function() {
+            toggleCategoryChecks('uiux', this.checked);
+        });
+
+        document.getElementById('backlinkSelectAll').addEventListener('change', function() {
+            toggleCategoryChecks('backlink', this.checked);
+        });
+
+        // Function to toggle all checks in a category
+        function toggleCategoryChecks(category, checked) {
+            const checkboxes = document.querySelectorAll(`input[name="${category}"]`);
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = checked;
+            });
+        }
+
+        // Update category select all when individual checks change
+        document.addEventListener('change', function(e) {
+            if (e.target.type === 'checkbox' && e.target.name && e.target.name !== 'max_pages') {
+                updateCategorySelectAll(e.target.name);
+            }
+        });
+
+        function updateCategorySelectAll(category) {
+            const checkboxes = document.querySelectorAll(`input[name="${category}"]`);
+            const selectAllCheckbox = document.getElementById(category === 'on_page' ? 'onPageSelectAll' :
+                                                          category === 'technical' ? 'technicalSelectAll' :
+                                                          category === 'link_analysis' ? 'linkAnalysisSelectAll' :
+                                                          category === 'uiux' ? 'uiuxSelectAll' :
+                                                          'backlinkSelectAll');
+            
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            const someChecked = Array.from(checkboxes).some(cb => cb.checked);
+            
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = allChecked;
+                selectAllCheckbox.indeterminate = someChecked && !allChecked;
+            }
+        }
 
         // Handle crawler form submission
         document.getElementById('crawlerForm').addEventListener('submit', async function(e) {
