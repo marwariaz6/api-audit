@@ -733,7 +733,7 @@ class PDFReportGenerator:
                     'technical': ['ssl', 'mobile', 'sitemap', 'robots', 'performance', 'core_vitals', 'structured_data'],
                     'link_analysis': ['broken_links', 'orphan_pages', 'redirect_chains', 'internal_structure'],
                     'uiux': ['navigation', 'design_consistency', 'mobile_responsive', 'accessibility', 'conversion'],
-                    'backlink': ['profile_summary', 'anchor_text', 'referring_domains', 'link_quality']
+                    'backlink': ['profile_summary', 'types_distribution', 'link_quality', 'anchor_text', 'detailed_anchor_text', 'referring_domains', 'additional_data']
                 }
 
             # Title page
@@ -887,27 +887,42 @@ class PDFReportGenerator:
         # Add Backlink Audit Report section (only if selected)
         if selected_checks.get('backlink'):
             try:
-                self.add_backlink_title_page(story)
-                
                 backlink_checks = selected_checks.get('backlink', [])
                 
-                # Profile summary includes backlink profile summary and types distribution
+                # Only add title page if any backlink checks are selected
+                if backlink_checks:
+                    self.add_backlink_title_page(story)
+                
+                # Profile summary includes backlink profile summary
                 if 'profile_summary' in backlink_checks:
                     # This is already included in add_backlink_title_page method
+                    pass
+                
+                # Backlink types distribution
+                if 'types_distribution' in backlink_checks:
+                    # This is also included in add_backlink_title_page method
                     pass
                 
                 # Link quality analysis
                 if 'link_quality' in backlink_checks:
                     self.add_link_source_quality_analysis(story)
                 
-                # Anchor text analysis
+                # Anchor text distribution
                 if 'anchor_text' in backlink_checks:
                     self.add_anchor_text_distribution(story)
                     story.append(Spacer(1, 30))
                 
-                # Referring domains analysis
+                # Detailed anchor text analysis
+                if 'detailed_anchor_text' in backlink_checks:
+                    self.add_detailed_anchor_text_analysis(story)
+                
+                # Top 20 referring domains
                 if 'referring_domains' in backlink_checks:
                     self.add_top_referring_domains_section(story, analyzed_pages)
+                
+                # Additional report data
+                if 'additional_data' in backlink_checks:
+                    self.add_additional_backlink_data(story)
                     
             except Exception as e:
                 logger.error(f"Error adding backlink pages: {e}")
