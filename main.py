@@ -731,7 +731,7 @@ class PDFReportGenerator:
                 selected_checks = {
                     'on_page': ['titles', 'meta_description', 'headings', 'images', 'content', 'internal_links', 'external_links'],
                     'technical': ['ssl', 'mobile', 'sitemap', 'robots', 'performance', 'core_vitals', 'structured_data'],
-                    'link_analysis': ['broken_links', 'orphan_pages', 'redirect_chains', 'internal_structure'],
+                    'link_analysis': ['broken_links', 'orphan_pages'],
                     'uiux': ['navigation', 'design_consistency', 'mobile_responsive', 'accessibility', 'conversion'],
                     'backlink': ['profile_summary', 'types_distribution', 'link_quality', 'anchor_text', 'detailed_anchor_text', 'referring_domains', 'additional_data']
                 }
@@ -747,7 +747,7 @@ class PDFReportGenerator:
         story.append(PageBreak())
 
         # Table of Contents page
-        self.add_table_of_contents(story)
+        self.add_table_of_contents(story, selected_checks)
 
         # Add page break after Table of Contents
         story.append(PageBreak())
@@ -862,18 +862,19 @@ class PDFReportGenerator:
             self.add_technical_seo_intro_page(story)
 
             technical_checks = selected_checks.get('technical', [])
-            
+
             # Domain-level checks: ssl, sitemap, robots
-            if any(check in technical_checks for check in ['ssl', 'sitemap', 'robots']):
+            if any(check in technical_checks for check in ['ssl', 'sitemap', 'robots', 'domain_level']):
                 self.add_domain_level_audit_page(story)
 
             # Page-level checks: mobile, performance, structured_data
-            if any(check in technical_checks for check in ['mobile', 'performance', 'structured_data']):
+            if any(check in technical_checks for check in ['mobile', 'performance', 'structured_data', 'page_level', 'crawlability']):
                 self.add_page_level_technical_seo_page(story)
 
             # Core Web Vitals sections - separate check for core_vitals
-            if 'core_vitals' in technical_checks:
+            if 'core_vitals_mobile' in technical_checks:
                 self.add_web_core_vitals_mobile_section(story)
+            if 'core_vitals_desktop' in technical_checks:
                 self.add_web_core_vitals_desktop_section(story)
 
         # Add crawler results if available and link analysis is selected
@@ -888,42 +889,42 @@ class PDFReportGenerator:
         if selected_checks.get('backlink'):
             try:
                 backlink_checks = selected_checks.get('backlink', [])
-                
+
                 # Only add title page if any backlink checks are selected
                 if backlink_checks:
                     self.add_backlink_title_page(story)
-                
+
                 # Profile summary includes backlink profile summary
                 if 'profile_summary' in backlink_checks:
                     # This is already included in add_backlink_title_page method
                     pass
-                
+
                 # Backlink types distribution
                 if 'types_distribution' in backlink_checks:
                     # This is also included in add_backlink_title_page method
                     pass
-                
+
                 # Link quality analysis
                 if 'link_quality' in backlink_checks:
                     self.add_link_source_quality_analysis(story)
-                
+
                 # Anchor text distribution
                 if 'anchor_text' in backlink_checks:
                     self.add_anchor_text_distribution(story)
                     story.append(Spacer(1, 30))
-                
+
                 # Detailed anchor text analysis
                 if 'detailed_anchor_text' in backlink_checks:
                     self.add_detailed_anchor_text_analysis(story)
-                
+
                 # Top 20 referring domains
                 if 'referring_domains' in backlink_checks:
                     self.add_top_referring_domains_section(story, analyzed_pages)
-                
+
                 # Additional report data
                 if 'additional_data' in backlink_checks:
                     self.add_additional_backlink_data(story)
-                    
+
             except Exception as e:
                 logger.error(f"Error adding backlink pages: {e}")
                 # Add fallback message
@@ -1384,6 +1385,7 @@ class PDFReportGenerator:
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 9),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'LEFT'), # Ensure alignment is left for content cell
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 1), (-1, -1), 8),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
@@ -2087,7 +2089,7 @@ class PDFReportGenerator:
             ('WORDWRAP', (0, 0), (-1, -1), True)
         ]
 
-        # Color code performance metrics and add alternating rows
+        # Color code load time and total size
         for i in range(1, len(performance_data)):
             # Alternate row backgrounds
             if i % 2 == 0:
@@ -3770,7 +3772,7 @@ class PDFReportGenerator:
             }
         }
 
-    def add_uiux_audit_section(self, story, analyzed_pages):
+    def add_uiux_audit_section(self, story, analyzed_pages, all_browser_results=None):
         """Add UI/UX Audit section to PDF"""
         story.append(PageBreak())
 
@@ -4538,9 +4540,9 @@ class PDFReportGenerator:
 
         # Generate recommendations based on the referring domains data
         recommendations = [
-            "• Focus on maintaining relationships with high-authority domains (DR 90+) like Google, Facebook, and LinkedIn",
+            "• Focus on maintaining relationships with high-authority domains (DR 60+) like Google, Facebook, and LinkedIn",
             "• Monitor and potentially disavow links from domains with spam scores above 15% (tumblr.com, blogspot.com)",
-            "• Seek more DoFollow links from medium-authority domains (DR 70-89) to improve link equity",
+            "• Seek more DoFollow links from medium-authority domains (DR 30-59) to improve link equity",
             "• Diversify anchor text in outreach to high-authority domains like TechCrunch and Forbes",
             "• Review and potentially remove or disavow links from domains with spam scores above 10%",
             "• Leverage existing relationships with quality domains to request more contextual backlinks",
@@ -4559,7 +4561,7 @@ class PDFReportGenerator:
         for recommendation in recommendations:
             story.append(Paragraph(recommendation, recommendation_style))
 
-        story.append(Spacer(1, 15))
+        story.append(Spacer(1, 25))
 
         # Add Download Additional Report Data section
         download_title_style = ParagraphStyle(
@@ -4718,7 +4720,7 @@ class PDFReportGenerator:
                 table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
                 table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
 
-            elif 'Spam Score' in metric:
+            elif'Spam Score' in metric:
                 # Spam Score: <15% good, <30% moderate, >30% poor
                 score = float(value.rstrip('%'))
                 if score < 15:
@@ -4862,8 +4864,8 @@ class PDFReportGenerator:
 
         story.append(Spacer(1, 30))
 
-    def add_table_of_contents(self, story):
-        """Add Table of Contents page"""
+    def add_table_of_contents(self, story, selected_checks=None):
+        """Add dynamic Table of Contents page based on selected checks"""
         # Center-aligned heading style for TOC title
         toc_title_style = ParagraphStyle(
             'TOC_Title',
@@ -4880,508 +4882,148 @@ class PDFReportGenerator:
         story.append(Paragraph("Table of Contents", toc_title_style))
         story.append(Spacer(1, 30))
 
-        # Create a list of sections and their corresponding page numbers (placeholders for now)
-        # In a real implementation, page numbers would be determined after the full document is built
+        # Start with basic sections that are always included
         toc_entries = [
             ("Website SEO Audit Report", "1"),
             ("Overall Site SEO Score", "2"),
-            ("Overall Page Scores", "3"),
-            ("On-Page SEO Audit", "4"),
-            ("Title Tag Optimization", "5"),
-            ("Meta Description", "7"),
-            ("Heading Structure", "9"),
-            ("Image Optimization", "11"),
-            ("Content Quality", "13"),
-            ("Internal Linking", "15"),
-            ("External Linking", "17"),
-            ("Details", "19"),
-            ("Technical SEO Audit", "21"),
-            ("Domain-Level Technical SEO Summary", "22"),
-            ("Page-Level Technical SEO Checks", "24"),
-            ("Page Crawlability & Indexability", "25"),
-            ("Page Performance Metrics", "27"),
-            ("Mobile-Friendliness", "29"),
-            ("HTTPS & Security", "31"),
-            ("Structured Data", "33"),
-            ("Canonicalization", "35"),
-            ("Images & Media", "37"),
-            ("HTTP Headers & Compression", "39"),
-            ("Web Core Vitals Mobile", "41"),
-            ("Web Core Vitals Desktop", "43"),
-            ("Link Analysis & Site Crawl", "45"),
-            ("UI/UX Audit Report", "47"),
-            ("Navigation & Structure", "48"),
-            ("Design Consistency", "50"),
-            ("Mobile & Responsive Design", "52"),
-            ("Readability & Accessibility", "54"),
-            ("Interaction & Feedback", "56"),
-            ("Conversion Elements", "58"),
-            ("Backlink Audit Report", "60"),
-            ("Backlink Profile Summary", "61"),
-            ("Backlink Types Distribution", "63"),
-            ("Link Source Quality Analysis", "65"),
-            ("Anchor Text Distribution", "67"),
-            ("Key Insights", "69"),
-            ("Top 20 Referring Domains", "71"),
-            ("Additional Report Data", "73")
+            ("Overall Page Scores", "3")
         ]
 
-        # Create a table for the TOC entries
-        toc_table_data = [['Section', 'Page']]
-        for section, page_num in toc_entries:
-            toc_table_data.append([
-                Paragraph(section, ParagraphStyle(
-                    'TOCCell',
-                    parent=self.body_style,
-                    fontSize=10,
-                    leading=14,
-                    alignment=TA_LEFT,
-                    wordWrap='LTR'
-                )),
-                Paragraph(page_num, ParagraphStyle(
-                    'TOCCell',
-                    parent=self.body_style,
-                    fontSize=10,
-                    leading=14,
-                    alignment=TA_CENTER,
-                    wordWrap='LTR'
-                ))
-            ])
+        page_counter = 4
 
-        # Create the table with appropriate column widths
-        toc_table = Table(toc_table_data, colWidths=[4.5*inch, 1.0*inch])
+        # Add On-Page SEO sections if selected
+        if selected_checks and selected_checks.get('on_page'):
+            toc_entries.append(("On-Page SEO Audit", str(page_counter)))
+            page_counter += 1
 
-        # Style the TOC table
-        toc_table_style = [
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#A23B72')), # Header background
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),               # Header text color
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),     # Header font
-            ('FONTSIZE', (0, 0), (-1, 0), 11),                   # Header font size
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),                 # General alignment
-            ('ALIGN', (1, 0), (1, -1), 'CENTER'),                # Page number alignment
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),              # Vertical alignment
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),              # Padding
-            ('TOPPADDING', (0, 0), (-1, -1), 8),                 # Padding
-            ('GRID', (0, 0), (-1, -1), 1, black),                # Grid lines
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),         # Body font
-            ('FONTSIZE', (0, 1), (-1, -1), 10),                  # Body font size
-            ('LEFTPADDING', (0, 0), (-1, -1), 6),                # Left padding for text
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [white, HexColor('#f8f9fa')]), # Alternating row colors
-            ('WORDWRAP', (0,0), (-1,-1), True)                   # Enable word wrap
-        ]
+            on_page_checks = selected_checks.get('on_page', [])
+            if 'titles' in on_page_checks:
+                toc_entries.append(("Title Tag Optimization", str(page_counter)))
+                page_counter += 2
+            if 'meta_description' in on_page_checks:
+                toc_entries.append(("Meta Description", str(page_counter)))
+                page_counter += 2
+            if 'headings' in on_page_checks:
+                toc_entries.append(("Heading Structure", str(page_counter)))
+                page_counter += 2
+            if 'images' in on_page_checks:
+                toc_entries.append(("Image Optimization", str(page_counter)))
+                page_counter += 2
+                toc_entries.append(("Details", str(page_counter)))
+                page_counter += 2
+            if 'content' in on_page_checks:
+                toc_entries.append(("Content Quality", str(page_counter)))
+                page_counter += 2
+            if 'internal_links' in on_page_checks:
+                toc_entries.append(("Internal Linking", str(page_counter)))
+                page_counter += 2
+            if 'external_links' in on_page_checks:
+                toc_entries.append(("External Linking", str(page_counter)))
+                page_counter += 2
 
-        toc_table.setStyle(TableStyle(toc_table_style))
-        story.append(toc_table)
-        story.append(Spacer(1, 30))
+        # Add Technical SEO sections if selected
+        if selected_checks and selected_checks.get('technical'):
+            toc_entries.append(("Technical SEO Audit", str(page_counter)))
+            page_counter += 1
 
-        # Add a concluding remark
-        concluding_remark_style = ParagraphStyle(
-            'TOC_Remark',
-            parent=self.body_style,
-            fontSize=9,
-            alignment=TA_CENTER,
-            textColor=HexColor('#6c757d')
-        )
-        story.append(Paragraph("Note: Page numbers are indicative and may vary slightly after final rendering.", concluding_remark_style))
+            technical_checks = selected_checks.get('technical', [])
+            if any(check in technical_checks for check in ['ssl', 'sitemap', 'robots', 'domain_level']):
+                toc_entries.append(("Domain-Level Technical SEO Summary", str(page_counter)))
+                page_counter += 2
 
+            if any(check in technical_checks for check in ['mobile', 'performance', 'structured_data', 'page_level', 'crawlability']):
+                toc_entries.append(("Page-Level Technical SEO Checks", str(page_counter)))
+                page_counter += 1
 
-    def add_link_source_quality_analysis(self, story):
-        """Add Link Source Quality Analysis section"""
-        story.append(PageBreak())
+                if 'crawlability' in technical_checks:
+                    toc_entries.append(("Page Crawlability & Indexability", str(page_counter)))
+                    page_counter += 2
+                if 'performance' in technical_checks:
+                    toc_entries.append(("Page Performance Metrics", str(page_counter)))
+                    page_counter += 2
+                if 'mobile' in technical_checks:
+                    toc_entries.append(("Mobile-Friendliness", str(page_counter)))
+                    page_counter += 2
+                if 'ssl' in technical_checks:
+                    toc_entries.append(("HTTPS & Security", str(page_counter)))
+                    page_counter += 2
+                if 'structured_data' in technical_checks:
+                    toc_entries.append(("Structured Data", str(page_counter)))
+                    page_counter += 2
+                if 'canonicalization' in technical_checks:
+                    toc_entries.append(("Canonicalization", str(page_counter)))
+                    page_counter += 2
+                if 'images_media' in technical_checks:
+                    toc_entries.append(("Images & Media", str(page_counter)))
+                    page_counter += 2
+                if 'http_headers' in technical_checks:
+                    toc_entries.append(("HTTP Headers & Compression", str(page_counter)))
+                    page_counter += 2
 
-        # Section heading
-        quality_title_style = ParagraphStyle(
-            'LinkQualityTitle',
-            parent=self.heading_style,
-            fontSize=18,
-            spaceAfter=20,
-            textColor=HexColor('#2E86AB'),
-            fontName='Helvetica-Bold'
-        )
+            if 'core_vitals_mobile' in technical_checks:
+                toc_entries.append(("Web Core Vitals Mobile", str(page_counter)))
+                page_counter += 2
+            if 'core_vitals_desktop' in technical_checks:
+                toc_entries.append(("Web Core Vitals Desktop", str(page_counter)))
+                page_counter += 2
 
-        story.append(Paragraph("Link Source Quality Analysis", quality_title_style))
-        story.append(Spacer(1, 15))
+        # Add Link Analysis sections if selected
+        if selected_checks and selected_checks.get('link_analysis'):
+            toc_entries.append(("Link Analysis & Site Crawl", str(page_counter)))
+            page_counter += 2
 
-        # Create quality analysis table
-        quality_data = [
-            ['Quality Level', 'Count', 'Percentage', 'Description'],
-            ['High Authority (DR 60+)', '98', '7.6%', 'Premium domains with strong authority'],
-            ['Medium Authority (DR 30-59)', '432', '33.6%', 'Good quality domains with decent authority'],
-            ['Low Authority (DR <30)', '754', '58.8%', 'Lower authority domains']
-        ]
+        # Add UI/UX sections if selected
+        if selected_checks and selected_checks.get('uiux'):
+            toc_entries.append(("UI/UX Audit Report", str(page_counter)))
+            page_counter += 1
 
-        # Create table with proper column widths
-        quality_table = Table(quality_data, colWidths=[1.8*inch, 0.8*inch, 1.0*inch, 2.8*inch])
+            uiux_checks = selected_checks.get('uiux', [])
+            if 'navigation' in uiux_checks:
+                toc_entries.append(("Navigation & Structure", str(page_counter)))
+                page_counter += 2
+            if 'design_consistency' in uiux_checks:
+                toc_entries.append(("Design Consistency", str(page_counter)))
+                page_counter += 2
+            if 'mobile_responsive' in uiux_checks:
+                toc_entries.append(("Mobile & Responsive Design", str(page_counter)))
+                page_counter += 2
+            if 'readability_accessibility' in uiux_checks:
+                toc_entries.append(("Readability & Accessibility", str(page_counter)))
+                page_counter += 2
+            if 'interaction_feedback' in uiux_checks:
+                toc_entries.append(("Interaction & Feedback", str(page_counter)))
+                page_counter += 2
+            if 'conversion' in uiux_checks:
+                toc_entries.append(("Conversion Elements", str(page_counter)))
+                page_counter += 2
 
-        # Define table style
-        table_style = [
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 11),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (2, -1), 'CENTER'),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
-        ]
+        # Add Backlink sections if selected
+        if selected_checks and selected_checks.get('backlink'):
+            toc_entries.append(("Backlink Audit Report", str(page_counter)))
+            page_counter += 1
 
-        # Color code based on quality level
-        for i in range(1, len(quality_data)):
-            # Alternate row backgrounds
-            if i % 2 == 0:
-                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
-                table_style.append(('BACKGROUND', (3, i), (3, i), HexColor('#f8f9fa')))
-
-            # Color code based on quality level
-            quality_level = quality_data[i][0]
-            if 'High Authority' in quality_level:
-                color = HexColor('#4CAF50')  # Green
-            elif 'Medium Authority' in quality_level:
-                color = HexColor('#FF9800')  # Orange
-            else:  # Low Authority
-                color = HexColor('#F44336')  # Red
-
-            table_style.append(('BACKGROUND', (2, i), (2, i), color))
-            table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
-            table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
-
-        quality_table.setStyle(TableStyle(table_style))
-        story.append(quality_table)
-        story.append(Spacer(1, 20))
-
-        # Add average domain rating summary
-        avg_rating_style = ParagraphStyle(
-            'AvgRating',
-            parent=self.body_style,
-            fontSize=12,
-            spaceAfter=15,
-            fontName='Helvetica-Bold',
-            textColor=HexColor('#2E86AB')
-        )
-
-        story.append(Paragraph("Average Domain Rating: 42.3 - Overall quality indicator of linking domains", avg_rating_style))
-        story.append(Spacer(1, 30))
-
-    def add_anchor_text_distribution(self, story):
-        """Add Anchor Text Distribution section"""
-        # Section heading
-        anchor_title_style = ParagraphStyle(
-            'AnchorDistributionTitle',
-            parent=self.heading_style,
-            fontSize=18,
-            spaceAfter=20,
-            textColor=HexColor('#2E86AB'),
-            fontName='Helvetica-Bold'
-        )
-
-        story.append(Paragraph("Anchor Text Distribution", anchor_title_style))
-        story.append(Spacer(1, 15))
-
-        # Create anchor type distribution table
-        anchor_type_data = [
-            ['Anchor Type', 'Percentage'],
-            ['Branded Anchors', '45.2%'],
-            ['Exact Match Keywords', '12.8%'],
-            ['Generic Anchors', '28.1%'],
-            ['URL Anchors', '13.9%']
-        ]
-
-        # Create table with proper column widths
-        anchor_type_table = Table(anchor_type_data, colWidths=[3.5*inch, 2.0*inch])
-
-        # Define table style
-        table_style = [
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 12),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 11),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
-        ]
-
-        # Color code anchor types based on SEO best practices
-        for i in range(1, len(anchor_type_data)):
-            # Alternate row backgrounds
-            if i % 2 == 0:
-                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
-
-            # Color code based on anchor type quality
-            anchor_type = anchor_type_data[i][0]
-            percentage = float(anchor_type_data[i][1].rstrip('%'))
-
-            if 'Branded' in anchor_type and percentage > 40:
-                color = HexColor('#4CAF50')  # Green - Good branded ratio
-            elif 'Generic' in anchor_type and percentage > 25:
-                color = HexColor('#FF9800')  # Orange - High generic ratio
-            elif 'Exact Match' in anchor_type and percentage > 15:
-                color = HexColor('#F44336')  # Red - Over-optimization risk
-            else:
-                color = HexColor('#4CAF50')  # Green - Balanced distribution
-
-            table_style.append(('BACKGROUND', (1, i), (1, i), color))
-            table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
-            table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
-
-        anchor_type_table.setStyle(TableStyle(table_style))
-        story.append(anchor_type_table)
-        story.append(Spacer(1, 25))
-
-        # Add detailed anchor text analysis
-        self.add_detailed_anchor_text_analysis(story)
-
-    def add_detailed_anchor_text_analysis(self, story):
-        """Add Detailed Anchor Text Analysis section"""
-        story.append(PageBreak())
-
-        # Section heading
-        detailed_anchor_title_style = ParagraphStyle(
-            'DetailedAnchorTitle',
-            parent=self.heading_style,
-            fontSize=18,
-            spaceAfter=20,
-            textColor=HexColor('#2E86AB'),
-            fontName='Helvetica-Bold'
-        )
-
-        story.append(Paragraph("Detailed Anchor Text Analysis", detailed_anchor_title_style))
-        story.append(Spacer(1, 10))
-
-        # Add description
-        description_style = ParagraphStyle(
-            'AnchorDescription',
-            parent=self.body_style,
-            fontSize=11,
-            spaceAfter=20,
-            leading=14
-        )
-
-        story.append(Paragraph(
-            "This section provides a comprehensive breakdown of all anchor texts used in backlinks "
-            "pointing to your website. Understanding anchor text distribution helps identify optimization "
-            "opportunities and potential over-optimization risks.",
-            description_style
-        ))
-
-        # Create detailed anchor text table
-        detailed_anchor_data = [
-            ['Anchor Text', 'Count', 'Percentage', 'Link Type'],
-            ['Hosn Insurance', '234', '18.2%', 'Branded'],
-            ['car insurance UAE', '98', '7.6%', 'Exact Match'],
-            ['click here', '156', '12.1%', 'Generic'],
-            ['https://hosninsurance.ae', '89', '6.9%', 'URL'],
-            ['best insurance company', '67', '5.2%', 'Partial Match'],
-            ['Dubai insurance', '54', '4.2%', 'Partial Match'],
-            ['auto insurance', '43', '3.3%', 'Exact Match'],
-            ['visit website', '87', '6.8%', 'Generic'],
-            ['Hosn Insurance Dubai', '76', '5.9%', 'Branded'],
-            ['insurance services', '45', '3.5%', 'Partial Match'],
-            ['read more', '123', '9.6%', 'Generic'],
-            ['vehicle insurance UAE', '32', '2.5%', 'Exact Match'],
-            ['UAE insurance provider', '28', '2.2%', 'Partial Match'],
-            ['learn more', '91', '7.1%', 'Generic'],
-            ['comprehensive coverage', '21', '1.6%', 'Partial Match'],
-            ['motor insurance', '19', '1.5%', 'Exact Match'],
-            ['insurance quotes', '17', '1.3%', 'Partial Match'],
-            ['get quote', '25', '1.9%', 'Generic'],
-            ['Hosn', '35', '2.7%', 'Branded'],
-            ['homepage', '14', '1.1%', 'Generic']
-        ]
-
-        # Create table with proper column widths
-        detailed_anchor_table = Table(detailed_anchor_data, colWidths=[2.5*inch, 1.0*inch, 1.2*inch, 1.5*inch])
-
-        # Define table style
-        table_style = [
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (3, -1), 'CENTER'),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
-        ]
-
-        # Color code based on link type
-        for i in range(1, len(detailed_anchor_data)):
-            # Alternate row backgrounds
-            if i % 2 == 0:
-                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
-                table_style.append(('BACKGROUND', (1, i), (1, i), HexColor('#f8f9fa')))
-                table_style.append(('BACKGROUND', (2, i), (2, i), HexColor('#f8f9fa')))
-
-            # Color code link type
-            link_type = detailed_anchor_data[i][3]
-            if link_type == 'Branded':
-                type_color = HexColor('#4CAF50')  # Green
-            elif link_type == 'Generic':
-                type_color = HexColor('#2196F3')  # Blue
-            elif link_type == 'URL':
-                type_color = HexColor('#9C27B0')  # Purple
-            elif link_type == 'Exact Match':
-                type_color = HexColor('#FF5722')  # Deep Orange
-            else:  # Partial Match
-                type_color = HexColor('#FF9800')  # Orange
-
-            table_style.append(('BACKGROUND', (3, i), (3, i), type_color))
-            table_style.append(('TEXTCOLOR', (3, i), (3, i), white))
-            table_style.append(('FONTNAME', (3, i), (3, i), 'Helvetica-Bold'))
-
-        detailed_anchor_table.setStyle(TableStyle(table_style))
-        story.append(detailed_anchor_table)
-        story.append(Spacer(1, 25))
-
-        # Add analysis summary
-        analysis_title_style = ParagraphStyle(
-            'AnalysisTitle',
-            parent=self.subheading_style,
-            fontSize=14,
-            spaceAfter=12,
-            textColor=HexColor('#2E86AB'),
-            fontName='Helvetica-Bold'
-        )
-
-        story.append(Paragraph("Anchor Text Analysis Summary", analysis_title_style))
-        story.append(Spacer(1, 8))
-
-        # Generate analysis insights
-        analysis_insights = [
-            "• Strong branded anchor text presence (26.8%) indicates natural link building",
-            "• Exact match keyword anchors at 13.4% - within safe range but monitor closely",
-            "• Generic anchors (36.4%) provide natural link diversity",
-            "• URL anchors (6.9%) contribute to natural link profile",
-            "• High-risk exact match terms 'auto insurance' and 'vehicle insurance UAE' need monitoring",
-            "• Recommendation: Increase branded anchor variations to improve natural distribution"
-        ]
-
-        # Create analysis style
-        analysis_style = ParagraphStyle(
-            'AnalysisBullet',
-            parent=self.body_style,
-            fontSize=11,
-            spaceAfter=6,
-            leftIndent=10
-        )
-
-        for insight in analysis_insights:
-            story.append(Paragraph(insight, analysis_style))
-
-        story.append(Spacer(1, 30))
-
-        # Add Key Insights section
-        insights_title_style = ParagraphStyle(
-            'InsightsTitle',
-            parent=self.subheading_style,
-            fontSize=14,
-            spaceAfter=12,
-            textColor=HexColor('#2E86AB'),
-            fontName='Helvetica-Bold'
-        )
-
-        story.append(Paragraph("Key Insights", insights_title_style))
-        story.append(Spacer(1, 8))
-
-        # Generate insights based on the data
-        insights = [
-            "• Strong DoFollow ratio at 76.2% indicates good link equity potential",
-            "• High text link percentage (89.6%) shows natural link building patterns",
-            "• Low redirect rate (0.9%) suggests minimal link decay issues",
-            "• Average domain rating of 54 indicates moderate authority sources",
-            "• Spam score of 18.7% requires monitoring and potential toxic link cleanup",
-            "• 7 toxic links detected should be reviewed and potentially disavowed"
-        ]
-
-        # Create insight style
-        insight_style = ParagraphStyle(
-            'InsightBullet',
-            parent=self.body_style,
-            fontSize=11,
-            spaceAfter=6,
-            leftIndent=10
-        )
-
-        for insight in insights:
-            story.append(Paragraph(insight, insight_style))
-
-        story.append(Spacer(1, 30))
-
-    def add_table_of_contents(self, story):
-        """Add Table of Contents page"""
-        # Center-aligned heading style for TOC title
-        toc_title_style = ParagraphStyle(
-            'TOC_Title',
-            parent=self.styles['Heading1'],
-            fontSize=28,
-            spaceAfter=40,
-            textColor=HexColor('#2E86AB'),
-            alignment=TA_CENTER,
-            fontName='Helvetica-Bold',
-            spaceBefore=100 # Add some space from the top of the page
-        )
-
-        # Add the TOC title
-        story.append(Paragraph("Table of Contents", toc_title_style))
-        story.append(Spacer(1, 30))
-
-        # Create a list of sections and their corresponding page numbers (placeholders for now)
-        # In a real implementation, page numbers would be determined after the full document is built
-        toc_entries = [
-            ("Website SEO Audit Report", "1"),
-            ("Overall Site SEO Score", "2"),
-            ("Overall Page Scores", "3"),
-            ("On-Page SEO Audit", "4"),
-            ("Title Tag Optimization", "5"),
-            ("Meta Description", "7"),
-            ("Heading Structure", "9"),
-            ("Image Optimization", "11"),
-            ("Content Quality", "13"),
-            ("Internal Linking", "15"),
-            ("External Linking", "17"),
-            ("Details", "19"),
-            ("Technical SEO Audit", "21"),
-            ("Domain-Level Technical SEO Summary", "22"),
-            ("Page-Level Technical SEO Checks", "24"),
-            ("Page Crawlability & Indexability", "25"),
-            ("Page Performance Metrics", "27"),
-            ("Mobile-Friendliness", "29"),
-            ("HTTPS & Security", "31"),
-            ("Structured Data", "33"),
-            ("Canonicalization", "35"),
-            ("Images & Media", "37"),
-            ("HTTP Headers & Compression", "39"),
-            ("Web Core Vitals Mobile", "41"),
-            ("Web Core Vitals Desktop", "43"),
-            ("Link Analysis & Site Crawl", "45"),
-            ("UI/UX Audit Report", "47"),
-            ("Navigation & Structure", "48"),
-            ("Design Consistency", "50"),
-            ("Mobile & Responsive Design", "52"),
-            ("Readability & Accessibility", "54"),
-            ("Interaction & Feedback", "56"),
-            ("Conversion Elements", "58"),
-            ("Backlink Audit Report", "60"),
-            ("Backlink Profile Summary", "61"),
-            ("Backlink Types Distribution", "63"),
-            ("Link Source Quality Analysis", "65"),
-            ("Anchor Text Distribution", "67"),
-            ("Key Insights", "69"),
-            ("Top 20 Referring Domains", "71"),
-            ("Additional Report Data", "73")
-        ]
+            backlink_checks = selected_checks.get('backlink', [])
+            if 'profile_summary' in backlink_checks:
+                toc_entries.append(("Backlink Profile Summary", str(page_counter)))
+                page_counter += 2
+            if 'types_distribution' in backlink_checks:
+                toc_entries.append(("Backlink Types Distribution", str(page_counter)))
+                page_counter += 2
+            if 'link_quality' in backlink_checks:
+                toc_entries.append(("Link Source Quality Analysis", str(page_counter)))
+                page_counter += 2
+            if 'anchor_text' in backlink_checks:
+                toc_entries.append(("Anchor Text Distribution", str(page_counter)))
+                page_counter += 2
+            if 'detailed_anchor_text' in backlink_checks:
+                toc_entries.append(("Detailed Anchor Text Analysis", str(page_counter)))
+                page_counter += 2
+            if 'referring_domains' in backlink_checks:
+                toc_entries.append(("Top 20 Referring Domains", str(page_counter)))
+                page_counter += 2
+            if 'additional_data' in backlink_checks:
+                toc_entries.append(("Additional Report Data", str(page_counter)))
+                page_counter += 2
 
         # Create a table for the TOC entries
         toc_table_data = [['Section', 'Page']]
@@ -6081,16 +5723,16 @@ def generate_pdf():
             # Verify file exists and is accessible
             if not os.path.exists(filepath):
                 logger.error(f"PDF file not found: {filepath}")
-                return jsonify({'error': 'Report file not found'}), 404
+                return jsonify({'error': 'Report file not found', 'status': 'not_found'}), 404
 
             if not os.access(filepath, os.R_OK):
                 logger.error(f"File not readable: {filepath}")
-                return jsonify({'error': 'Report file is not accessible'}), 403
+                return jsonify({'error': 'Report file is not accessible', 'status': 'permission_denied'}), 403
 
             file_size = os.path.getsize(filepath)
             if file_size == 0:
                 logger.error(f"File is empty: {filepath}")
-                return jsonify({'error': 'Generated report file is empty'}), 500
+                return jsonify({'error': 'Generated report file is empty', 'status': 'empty_file'}), 500
 
             logger.info(f"Serving PDF: {filepath} ({file_size} bytes)")
 
@@ -6211,9 +5853,9 @@ def serve_report(filename):
 
         # Add headers for better download experience
         response = make_response(send_file(
-            filepath, 
-            as_attachment=True, 
-            download_name=filename, 
+            filepath,
+            as_attachment=True,
+            download_name=filename,
             mimetype=mimetype
         ))
         response.headers['Content-Length'] = str(file_size)
