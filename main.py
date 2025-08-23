@@ -5462,10 +5462,10 @@ def generate_pdf():
         # Get selected checks from the request
         selected_checks = data.get('selected_checks', {
             'on_page': ['titles', 'meta_description', 'headings', 'images', 'content', 'internal_links', 'external_links'],
-            'technical': ['ssl', 'mobile', 'sitemap', 'robots', 'performance', 'core_vitals', 'structured_data'],
+            'technical': ['domain_level', 'page_level', 'crawlability', 'performance', 'mobile', 'ssl', 'structured_data', 'canonicalization', 'images_media', 'http_headers', 'core_vitals_mobile', 'core_vitals_desktop'],
             'link_analysis': ['broken_links', 'orphan_pages'],
-            'uiux': ['navigation', 'design_consistency', 'mobile_responsive', 'accessibility', 'conversion'],
-            'backlink': ['profile_summary', 'anchor_text', 'referring_domains', 'link_quality']
+            'uiux': ['navigation', 'design_consistency', 'mobile_responsive', 'readability_accessibility', 'interaction_feedback', 'conversion'],
+            'backlink': ['profile_summary', 'types_distribution', 'link_quality', 'anchor_text', 'detailed_anchor_text', 'referring_domains', 'additional_data']
         })
 
         # Validate URL format
