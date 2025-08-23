@@ -30,6 +30,18 @@ load_dotenv()
 
 app = Flask(__name__)
 
+@app.errorhandler(404)
+def not_found_error(error):
+    if request.is_json or request.headers.get('Content-Type') == 'application/json':
+        return jsonify({'error': 'Endpoint not found'}), 404
+    return render_template('index.html'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    if request.is_json or request.headers.get('Content-Type') == 'application/json':
+        return jsonify({'error': 'Internal server error'}), 500
+    return render_template('index.html'), 500
+
 # Placeholder for crawler availability
 CRAWLER_AVAILABLE = False
 # Try to import crawler_integration, but don't fail if it's not installed

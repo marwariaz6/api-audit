@@ -706,25 +706,46 @@
                 });
 
                 if (response.ok) {
-                    console.log('PDF generation successful');
-                    const blob = await response.blob();
-                    const downloadUrl = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = downloadUrl;
-                    a.download = 'seo-audit-report.pdf';
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(downloadUrl);
-                    
-                    // Show success message and go back to URL form
-                    loading.style.display = 'none';
-                    document.getElementById('checkSelectionForm').style.display = 'none';
-                    document.getElementById('urlInputForm').style.display = 'block';
-                    showMessage('✅ SEO audit complete! Your customized report has been downloaded.', 'success');
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/pdf')) {
+                        console.log('PDF generation successful');
+                        const blob = await response.blob();
+                        const downloadUrl = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = downloadUrl;
+                        a.download = 'seo-audit-report.pdf';
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(downloadUrl);
+                        
+                        // Show success message and go back to URL form
+                        loading.style.display = 'none';
+                        document.getElementById('checkSelectionForm').style.display = 'none';
+                        document.getElementById('urlInputForm').style.display = 'block';
+                        showMessage('✅ SEO audit complete! Your customized report has been downloaded.', 'success');
+                    } else {
+                        // Response is not a PDF, try to parse as JSON
+                        const text = await response.text();
+                        try {
+                            const errorData = JSON.parse(text);
+                            throw new Error(errorData.error || 'PDF generation failed');
+                        } catch (parseError) {
+                            console.error('Response text:', text);
+                            throw new Error('Server returned unexpected response format');
+                        }
+                    }
                 } else {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'PDF generation failed');
+                    // Handle error responses
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'PDF generation failed');
+                    } else {
+                        const text = await response.text();
+                        console.error('Error response text:', text);
+                        throw new Error(`Server error (${response.status}): ${response.statusText}`);
+                    }
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -819,7 +840,15 @@
                     })
                 });
 
-                const data = await response.json();
+                let data;
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text);
+                    throw new Error('Server returned unexpected response format');
+                }
 
                 if (response.ok && data.success) {
                     crawlerLoading.style.display = 'none';
