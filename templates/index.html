@@ -107,6 +107,102 @@
             box-shadow: 0 0 0 3px rgba(90, 103, 216, 0.1);
         }
 
+        /* Modular SEO Audit Styles */
+        .modular-checks {
+            margin-top: 20px;
+        }
+
+        .check-category {
+            margin-bottom: 25px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .category-header {
+            background: #f7fafc;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .category-header:hover {
+            background: #edf2f7;
+        }
+
+        .category-header.active {
+            background: #5a67d8;
+            color: white;
+        }
+
+        .category-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .category-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .category-toggle {
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .category-toggle.expanded {
+            transform: rotate(180deg);
+        }
+
+        .select-all-checkbox {
+            margin-left: 10px;
+        }
+
+        .sub-checks {
+            display: none;
+            padding: 20px;
+            background: white;
+        }
+
+        .sub-checks.expanded {
+            display: block;
+        }
+
+        .sub-check {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: background-color 0.2s ease;
+        }
+
+        .sub-check:hover {
+            background: #f7fafc;
+        }
+
+        .sub-check input[type="checkbox"] {
+            margin-right: 12px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .sub-check label {
+            margin-bottom: 0;
+            cursor: pointer;
+            flex-grow: 1;
+        }
+
+        .check-description {
+            font-size: 0.9rem;
+            color: #666;
+            margin-left: 30px;
+            margin-top: 5px;
+        }
+
         .btn {
             background: linear-gradient(135deg, #5a67d8, #667eea);
             color: white;
@@ -182,42 +278,57 @@
             100% { transform: rotate(360deg); }
         }
 
-        .features {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            margin-top: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        .success-message {
+            background: #f0fff4;
+            border: 2px solid #9ae6b4;
+            color: #22543d;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
         }
 
-        .features h3 {
+        .error-message {
+            background: #fed7d7;
+            border: 2px solid #fc8181;
+            color: #742a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .legacy-tools {
+            grid-column: span 2;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .legacy-tools {
+                grid-column: span 1;
+            }
+        }
+
+        .legacy-tools h3 {
             color: #5a67d8;
             margin-bottom: 20px;
             text-align: center;
         }
 
-        .feature-grid {
+        .legacy-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
 
-        .feature-item {
-            text-align: center;
-            padding: 20px;
-            background: #f7fafc;
-            border-radius: 10px;
-            border: 1px solid #e2e8f0;
-        }
-
-        .feature-item h4 {
-            color: #5a67d8;
-            margin-bottom: 10px;
-        }
-
-        .feature-item p {
-            color: #4a5568;
-            font-size: 0.9rem;
+        @media (max-width: 768px) {
+            .legacy-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .crawler-options {
@@ -244,123 +355,328 @@
             width: auto;
             margin: 0;
         }
-
-        .success-message {
-            background: #f0fff4;
-            border: 2px solid #9ae6b4;
-            color: #22543d;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            display: none;
-        }
-
-        .error-message {
-            background: #fed7d7;
-            border: 2px solid #fc8181;
-            color: #742a2a;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            display: none;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🔍 Website SEO Audit Tool</h1>
-            <p>Comprehensive SEO analysis for homepage + navigation pages</p>
+            <p>Comprehensive modular SEO analysis with customizable checks</p>
         </div>
 
         <div class="main-content">
             <div class="audit-form">
-                <h2>Generate Comprehensive SEO Report</h2>
-                <form id="auditForm">
+                <h2>Modular SEO Audit</h2>
+                <form id="modularAuditForm">
                     <div class="form-group">
                         <label for="urlInput">Website URL</label>
                         <input type="url" id="urlInput" name="url" placeholder="https://example.com" required>
                     </div>
 
-                    <div class="form-group">
-                        <label for="maxPages">Maximum Pages to Audit</label>
-                        <select id="maxPages" name="max_pages">
-                            <option value="3">Homepage + 3 pages</option>
-                            <option value="5" selected>Homepage + 5 pages</option>
-                            <option value="8">Homepage + 8 pages</option>
-                            <option value="10">Homepage + 10 pages</option>
-                            <option value="custom">Custom URL List</option>
-                        </select>
+                    <div class="modular-checks">
+                        <h3 style="margin-bottom: 15px; color: #4a5568;">Select SEO Checks to Run:</h3>
+                        
+                        <!-- On-Page SEO Category -->
+                        <div class="check-category">
+                            <div class="category-header" data-category="on_page">
+                                <div class="category-title">
+                                    <span class="category-name">📄 On-Page SEO</span>
+                                    <div>
+                                        <input type="checkbox" class="select-all-checkbox" data-category="on_page">
+                                        <span class="select-all-text">Select All</span>
+                                        <span class="category-toggle">▼</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="sub-checks" id="on_page_checks">
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_titles" name="on_page" value="titles">
+                                    <label for="check_titles">Title Tag Optimization</label>
+                                </div>
+                                <div class="check-description">Analyze title tag length, uniqueness, and keyword optimization</div>
+                                
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_meta" name="on_page" value="meta">
+                                    <label for="check_meta">Meta Descriptions</label>
+                                </div>
+                                <div class="check-description">Review meta description length and compelling content</div>
+                                
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_headings" name="on_page" value="headings">
+                                    <label for="check_headings">Heading Structure</label>
+                                </div>
+                                <div class="check-description">Check H1-H6 hierarchy and keyword usage</div>
+                                
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_images" name="on_page" value="images">
+                                    <label for="check_images">Image Alt Tags</label>
+                                </div>
+                                <div class="check-description">Verify alt text for accessibility and SEO</div>
+                                
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_content" name="on_page" value="content">
+                                    <label for="check_content">Content Quality</label>
+                                </div>
+                                <div class="check-description">Analyze word count, readability, and keyword density</div>
+                            </div>
+                        </div>
+
+                        <!-- Technical SEO Category -->
+                        <div class="check-category">
+                            <div class="category-header" data-category="technical">
+                                <div class="category-title">
+                                    <span class="category-name">⚙️ Technical SEO</span>
+                                    <div>
+                                        <input type="checkbox" class="select-all-checkbox" data-category="technical">
+                                        <span class="select-all-text">Select All</span>
+                                        <span class="category-toggle">▼</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="sub-checks" id="technical_checks">
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_ssl" name="technical" value="ssl">
+                                    <label for="check_ssl">SSL Certificate</label>
+                                </div>
+                                <div class="check-description">Verify HTTPS implementation and certificate validity</div>
+                                
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_performance" name="technical" value="performance">
+                                    <label for="check_performance">Core Web Vitals</label>
+                                </div>
+                                <div class="check-description">Analyze LCP, FID, CLS, and overall page performance</div>
+                                
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_sitemap" name="technical" value="sitemap">
+                                    <label for="check_sitemap">Sitemap</label>
+                                </div>
+                                <div class="check-description">Check XML sitemap presence and structure</div>
+                                
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_robots" name="technical" value="robots">
+                                    <label for="check_robots">Robots.txt</label>
+                                </div>
+                                <div class="check-description">Verify robots.txt configuration and directives</div>
+                                
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_mobile" name="technical" value="mobile">
+                                    <label for="check_mobile">Mobile Friendliness</label>
+                                </div>
+                                <div class="check-description">Test responsive design and mobile usability</div>
+                            </div>
+                        </div>
+
+                        <!-- Link Analysis Category -->
+                        <div class="check-category">
+                            <div class="category-header" data-category="link_analysis">
+                                <div class="category-title">
+                                    <span class="category-name">🔗 Link Analysis & Site Crawl</span>
+                                    <div>
+                                        <input type="checkbox" class="select-all-checkbox" data-category="link_analysis">
+                                        <span class="select-all-text">Select All</span>
+                                        <span class="category-toggle">▼</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="sub-checks" id="link_analysis_checks">
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_broken_links" name="link_analysis" value="broken_links">
+                                    <label for="check_broken_links">Broken Links</label>
+                                </div>
+                                <div class="check-description">Find and report all broken internal and external links</div>
+                                
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_internal_links" name="link_analysis" value="internal_links">
+                                    <label for="check_internal_links">Internal Linking</label>
+                                </div>
+                                <div class="check-description">Analyze internal link structure and anchor text</div>
+                                
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_orphan_pages" name="link_analysis" value="orphan_pages">
+                                    <label for="check_orphan_pages">Orphan Pages</label>
+                                </div>
+                                <div class="check-description">Identify pages with no internal links pointing to them</div>
+                                
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_redirects" name="link_analysis" value="redirects">
+                                    <label for="check_redirects">Redirect Chains</label>
+                                </div>
+                                <div class="check-description">Detect redirect chains and loops</div>
+                            </div>
+                        </div>
+
+                        <!-- UI/UX Audit Category -->
+                        <div class="check-category">
+                            <div class="category-header" data-category="uiux">
+                                <div class="category-title">
+                                    <span class="category-name">🎨 UI/UX Audit</span>
+                                    <div>
+                                        <input type="checkbox" class="select-all-checkbox" data-category="uiux">
+                                        <span class="select-all-text">Select All</span>
+                                        <span class="category-toggle">▼</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="sub-checks" id="uiux_checks">
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_navigation" name="uiux" value="navigation">
+                                    <label for="check_navigation">Navigation Structure</label>
+                                </div>
+                                <div class="check-description">Evaluate menu visibility, breadcrumbs, and site structure</div>
+                                
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_design" name="uiux" value="design">
+                                    <label for="check_design">Design Consistency</label>
+                                </div>
+                                <div class="check-description">Check color schemes, fonts, and visual consistency</div>
+                                
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_accessibility" name="uiux" value="accessibility">
+                                    <label for="check_accessibility">Accessibility</label>
+                                </div>
+                                <div class="check-description">Test ARIA labels, keyboard navigation, and color contrast</div>
+                                
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_conversion" name="uiux" value="conversion">
+                                    <label for="check_conversion">Conversion Elements</label>
+                                </div>
+                                <div class="check-description">Analyze CTAs, contact info, and trust signals</div>
+                            </div>
+                        </div>
+
+                        <!-- Backlink Audit Category -->
+                        <div class="check-category">
+                            <div class="category-header" data-category="backlink">
+                                <div class="category-title">
+                                    <span class="category-name">🔗 Backlink Audit</span>
+                                    <div>
+                                        <input type="checkbox" class="select-all-checkbox" data-category="backlink">
+                                        <span class="select-all-text">Select All</span>
+                                        <span class="category-toggle">▼</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="sub-checks" id="backlink_checks">
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_link_profile" name="backlink" value="link_profile">
+                                    <label for="check_link_profile">Link Profile Analysis</label>
+                                </div>
+                                <div class="check-description">Analyze backlink quality and domain authority</div>
+                                
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_anchor_text" name="backlink" value="anchor_text">
+                                    <label for="check_anchor_text">Anchor Text Distribution</label>
+                                </div>
+                                <div class="check-description">Review anchor text diversity and optimization</div>
+                                
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_toxic_links" name="backlink" value="toxic_links">
+                                    <label for="check_toxic_links">Toxic Link Detection</label>
+                                </div>
+                                <div class="check-description">Identify potentially harmful or spammy backlinks</div>
+                                
+                                <div class="sub-check">
+                                    <input type="checkbox" id="check_referring_domains" name="backlink" value="referring_domains">
+                                    <label for="check_referring_domains">Referring Domains</label>
+                                </div>
+                                <div class="check-description">Analyze top referring domains and their quality</div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="form-group" id="customUrlsGroup" style="display: none;">
-                        <label for="customUrls">Custom URLs to Audit (one per line, max 50)</label>
-                        <textarea id="customUrls" name="custom_urls" placeholder="https://example.com/page1&#10;https://example.com/page2&#10;https://example.com/page3" rows="8" style="width: 100%; padding: 15px; border: 2px solid #e1e5e9; border-radius: 10px; font-size: 1rem; font-family: 'Segoe UI', monospace; background: #f8f9fa; resize: vertical; line-height: 1.4;"></textarea>
-                        <small style="color: #666; font-size: 0.9rem; margin-top: 5px; display: block;">Enter up to 50 URLs, one per line. These URLs will be analyzed for on-page and technical SEO factors.</small>
-                    </div>
-
-                    <button type="submit" class="btn" id="submitBtn">
-                        📄 Generate Website SEO Report
+                    <button type="submit" class="btn" id="modularSubmitBtn">
+                        📊 Generate Custom SEO Report
                     </button>
                 </form>
 
                 <div class="info-box">
-                    <h4>🚀 What This Tool Does:</h4>
-                    <p>Automatically discovers and audits your homepage plus main navigation pages. Generates a comprehensive PDF report with page-by-page analysis, site-wide metrics, and actionable recommendations.</p>
+                    <h4>🚀 Modular SEO Analysis</h4>
+                    <p>Select only the SEO checks you need. The report will include detailed analysis for your selected categories, saving time and focusing on your specific requirements.</p>
                 </div>
             </div>
 
-            <div class="audit-form">
-                <h2>Run Custom Website Crawler</h2>
-                <form id="crawlerForm">
-                    <div class="form-group">
-                        <label for="crawlerUrl">Website URL</label>
-                        <input type="url" id="crawlerUrl" name="url" placeholder="https://example.com" required>
+            <div class="legacy-tools">
+                <h3>🔧 Legacy Tools (Full Reports)</h3>
+                <div class="legacy-grid">
+                    <div class="audit-form">
+                        <h2>Complete SEO Report</h2>
+                        <form id="auditForm">
+                            <div class="form-group">
+                                <label for="urlInputLegacy">Website URL</label>
+                                <input type="url" id="urlInputLegacy" name="url" placeholder="https://example.com" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="maxPages">Maximum Pages to Audit</label>
+                                <select id="maxPages" name="max_pages">
+                                    <option value="3">Homepage + 3 pages</option>
+                                    <option value="5" selected>Homepage + 5 pages</option>
+                                    <option value="8">Homepage + 8 pages</option>
+                                    <option value="10">Homepage + 10 pages</option>
+                                    <option value="custom">Custom URL List</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="customUrlsGroup" style="display: none;">
+                                <label for="customUrls">Custom URLs to Audit (one per line, max 50)</label>
+                                <textarea id="customUrls" name="custom_urls" placeholder="https://example.com/page1&#10;https://example.com/page2&#10;https://example.com/page3" rows="8" style="width: 100%; padding: 15px; border: 2px solid #e1e5e9; border-radius: 10px; font-size: 1rem; font-family: 'Segoe UI', monospace; background: #f8f9fa; resize: vertical; line-height: 1.4;"></textarea>
+                                <small style="color: #666; font-size: 0.9rem; margin-top: 5px; display: block;">Enter up to 50 URLs, one per line. These URLs will be analyzed for on-page and technical SEO factors.</small>
+                            </div>
+
+                            <button type="submit" class="btn" id="submitBtn">
+                                📄 Generate Complete SEO Report
+                            </button>
+                        </form>
                     </div>
 
-                    <div class="crawler-options">
-                        <div class="form-group">
-                            <label for="maxDepth">Crawl Depth</label>
-                            <select id="maxDepth" name="max_depth">
-                                <option value="1">1 level deep</option>
-                                <option value="2" selected>2 levels deep</option>
-                                <option value="3">3 levels deep</option>
-                                <option value="4">4 levels deep</option>
-                            </select>
-                        </div>
+                    <div class="audit-form">
+                        <h2>Website Crawler</h2>
+                        <form id="crawlerForm">
+                            <div class="form-group">
+                                <label for="crawlerUrl">Website URL</label>
+                                <input type="url" id="crawlerUrl" name="url" placeholder="https://example.com" required>
+                            </div>
 
-                        <div class="form-group">
-                            <label for="crawlerMaxPages">Max Pages</label>
-                            <select id="crawlerMaxPages" name="max_pages">
-                                <option value="25">25 pages</option>
-                                <option value="50" selected>50 pages</option>
-                                <option value="100">100 pages</option>
-                                <option value="200">200 pages</option>
-                            </select>
-                        </div>
+                            <div class="crawler-options">
+                                <div class="form-group">
+                                    <label for="maxDepth">Crawl Depth</label>
+                                    <select id="maxDepth" name="max_depth">
+                                        <option value="1">1 level deep</option>
+                                        <option value="2" selected>2 levels deep</option>
+                                        <option value="3">3 levels deep</option>
+                                        <option value="4">4 levels deep</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="crawlerMaxPages">Max Pages</label>
+                                    <select id="crawlerMaxPages" name="max_pages">
+                                        <option value="25">25 pages</option>
+                                        <option value="50" selected>50 pages</option>
+                                        <option value="100">100 pages</option>
+                                        <option value="200">200 pages</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="fullCrawl" name="full_crawl">
+                                <label for="fullCrawl">Full site crawl (may take longer)</label>
+                            </div>
+
+                            <button type="submit" class="btn" id="crawlerBtn">
+                                🕷️ Run Website Crawler
+                            </button>
+                        </form>
                     </div>
-
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="fullCrawl" name="full_crawl">
-                        <label for="fullCrawl">Full site crawl (may take longer)</label>
-                    </div>
-
-                    <button type="submit" class="btn" id="crawlerBtn">
-                        🕷️ Run Website Crawler
-                    </button>
-                </form>
-
-                <div class="info-box">
-                    <h4>🔍 Crawler Features:</h4>
-                    <p>Scans your website to find broken links, orphan pages, and sitemap issues. Results are saved as downloadable CSV files for detailed analysis.</p>
                 </div>
             </div>
         </div>
 
         <div id="loading" class="loading">
             <div class="spinner"></div>
-            <h3>Generating your comprehensive SEO audit report...</h3>
-            <p>This may take a few moments as we analyze your website</p>
+            <h3>Generating your custom SEO audit report...</h3>
+            <p>This may take a few moments as we analyze your selected checks</p>
         </div>
 
         <div id="crawlerLoading" class="loading">
@@ -371,40 +687,154 @@
 
         <div id="successMessage" class="success-message"></div>
         <div id="errorMessage" class="error-message"></div>
-
-        <div class="features">
-            <h3>🔧 Comprehensive SEO Analysis Features</h3>
-            <div class="feature-grid">
-                <div class="feature-item">
-                    <h4>📊 On-Page SEO Analysis</h4>
-                    <p>Title tags, meta descriptions, heading structure, content analysis, and internal/external linking</p>
-                </div>
-                <div class="feature-item">
-                    <h4>⚙️ Technical SEO Audit</h4>
-                    <p>Page speed, mobile-friendliness, HTTPS, structured data, and crawlability checks</p>
-                </div>
-                <div class="feature-item">
-                    <h4>🎨 UI/UX Evaluation</h4>
-                    <p>Navigation structure, design consistency, accessibility, and conversion optimization</p>
-                </div>
-                <div class="feature-item">
-                    <h4>🔗 Backlink Analysis</h4>
-                    <p>Link profile summary, anchor text distribution, and referring domains analysis</p>
-                </div>
-                <div class="feature-item">
-                    <h4>🕷️ Site Crawl & Issues</h4>
-                    <p>Broken links detection, orphan pages identification, and sitemap validation</p>
-                </div>
-                <div class="feature-item">
-                    <h4>📋 Actionable Recommendations</h4>
-                    <p>Detailed suggestions and prioritized action items for each SEO factor</p>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
-        // Handle max pages dropdown change
+        // Category expansion/collapse functionality
+        document.querySelectorAll('.category-header').forEach(header => {
+            header.addEventListener('click', function(e) {
+                if (e.target.type === 'checkbox') return; // Don't toggle when clicking checkbox
+                
+                const category = this.dataset.category;
+                const subChecks = document.getElementById(category + '_checks');
+                const toggle = this.querySelector('.category-toggle');
+                
+                if (subChecks.classList.contains('expanded')) {
+                    subChecks.classList.remove('expanded');
+                    toggle.classList.remove('expanded');
+                    this.classList.remove('active');
+                } else {
+                    subChecks.classList.add('expanded');
+                    toggle.classList.add('expanded');
+                    this.classList.add('active');
+                }
+            });
+        });
+
+        // Select All functionality
+        document.querySelectorAll('.select-all-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const category = this.dataset.category;
+                const categoryCheckboxes = document.querySelectorAll(`input[name="${category}"]`);
+                const selectAllText = this.nextElementSibling;
+                
+                categoryCheckboxes.forEach(cb => {
+                    cb.checked = this.checked;
+                });
+                
+                selectAllText.textContent = this.checked ? 'Deselect All' : 'Select All';
+            });
+        });
+
+        // Update Select All state when individual checkboxes change
+        document.querySelectorAll('input[type="checkbox"][name]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const category = this.name;
+                const categoryCheckboxes = document.querySelectorAll(`input[name="${category}"]`);
+                const selectAllCheckbox = document.querySelector(`.select-all-checkbox[data-category="${category}"]`);
+                const selectAllText = selectAllCheckbox.nextElementSibling;
+                
+                const checkedCount = Array.from(categoryCheckboxes).filter(cb => cb.checked).length;
+                const totalCount = categoryCheckboxes.length;
+                
+                if (checkedCount === 0) {
+                    selectAllCheckbox.checked = false;
+                    selectAllCheckbox.indeterminate = false;
+                    selectAllText.textContent = 'Select All';
+                } else if (checkedCount === totalCount) {
+                    selectAllCheckbox.checked = true;
+                    selectAllCheckbox.indeterminate = false;
+                    selectAllText.textContent = 'Deselect All';
+                } else {
+                    selectAllCheckbox.checked = false;
+                    selectAllCheckbox.indeterminate = true;
+                    selectAllText.textContent = 'Select All';
+                }
+            });
+        });
+
+        // Handle modular audit form submission
+        document.getElementById('modularAuditForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const url = document.getElementById('urlInput').value;
+            const submitBtn = document.getElementById('modularSubmitBtn');
+            const loading = document.getElementById('loading');
+            
+            // Collect selected checks
+            const selectedChecks = {
+                on_page: [],
+                technical: [],
+                link_analysis: [],
+                uiux: [],
+                backlink: []
+            };
+            
+            Object.keys(selectedChecks).forEach(category => {
+                const checkboxes = document.querySelectorAll(`input[name="${category}"]:checked`);
+                checkboxes.forEach(cb => {
+                    selectedChecks[category].push(cb.value);
+                });
+            });
+            
+            // Validate that at least one check is selected
+            const totalSelected = Object.values(selectedChecks).reduce((sum, arr) => sum + arr.length, 0);
+            if (totalSelected === 0) {
+                showMessage('❌ Please select at least one SEO check to run.', 'error');
+                return;
+            }
+            
+            console.log('Starting modular audit for:', url, 'with checks:', selectedChecks);
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+            
+            try {
+                const requestData = {
+                    url: url,
+                    audit_type: 'modular',
+                    selected_checks: selectedChecks
+                };
+
+                console.log('Making request to /generate-modular-pdf');
+                const response = await fetch('/generate-modular-pdf', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (response.ok) {
+                    console.log('Modular PDF generation successful');
+                    const blob = await response.blob();
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = downloadUrl;
+                    a.download = 'seo-audit-modular-report.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(downloadUrl);
+                    
+                    // Show success message
+                    loading.style.display = 'none';
+                    showMessage('✅ Custom SEO audit complete! Your modular report has been downloaded.', 'success');
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Modular PDF generation failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                loading.style.display = 'none';
+                showMessage('❌ Error: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Handle max pages dropdown change (legacy)
         document.getElementById('maxPages').addEventListener('change', function() {
             const customGroup = document.getElementById('customUrlsGroup');
             if (this.value === 'custom') {
@@ -414,17 +844,17 @@
             }
         });
 
-        // Handle main audit form submission
+        // Handle main audit form submission (legacy)
         document.getElementById('auditForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const url = document.getElementById('urlInput').value;
+            const url = document.getElementById('urlInputLegacy').value;
             const maxPages = document.getElementById('maxPages').value;
             const customUrls = document.getElementById('customUrls').value;
             const submitBtn = document.getElementById('submitBtn');
             const loading = document.getElementById('loading');
             
-            console.log('Starting audit for:', url, 'with max pages:', maxPages);
+            console.log('Starting legacy audit for:', url, 'with max pages:', maxPages);
             
             // Show loading state
             submitBtn.disabled = true;
@@ -437,12 +867,11 @@
                     run_crawler: false
                 };
 
-                // If custom URLs are selected, parse and add them
                 if (maxPages === 'custom' && customUrls) {
                     const urls = customUrls.split('\n')
                         .map(url => url.trim())
                         .filter(url => url.length > 0)
-                        .slice(0, 50); // Limit to 50 URLs
+                        .slice(0, 50);
                     
                     requestData.custom_urls = urls;
                     console.log('Custom URLs provided:', urls.length, 'URLs');
@@ -469,7 +898,6 @@
                     a.click();
                     window.URL.revokeObjectURL(downloadUrl);
                     
-                    // Show success message
                     loading.style.display = 'none';
                     showMessage('✅ SEO audit complete! Your comprehensive report has been downloaded.', 'success');
                 } else {
@@ -485,7 +913,7 @@
             }
         });
 
-        // Handle crawler form submission
+        // Handle crawler form submission (legacy)
         document.getElementById('crawlerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -498,7 +926,6 @@
             
             console.log('Starting crawler for:', url);
             
-            // Show loading state
             crawlerBtn.disabled = true;
             crawlerLoading.style.display = 'block';
             
@@ -540,7 +967,6 @@
             const successEl = document.getElementById('successMessage');
             const errorEl = document.getElementById('errorMessage');
             
-            // Hide both messages first
             successEl.style.display = 'none';
             errorEl.style.display = 'none';
             
@@ -554,6 +980,14 @@
                 setTimeout(() => errorEl.style.display = 'none', 10000);
             }
         }
+
+        // Auto-expand first category on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const firstCategoryHeader = document.querySelector('.category-header');
+            if (firstCategoryHeader) {
+                firstCategoryHeader.click();
+            }
+        });
     </script>
 </body>
 </html>
