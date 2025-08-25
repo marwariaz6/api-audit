@@ -881,7 +881,7 @@ class PDFReportGenerator:
 
             # Page-level checks: mobile, performance, structured_data
             if any(check in technical_checks for check in ['mobile', 'performance', 'structured_data', 'page_level', 'crawlability']):
-                self.add_page_level_technical_seo_page(story)
+                self.add_page_level_technical_seo_page(story, technical_checks)
 
             # Core Web Vitals sections - separate check for core_vitals
             if 'core_vitals_mobile' in technical_checks:
@@ -1826,7 +1826,7 @@ class PDFReportGenerator:
 
         story.append(Spacer(1, 30))
 
-    def add_page_level_technical_seo_page(self, story):
+    def add_page_level_technical_seo_page(self, story, technical_checks=None):
         """Add Page-Level Technical SEO Checks page"""
         story.append(PageBreak())
 
@@ -1848,22 +1848,37 @@ class PDFReportGenerator:
         # Add space for content
         story.append(Spacer(1, 30))
 
-        # Always include core sections for page-level analysis
-        # Section 1: Page Crawlability & Indexability
-        self.add_crawlability_indexability_section(story)
+        # Only include sections that are selected
+        if technical_checks is None:
+            technical_checks = []
+
+        # Section 1: Page Crawlability & Indexability (crawlability check)
+        if 'crawlability' in technical_checks:
+            self.add_crawlability_indexability_section(story)
 
         # Section 2: Page Performance Metrics (performance check)
-        self.add_page_performance_section(story)
+        if 'performance' in technical_checks:
+            self.add_page_performance_section(story)
 
         # Section 3: Mobile-Friendliness (mobile check)
-        self.add_mobile_friendliness_section(story)
+        if 'mobile' in technical_checks:
+            self.add_mobile_friendliness_section(story)
 
-        # Additional technical sections
-        self.add_https_security_section(story)
-        self.add_structured_data_section(story)  # structured_data check
-        self.add_canonicalization_section(story)
-        self.add_images_media_section(story)
-        self.add_http_headers_compression_section(story)
+        # Additional technical sections - only if selected
+        if 'ssl' in technical_checks:
+            self.add_https_security_section(story)
+        
+        if 'structured_data' in technical_checks:
+            self.add_structured_data_section(story)
+            
+        if 'canonicalization' in technical_checks:
+            self.add_canonicalization_section(story)
+            
+        if 'images_media' in technical_checks:
+            self.add_images_media_section(story)
+            
+        if 'http_headers' in technical_checks:
+            self.add_http_headers_compression_section(story)
 
     def add_crawlability_indexability_section(self, story):
         """Add Page Crawlability & Indexability section"""
