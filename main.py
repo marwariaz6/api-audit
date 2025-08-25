@@ -4403,7 +4403,7 @@ class PDFReportGenerator:
         # Add introduction text
         intro_text = ("This comprehensive backlink audit analyzes your website's link profile to identify "
                      "opportunities for improvement and potential risks. Understanding your backlink "
-                     "landscape is essential for building domain authority and maintaining ahealthy "
+                     "landscape is essential for building domain authority and maintaining a healthy "
                      "SEO foundation.")
 
         # Create introduction paragraph style
@@ -4613,7 +4613,7 @@ class PDFReportGenerator:
             leftIndent=10
         )
 
-        # Get domain for file links - consistent with other naming
+        # Use proper domain-based filenames for download links
         homepage_url = list(analyzed_pages.keys())[0] if analyzed_pages else 'https://example.com'
         domain_raw = urllib.parse.urlparse(homepage_url).netloc
         clean_domain = domain_raw.replace('www.', '')
@@ -4846,7 +4846,7 @@ class PDFReportGenerator:
             fontSize=14,
             spaceAfter=12,
             textColor=HexColor('#2E86AB'),
-            fontName='Helvetica-Bold'
+                        fontName='Helvetica-Bold'
         )
 
         story.append(Paragraph("Key Insights", insights_title_style))
@@ -5250,7 +5250,7 @@ def generate_pdf():
                 else:
                     logger.warning("No analyzed pages found for crawler audit")
             except Exception as e:
-                logger.error(f"Crawler auditfailed: {e}")
+                logger.error(f"Crawler audit failed: {e}")
                 crawler_results = None
 
         # Create comprehensive crawler results structure if none available or crawler is not available
@@ -5739,7 +5739,11 @@ def generate_pdf():
 
             if not os.access(filepath, os.R_OK):
                 logger.error(f"File not readable: {filepath}")
-                return jsonify({'error': 'Report file is not accessible', 'status': 'permission_denied'}), 403
+                return jsonify({
+                    'error': 'Report file is not accessible',
+                    'status': 'permission_denied',
+                    'available_files': []
+                }), 403
 
             file_size = os.path.getsize(filepath)
             if file_size == 0:
@@ -6027,11 +6031,6 @@ def generate_crawler_csv(domain):
             'status': 'generation_error',
             'available_files': []
         }), 500
-
-
-
-
-
 
 
 @app.route('/debug/reports')
