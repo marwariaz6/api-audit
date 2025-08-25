@@ -813,61 +813,64 @@ class PDFReportGenerator:
 
         # Add On-Page SEO Audit section (only if selected)
         if selected_checks.get('on_page'):
-            story.append(PageBreak())
-
-            # On-Page SEO Audit title
-            on_page_seo_title_style = ParagraphStyle(
-                'OnPageSEOTitle',
-                parent=self.styles['Heading1'],
-                fontSize=24,
-                spaceAfter=30,
-                textColor=HexColor('#2E86AB'),
-                alignment=TA_CENTER,
-                fontName='Helvetica-Bold'
-            )
-
-            story.append(Paragraph("On-Page SEO Audit", on_page_seo_title_style))
-
-            # Add introduction paragraph
-            intro_text = ("This section provides a detailed analysis of on-page SEO elements across all audited pages. "
-                         "Each metric is evaluated individually with specific recommendations to improve your website's "
-                         "search engine visibility and user experience.")
-
-            # Create introduction paragraph style
-            on_page_intro_style = ParagraphStyle(
-                'OnPageSEOIntro',
-                parent=self.body_style,
-                fontSize=11,
-                spaceAfter=30,
-                alignment=TA_CENTER,
-                leading=16
-            )
-
-            story.append(Paragraph(intro_text, on_page_intro_style))
-
-            # Add page break before starting metric analysis
-            story.append(PageBreak())
-
-            # Metric-by-metric analysis (only include selected checks)
             on_page_checks = selected_checks.get('on_page', [])
-            if 'titles' in on_page_checks:
-                self.add_metric_analysis(story, analyzed_pages, "■ Title Tag Optimization", "title")
-            if 'meta_description' in on_page_checks:
-                self.add_metric_analysis(story, analyzed_pages, "■ Meta Description", "meta_description")
-            if 'headings' in on_page_checks:
-                self.add_metric_analysis(story, analyzed_pages, "■ Heading Structure", "headings")
-            if 'images' in on_page_checks:
-                self.add_metric_analysis(story, analyzed_pages, "■ Image Optimization", "images")
-            if 'content' in on_page_checks:
-                self.add_metric_analysis(story, analyzed_pages, "■ Content Quality", "content")
-            if 'internal_links' in on_page_checks:
-                self.add_metric_analysis(story, analyzed_pages, "■ Internal Linking", "internal_links")
-            if 'external_links' in on_page_checks:
-                self.add_metric_analysis(story, analyzed_pages, "■ External Linking", "external_links")
+            
+            # Only add the section if there are selected checks
+            if on_page_checks:
+                story.append(PageBreak())
 
-            # Add comprehensive missing images page if images check is selected
-            if 'images' in on_page_checks:
-                self.add_missing_images_page(story, analyzed_pages)
+                # On-Page SEO Audit title
+                on_page_seo_title_style = ParagraphStyle(
+                    'OnPageSEOTitle',
+                    parent=self.styles['Heading1'],
+                    fontSize=24,
+                    spaceAfter=30,
+                    textColor=HexColor('#2E86AB'),
+                    alignment=TA_CENTER,
+                    fontName='Helvetica-Bold'
+                )
+
+                story.append(Paragraph("On-Page SEO Audit", on_page_seo_title_style))
+
+                # Add introduction paragraph
+                intro_text = ("This section provides a detailed analysis of on-page SEO elements across all audited pages. "
+                             "Each metric is evaluated individually with specific recommendations to improve your website's "
+                             "search engine visibility and user experience.")
+
+                # Create introduction paragraph style
+                on_page_intro_style = ParagraphStyle(
+                    'OnPageSEOIntro',
+                    parent=self.body_style,
+                    fontSize=11,
+                    spaceAfter=30,
+                    alignment=TA_CENTER,
+                    leading=16
+                )
+
+                story.append(Paragraph(intro_text, on_page_intro_style))
+
+                # Add page break before starting metric analysis
+                story.append(PageBreak())
+
+                # Metric-by-metric analysis (only include selected checks)
+                if 'titles' in on_page_checks:
+                    self.add_metric_analysis(story, analyzed_pages, "■ Title Tag Optimization", "title")
+                if 'meta_description' in on_page_checks:
+                    self.add_metric_analysis(story, analyzed_pages, "■ Meta Description", "meta_description")
+                if 'headings' in on_page_checks:
+                    self.add_metric_analysis(story, analyzed_pages, "■ Heading Structure", "headings")
+                if 'images' in on_page_checks:
+                    self.add_metric_analysis(story, analyzed_pages, "■ Image Optimization", "images")
+                if 'content' in on_page_checks:
+                    self.add_metric_analysis(story, analyzed_pages, "■ Content Quality", "content")
+                if 'internal_links' in on_page_checks:
+                    self.add_metric_analysis(story, analyzed_pages, "■ Internal Linking", "internal_links")
+                if 'external_links' in on_page_checks:
+                    self.add_metric_analysis(story, analyzed_pages, "■ External Linking", "external_links")
+
+                # Add comprehensive missing images page if images check is selected
+                if 'images' in on_page_checks:
+                    self.add_missing_images_page(story, analyzed_pages)
 
         # Add Technical SEO Audit section (only if selected)
         if selected_checks.get('technical'):
@@ -891,51 +894,47 @@ class PDFReportGenerator:
 
         # Add crawler results if available and link analysis is selected
         if crawler_results and selected_checks.get('link_analysis'):
-            self.add_crawler_results_section(story, crawler_results)
+            link_analysis_checks = selected_checks.get('link_analysis', [])
+            if link_analysis_checks:
+                self.add_crawler_results_section(story, crawler_results, link_analysis_checks)
 
         # Add UI/UX Audit section (only if selected)
         if selected_checks.get('uiux'):
-            self.add_uiux_audit_section(story, analyzed_pages)
+            uiux_checks = selected_checks.get('uiux', [])
+            if uiux_checks:
+                self.add_uiux_audit_section(story, analyzed_pages, uiux_checks)
 
         # Add Backlink Audit Report section (only if selected)
         if selected_checks.get('backlink'):
             try:
                 backlink_checks = selected_checks.get('backlink', [])
 
-                # Only add title page if any backlink checks are selected
+                # Only add sections if any backlink checks are selected
                 if backlink_checks:
-                    self.add_backlink_title_page(story)
+                    # Add title page with profile summary and types distribution if selected
+                    if 'profile_summary' in backlink_checks or 'types_distribution' in backlink_checks:
+                        self.add_backlink_title_page(story, backlink_checks)
 
-                # Profile summary includes backlink profile summary
-                if 'profile_summary' in backlink_checks:
-                    # This is already included in add_backlink_title_page method
-                    pass
+                    # Link quality analysis
+                    if 'link_quality' in backlink_checks:
+                        self.add_link_source_quality_analysis(story)
 
-                # Backlink types distribution
-                if 'types_distribution' in backlink_checks:
-                    # This is also included in add_backlink_title_page method
-                    pass
+                    # Anchor text distribution
+                    if 'anchor_text' in backlink_checks:
+                        self.add_anchor_text_distribution(story)
+                        story.append(Spacer(1, 30))
 
-                # Link quality analysis
-                if 'link_quality' in backlink_checks:
-                    self.add_link_source_quality_analysis(story)
+                    # Detailed anchor text analysis
+                    if 'detailed_anchor_text' in backlink_checks:
+                        self.add_detailed_anchor_text_analysis(story)
 
-                # Anchor text distribution
-                if 'anchor_text' in backlink_checks:
-                    self.add_anchor_text_distribution(story)
-                    story.append(Spacer(1, 30))
+                    # Top 20 referring domains
+                    if 'referring_domains' in backlink_checks:
+                        self.add_top_referring_domains_section(story, analyzed_pages)
 
-                # Detailed anchor text analysis
-                if 'detailed_anchor_text' in backlink_checks:
-                    self.add_detailed_anchor_text_analysis(story)
-
-                # Top 20 referring domains
-                if 'referring_domains' in backlink_checks:
-                    self.add_top_referring_domains_section(story, analyzed_pages)
-
-                # Additional report data
-                if 'additional_data' in backlink_checks:
-                    self.add_additional_backlink_data(story)
+                    # Additional report data
+                    if 'additional_data' in backlink_checks:
+                        self.add_additional_backlink_data(story)
 
             except Exception as e:
                 logger.error(f"Error adding backlink pages: {e}")
@@ -3319,7 +3318,7 @@ class PDFReportGenerator:
         story.append(core_vitals_desktop_table)
         story.append(Spacer(1, 25))
 
-    def add_crawler_results_section(self, story, crawler_results):
+    def add_crawler_results_section(self, story, crawler_results, link_analysis_checks=None):
         """Add crawler results section to PDF"""
         story.append(PageBreak())
 
@@ -3337,15 +3336,21 @@ class PDFReportGenerator:
         story.append(Paragraph("🔍 Link Analysis & Site Crawl", crawler_title_style))
         story.append(Spacer(1, 20))
 
+        if not link_analysis_checks:
+            link_analysis_checks = ['broken_links', 'orphan_pages']
+
         # Summary statistics
         stats = crawler_results['crawl_stats']
-        summary_data = [
-            ['Metric', 'Value'],
-            ['Pages Crawled', str(stats['pages_crawled'])],
-            ['Broken Links Found', str(stats['broken_links_count'])],
-            ['Orphan Pages Found', str(stats['orphan_pages_count'])],
-            ['Sitemap URLs', str(stats['sitemap_urls_count'])]
-        ]
+        summary_data = [['Metric', 'Value']]
+        summary_data.append(['Pages Crawled', str(stats['pages_crawled'])])
+        
+        if 'broken_links' in link_analysis_checks:
+            summary_data.append(['Broken Links Found', str(stats['broken_links_count'])])
+        
+        if 'orphan_pages' in link_analysis_checks:
+            summary_data.append(['Orphan Pages Found', str(stats['orphan_pages_count'])])
+        
+        summary_data.append(['Sitemap URLs', str(stats['sitemap_urls_count'])])
 
         summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
         summary_table.setStyle(TableStyle([
@@ -3363,8 +3368,8 @@ class PDFReportGenerator:
         story.append(summary_table)
         story.append(Spacer(1, 30))
 
-        # Broken Links Section
-        if crawler_results['broken_links']:
+        # Broken Links Section - only if selected
+        if 'broken_links' in link_analysis_checks and crawler_results['broken_links']:
             story.append(Paragraph("Broken Links Found", self.heading_style))
 
             broken_data = [['Source Page', 'Broken URL', 'Anchor Text', 'Link Type', 'Status']]
@@ -3432,40 +3437,41 @@ class PDFReportGenerator:
 
             story.append(Spacer(1, 30))
 
-        # Orphan Pages Section
-        orphan_pages = [p for p in crawler_results['orphan_pages'] if p['internally_linked'] == 'No']
-        if orphan_pages:
-            story.append(Paragraph("Orphan Pages Found", self.heading_style))
+        # Orphan Pages Section - only if selected
+        if 'orphan_pages' in link_analysis_checks:
+            orphan_pages = [p for p in crawler_results['orphan_pages'] if p['internally_linked'] == 'No']
+            if orphan_pages:
+                story.append(Paragraph("Orphan Pages Found", self.heading_style))
 
-            orphan_data = [['Page URL', 'In Sitemap', 'Status']]
-            for page in orphan_pages[:10]:  # Show first 10
-                orphan_data.append([
-                    page['url'][:60] + "..." if len(page['url']) > 60 else page['url'],
-                    page['found_in_sitemap'],
-                    'Orphaned' if page['internally_linked'] == 'No' else 'Linked'
-                ])
+                orphan_data = [['Page URL', 'In Sitemap', 'Status']]
+                for page in orphan_pages[:10]:  # Show first 10
+                    orphan_data.append([
+                        page['url'][:60] + "..." if len(page['url']) > 60 else page['url'],
+                        page['found_in_sitemap'],
+                        'Orphaned' if page['internally_linked'] == 'No' else 'Linked'
+                    ])
 
-            orphan_table = Table(orphan_data, colWidths=[4*inch, 1*inch, 1*inch])
-            orphan_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#FF9800')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), white),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('FONTSIZE', (0, 1), (-1, -1), 8),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('GRID', (0, 0), (-1, -1), 1, black),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('TOPPADDING', (0, 0), (-1, -1), 6)
-            ]))
+                orphan_table = Table(orphan_data, colWidths=[4*inch, 1*inch, 1*inch])
+                orphan_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), HexColor('#FF9800')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), white),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('GRID', (0, 0), (-1, -1), 1, black),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6)
+                ]))
 
-            story.append(orphan_table)
+                story.append(orphan_table)
 
-            if len(orphan_pages) > 10:
-                story.append(Spacer(1, 10))
-                story.append(Paragraph(f"+ {len(orphan_pages) - 10} more orphan pages found", self.body_style))
+                if len(orphan_pages) > 10:
+                    story.append(Spacer(1, 10))
+                    story.append(Paragraph(f"+ {len(orphan_pages) - 10} more orphan pages found", self.body_style))
 
-            story.append(Spacer(1, 30))
+                story.append(Spacer(1, 30))
 
     def audit_uiux_with_browser(self, url):
         """Perform UI/UX audit using browser automation with Playwright"""
@@ -3799,7 +3805,7 @@ class PDFReportGenerator:
             }
         }
 
-    def add_uiux_audit_section(self, story, analyzed_pages, all_browser_results=None):
+    def add_uiux_audit_section(self, story, analyzed_pages, uiux_checks=None, all_browser_results=None):
         """Add UI/UX Audit section to PDF"""
         story.append(PageBreak())
 
@@ -3833,6 +3839,9 @@ class PDFReportGenerator:
 
         story.append(Paragraph(intro_text, intro_style))
 
+        if not uiux_checks:
+            uiux_checks = ['navigation', 'design_consistency', 'mobile_responsive', 'readability_accessibility', 'interaction_feedback', 'conversion']
+
         # Perform browser-based UI/UX analysis for ALL pages
         all_browser_results = {}
         if analyzed_pages:
@@ -3858,23 +3867,24 @@ class PDFReportGenerator:
         else:
             all_browser_results['fallback'] = self._fallback_uiux_analysis("https://example.com") # Fallback if no analyzed pages
 
-        # 1. Navigation & Structure
-        self.add_navigation_structure_section(story, analyzed_pages, all_browser_results)
+        # Only add sections for selected checks
+        if 'navigation' in uiux_checks:
+            self.add_navigation_structure_section(story, analyzed_pages, all_browser_results)
 
-        # 2. Design Consistency
-        self.add_design_consistency_section(story, analyzed_pages, all_browser_results)
+        if 'design_consistency' in uiux_checks:
+            self.add_design_consistency_section(story, analyzed_pages, all_browser_results)
 
-        # 3. Mobile & Responsive Design
-        self.add_mobile_responsive_section(story, analyzed_pages, all_browser_results)
+        if 'mobile_responsive' in uiux_checks:
+            self.add_mobile_responsive_section(story, analyzed_pages, all_browser_results)
 
-        # 4. Readability & Accessibility
-        self.add_readability_accessibility_section(story, analyzed_pages, all_browser_results)
+        if 'readability_accessibility' in uiux_checks:
+            self.add_readability_accessibility_section(story, analyzed_pages, all_browser_results)
 
-        # 5. Interaction & Feedback
-        self.add_interaction_feedback_section(story, analyzed_pages, all_browser_results)
+        if 'interaction_feedback' in uiux_checks:
+            self.add_interaction_feedback_section(story, analyzed_pages, all_browser_results)
 
-        # 6. Conversion Elements
-        self.add_conversion_elements_section(story, analyzed_pages, all_browser_results)
+        if 'conversion' in uiux_checks:
+            self.add_conversion_elements_section(story, analyzed_pages, all_browser_results)
 
     def add_navigation_structure_section(self, story, analyzed_pages, all_browser_results=None):
         """Add Navigation & Structure section"""
@@ -4396,7 +4406,7 @@ class PDFReportGenerator:
 
         return recommendations
 
-    def add_backlink_title_page(self, story):
+    def add_backlink_title_page(self, story, backlink_checks=None):
         """Add backlink audit title page"""
         story.append(PageBreak())
 
@@ -4436,17 +4446,18 @@ class PDFReportGenerator:
         # Add some white space
         story.append(Spacer(1, 100))
 
-        # Add page break before backlink summary
-        story.append(PageBreak())
+        if not backlink_checks:
+            backlink_checks = ['profile_summary', 'types_distribution']
 
-        # Add Backlink Profile Summary
-        self.add_backlink_profile_summary(story)
+        # Add Backlink Profile Summary if selected
+        if 'profile_summary' in backlink_checks:
+            story.append(PageBreak())
+            self.add_backlink_profile_summary(story)
 
-        # Add page break before next section
-        story.append(PageBreak())
-
-        # Add Backlink Types Distribution
-        self.add_backlink_types_distribution(story)
+        # Add Backlink Types Distribution if selected
+        if 'types_distribution' in backlink_checks:
+            story.append(PageBreak())
+            self.add_backlink_types_distribution(story)
 
     def add_top_referring_domains_section(self, story, analyzed_pages):
         """Add Top 20 Referring Domains section"""
