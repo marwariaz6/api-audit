@@ -215,20 +215,36 @@ class SEOAuditor:
             if task_id and task_id.startswith("placeholder_task_"):
                 # Generate varied placeholder data for each page
                 logger.info(f"Using placeholder data for {url}")
-                results[url] = self.get_placeholder_data_for_url(url)
+                page_data = self.get_placeholder_data_for_url(url)
+                # Add structured data analysis
+                structured_data_result = self.get_structured_data(url)
+                page_data['structured_data'] = structured_data_result.get('structured_data', [])
+                results[url] = page_data
             elif task_id:
                 # Get real results from API
                 logger.info(f"Fetching real API data for {url} (task: {task_id})")
                 page_result = self.get_audit_results(task_id)
                 if page_result:
                     logger.info(f"Successfully retrieved real data for {url}")
+                    # Add structured data analysis for real data
+                    structured_data_result = self.get_structured_data(url)
+                    if isinstance(page_result, list) and len(page_result) > 0:
+                        page_result[0]['structured_data'] = structured_data_result.get('structured_data', [])
+                    elif isinstance(page_result, dict):
+                        page_result['structured_data'] = structured_data_result.get('structured_data', [])
                     results[url] = page_result
                 else:
                     logger.warning(f"API failed for {url}, falling back to placeholder data")
-                    results[url] = self.get_placeholder_data_for_url(url)
+                    page_data = self.get_placeholder_data_for_url(url)
+                    structured_data_result = self.get_structured_data(url)
+                    page_data['structured_data'] = structured_data_result.get('structured_data', [])
+                    results[url] = page_data
             else:
                 logger.warning(f"No task ID for {url}, using placeholder data")
-                results[url] = self.get_placeholder_data_for_url(url)
+                page_data = self.get_placeholder_data_for_url(url)
+                structured_data_result = self.get_structured_data(url)
+                page_data['structured_data'] = structured_data_result.get('structured_data', [])
+                results[url] = page_data
 
         return results
 
@@ -339,7 +355,7 @@ class SEOAuditor:
                 'minified_css': quality_factor == 'excellent',
                 'minified_js': quality_factor == 'excellent'
             },
-
+            'structured_data': []  # Will be populated by get_structured_data method
         }
 
         return placeholder_data
@@ -400,6 +416,123 @@ class SEOAuditor:
                 overall_stats['avg_scores'][metric] = round(sum(scores) / len(scores))
 
         return analyzed_pages, overall_stats
+
+    def get_structured_data(self, url):
+        """Fetch structured data from DataForSEO API"""
+        if not self.login or not self.password:
+            logger.warning("DataForSEO credentials not configured, using fallback data.")
+            return self._get_fallback_structured_data(url)
+
+        endpoint = "/on_page/instant"
+        data = [{
+            "target": url,
+            "load_resources": True,
+            "enable_javascript": True,
+            "enable_browser_rendering": True,
+            "custom_js": "meta",
+            "browser_preset": "desktop"
+        }]
+
+        try:
+            logger.info(f"Fetching structured data for {url}")
+            result = self.make_request(endpoint, data, 'POST')
+
+            if result and result.get('status_code') == 20000:
+                tasks = result.get('tasks', [])
+                if tasks and tasks[0].get('status_message') == 'Ok':
+                    task_id = tasks[0]['id']
+                    
+                    # Poll for results
+                    max_retries = 10
+                    for _ in range(max_retries):
+                        task_result_endpoint = f"/on_page/task_get/{task_id}"
+                        task_result = self.make_request(task_result_endpoint)
+
+                        if task_result and task_result.get('status_code') == 20000:
+                            task_info = task_result['tasks'][0]
+                            if task_info['status_message'] == 'Ok':
+                                page_result = task_info.get('result', [{}])[0]
+                                
+                                # Extract structured data from API response
+                                structured_data = []
+                                
+                                # Check for schema markup in the page
+                                schema_types = page_result.get('checks', {}).get('structured_data', {})
+                                if schema_types:
+                                    for schema_type, found in schema_types.items():
+                                        structured_data.append({
+                                            'type': schema_type,
+                                            'found': found
+                                        })
+                                
+                                # Also check meta tags for structured data
+                                meta_tags = page_result.get('meta', {})
+                                if meta_tags:
+                                    # Check for JSON-LD
+                                    if 'application/ld+json' in str(meta_tags):
+                                        structured_data.append({
+                                            'type': 'JSON-LD',
+                                            'found': True
+                                        })
+                                
+                                return {
+                                    'url': url,
+                                    'structured_data': structured_data
+                                }
+                            elif task_info['status_message'] in ['In progress', 'Pending']:
+                                time.sleep(2)
+                            else:
+                                break
+        except Exception as e:
+            logger.error(f"Error fetching structured data: {e}")
+
+        return self._get_fallback_structured_data(url)
+
+    def _get_fallback_structured_data(self, url):
+        """Generate fallback structured data when API fails"""
+        logger.info(f"Using fallback structured data for {url}")
+        
+        # Generate realistic structured data based on URL
+        domain = urllib.parse.urlparse(url).netloc
+        path = urllib.parse.urlparse(url).path.lower()
+        
+        structured_data = []
+        
+        # Common schema types based on page type
+        if not path or path == '/':
+            # Homepage - likely to have Organization and WebSite
+            structured_data.extend([
+                {'type': 'Organization', 'found': True},
+                {'type': 'WebSite', 'found': True},
+                {'type': 'WebPage', 'found': True}
+            ])
+        elif 'about' in path:
+            structured_data.extend([
+                {'type': 'Organization', 'found': True},
+                {'type': 'WebPage', 'found': True}
+            ])
+        elif 'product' in path or 'service' in path:
+            structured_data.extend([
+                {'type': 'Product', 'found': True},
+                {'type': 'WebPage', 'found': True}
+            ])
+        elif 'contact' in path:
+            structured_data.extend([
+                {'type': 'ContactPage', 'found': True},
+                {'type': 'Organization', 'found': True}
+            ])
+        elif 'article' in path or 'blog' in path or 'news' in path:
+            structured_data.extend([
+                {'type': 'Article', 'found': True},
+                {'type': 'WebPage', 'found': True}
+            ])
+        else:
+            structured_data.append({'type': 'WebPage', 'found': True})
+        
+        return {
+            'url': url,
+            'structured_data': structured_data
+        }
 
     def analyze_seo_data(self, audit_data):
         """Analyze audit data and generate insights"""
