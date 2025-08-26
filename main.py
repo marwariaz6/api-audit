@@ -28,6 +28,10 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
+# Set DataForSEO credentials in environment for compatibility
+os.environ['DATAFORSEO_LOGIN'] = 'marwariaz6@gmail.com'
+os.environ['DATAFORSEO_PASSWORD'] = '4e6b189beba0dacb'
+
 app = Flask(__name__)
 
 @app.errorhandler(404)
@@ -122,11 +126,17 @@ class PageCollector:
 
 class SEOAuditor:
     def __init__(self):
-        # Force placeholder data by not loading API credentials
-        self.login = None
-        self.password = None
+        # Load DataForSEO API credentials
+        import base64
+        
+        # Decode the provided credentials
+        credentials = base64.b64decode("bWFyd2FyaWF6NkBnbWFpbC5jb206NGU2YjE4OWJlYmEwZGFjYg==").decode('utf-8')
+        self.login, self.password = credentials.split(':', 1)
+        
         self.base_url = "https://api.dataforseo.com/v3"
         self.page_collector = PageCollector()
+        
+        logger.info(f"DataForSEO API initialized with credentials for: {self.login}")
 
     def make_request(self, endpoint, data=None, method='GET'):
         """Make authenticated request to DataForSEO API"""
@@ -166,9 +176,12 @@ class SEOAuditor:
             all_urls = [homepage_url] + nav_links
             logger.info(f"Using navigation discovery: homepage + {len(nav_links)} navigation pages")
 
-        # If no credentials, return placeholder task IDs
+        # If no credentials, return placeholder task IDs (fallback)
         if not self.login or not self.password:
+            logger.warning("No API credentials available, using placeholder data")
             return {url: f"placeholder_task_{i}" for i, url in enumerate(all_urls)}
+        
+        logger.info(f"Using real DataForSEO API for {len(all_urls)} URLs")
 
         # Start audit tasks for all URLs
         task_ids = {}
@@ -200,15 +213,20 @@ class SEOAuditor:
         for url, task_id in task_ids.items():
             if task_id and task_id.startswith("placeholder_task_"):
                 # Generate varied placeholder data for each page
+                logger.info(f"Using placeholder data for {url}")
                 results[url] = self.get_placeholder_data_for_url(url)
             elif task_id:
                 # Get real results from API
+                logger.info(f"Fetching real API data for {url} (task: {task_id})")
                 page_result = self.get_audit_results(task_id)
                 if page_result:
+                    logger.info(f"Successfully retrieved real data for {url}")
                     results[url] = page_result
                 else:
+                    logger.warning(f"API failed for {url}, falling back to placeholder data")
                     results[url] = self.get_placeholder_data_for_url(url)
             else:
+                logger.warning(f"No task ID for {url}, using placeholder data")
                 results[url] = self.get_placeholder_data_for_url(url)
 
         return results
