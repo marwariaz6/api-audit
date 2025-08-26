@@ -338,14 +338,7 @@ class SEOAuditor:
                 'minified_css': quality_factor == 'excellent',
                 'minified_js': quality_factor == 'excellent'
             },
-            'social_meta': {
-                'og_title': title_base if quality_factor != 'poor' else '',
-                'og_description': f"Quality {page_type} page" if quality_factor != 'poor' else '',
-                'og_image': f"https://{domain}/og-image.jpg" if quality_factor != 'poor' else '',
-                'twitter_card': 'summary_large_image' if quality_factor != 'poor' else '',
-                'twitter_title': title_base if quality_factor != 'poor' else '',
-                'twitter_description': f"{page_type.title()} page description" if quality_factor != 'poor' else ''
-            }
+            
         }
 
         return placeholder_data
@@ -431,7 +424,6 @@ class SEOAuditor:
             'word_count': page_data.get('content', {}).get('word_count', 0),
             'schema_markup': page_data.get('schema_markup', []),
             'technical': page_data.get('technical', {}),
-            'social_meta': page_data.get('social_meta', {}),
             'page_timing': page_data.get('page_timing', {}),
             'issues': [],
             'scores': {},
