@@ -965,23 +965,6 @@ class SEOAuditor:
             
         prominence = (1 - (first_occurrence / len(text_content))) * 100
         return round(prominence, 2)
-                    elif task_info['status_message'] in ['In progress', 'Pending']:
-                        time.sleep(5) # Wait and retry
-                    else:
-                        logger.error(f"DataForSEO task failed with message: {task_info['status_message']}")
-                        return None # Task failed
-                elif task_result and task_result.get('status_code') != 20000:
-                    logger.error(f"DataForSEO task status error: {task_result.get('status_message', 'Unknown error')}")
-                    return None
-                else:
-                    time.sleep(5) # Wait and retry if status is not 'Ok' or an error occurred
-
-            logger.error("DataForSEO task did not complete within the allowed retries.")
-            return None
-
-        except Exception as e:
-            logger.error(f"Error during DataForSEO content quality analysis: {e}")
-            return None
 
     def get_backlink_data(self, domain):
         """Fetch backlink anchor text data from DataForSEO API"""
