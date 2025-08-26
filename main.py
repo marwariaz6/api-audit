@@ -697,7 +697,9 @@ class SEOAuditor:
             logger.warning("DataForSEO credentials not configured, cannot fetch backlink data.")
             return None
 
-        endpoint = "/backlinks/history" # Example endpoint, might need adjustment based on actual API
+        # Using the backlinks/history endpoint as an example.
+        # The specific endpoint and parameters might need adjustment based on DataForSEO's API documentation.
+        endpoint = "/backlinks/history"
         params = {
             "target": url,
             "limit": 1000 # Example limit, adjust as needed
@@ -705,16 +707,16 @@ class SEOAuditor:
 
         try:
             # DataForSEO might require POST for some operations, check API documentation
-            # For simplicity, assuming GET for now, but may need to be POST with params in data
+            # For simplicity, assuming POST with parameters in the data payload
             response = self.make_request(endpoint, data=params, method='POST')
 
             if response and response.get('status_code') == 20000:
                 # Process the response to extract relevant backlink information
                 # This part will depend heavily on the exact structure of DataForSEO's backlink API response
-                # For now, returning a simplified structure
+                # For now, extracting summary and domain info as per common API patterns
                 backlinks_summary = response.get('backlinks_summary', {})
                 domain_info = response.get('domain_info', {})
-                backlinks_list = response.get('backlinks', [])
+                backlinks_list = response.get('backlinks', []) # This might be a list of individual backlinks
 
                 # Example of processing: extract domain rating, spam score, anchor text distribution
                 processed_data = {
@@ -725,8 +727,8 @@ class SEOAuditor:
                         'domain_rating': domain_info.get('domain_rating', 0),
                         'spam_score': domain_info.get('spam_score', 0)
                     },
-                    'backlinks': backlinks_list,
-                    # Add more processed data as needed (e.g., anchor text, link types)
+                    'backlinks': backlinks_list, # Raw list of backlinks might be too large for report
+                    # Add more processed data as needed (e.g., anchor text distribution, link types)
                 }
                 logger.info(f"Successfully fetched backlink data for {url}")
                 return processed_data
@@ -1162,50 +1164,6 @@ class PDFReportGenerator:
             return "Good external linking"
         else:
             return f"Too many external links ({external_links})"
-
-    def create_metric_table(self, table_data, metric):
-        """Create a table for metric analysis with proper styling"""
-        # Create table with proper column widths
-        table = Table(table_data, colWidths=[2.5*inch, 1.0*inch, 2.0*inch])
-
-        # Define table style
-        table_style = [
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#A23B72')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (1, -1), 'CENTER'),  # Score column centered
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP')
-        ]
-
-        # Color code scores and add alternating rows
-        for i in range(1, len(table_data)):
-            try:
-                # Alternate row backgrounds
-                if i % 2 == 0:
-                    table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
-                    table_style.append(('BACKGROUND', (2, i), (2, i), HexColor('#f8f9fa')))
-
-                # Color code score column
-                score_text = table_data[i][1] if len(table_data[i]) > 1 else "0/100"
-                if "/" in score_text:
-                    score = int(score_text.split("/")[0])
-                    score_color = self.get_score_color(score)
-                    table_style.append(('BACKGROUND', (1, i), (1, i), score_color))
-                    table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
-                    table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
-            except (IndexError, ValueError) as e:
-                logger.error(f"Error processing metric table row {i}: {e}")
-                continue
-
-        table.setStyle(TableStyle(table_style))
-        return table
 
     def get_metric_issues_table_data(self, analyzed_pages, metric):
         """Get detailed issues table data with current values and visual indicators"""
@@ -4496,7 +4454,7 @@ class PDFReportGenerator:
         story.append(Paragraph("🔗 Backlink Audit Report", backlink_title_style))
 
         # Add introduction text
-        intro_text = ("This comprehensive backlink audit analyzes your website's link profile to identify "
+        intro_text = ("This comprehensive backlink audit analyzes your website's backlink profile to identify "
                      "opportunities for improvement and potential risks. Understanding your backlink "
                      "landscape is essential for building domain authority and maintaining a healthy "
                      "SEO foundation.")
@@ -4522,7 +4480,7 @@ class PDFReportGenerator:
         # Add Backlink Profile Summary if selected
         if 'profile_summary' in backlink_checks:
             story.append(PageBreak())
-            self.add_backlink_profile_summary(story)
+            self.add_backlink_profile_summary(story, real_backlink_data=None) # Pass None initially, will be populated later
 
         # Add Backlink Types Distribution if selected
         if 'types_distribution' in backlink_checks:
@@ -4748,7 +4706,7 @@ class PDFReportGenerator:
 
         story.append(Spacer(1, 30))
 
-    def add_backlink_profile_summary(self, story):
+    def add_backlink_profile_summary(self, story, real_backlink_data=None):
         """Add Backlink Profile Summary section"""
         # Section heading
         summary_title_style = ParagraphStyle(
@@ -4776,449 +4734,40 @@ class PDFReportGenerator:
             description_style
         ))
 
-        # Create summary metrics table
-        summary_data = [
-            ['Metric', 'Value'],
-            ['Total Backlinks', '1,284'],
-            ['Unique Referring Domains', '432'],
-            ['DoFollow Links', '978'],
-            ['NoFollow Links', '306'],
-            ['Redirects', '12'],
-            ['Average Domain Rating', '54'],
-            ['Average Spam Score', '18.7%'],
-            ['Toxic Links Detected', '7']
-        ]
+        # Use real data if available, otherwise use sample data
+        if real_backlink_data and real_backlink_data.get('summary'):
+            summary = real_backlink_data['summary']
+            total_backlinks = summary.get('backlinks', 0)
+            dofollow_links = summary.get('backlinks_dofollow', 0)
+            nofollow_links = total_backlinks - dofollow_links
+            referring_domains = summary.get('unique_referring_domains', 0)
+            domain_rating = summary.get('domain_rating', 0)
+            spam_score = summary.get('spam_score', 0)
 
-        # Create table with proper column widths
-        summary_table = Table(summary_data, colWidths=[3.0*inch, 2.0*inch])
-
-        # Define table style
-        table_style = [
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 12),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 11),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
-        ]
-
-        # Color code metrics based on values
-        for i in range(1, len(summary_data)):
-            # Alternate row backgrounds
-            if i % 2 == 0:
-                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
-                table_style.append(('BACKGROUND', (1, i), (1, i), HexColor('#f8f9fa')))
-
-            # Color code specific metrics
-            metric = summary_data[i][0]
-            value = summary_data[i][1]
-
-            if 'Domain Rating' in metric:
-                # Domain Rating: >50 good, >30 moderate, <30 poor
-                rating = int(value)
-                if rating >= 50:
-                    color = HexColor('#4CAF50')  # Green
-                elif rating >= 30:
-                    color = HexColor('#FF9800')  # Orange
-                else:
-                    color = HexColor('#F44336')  # Red
-
-                table_style.append(('BACKGROUND', (1, i), (1, i), color))
-                table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
-                table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
-
-            elif'Spam Score' in metric:
-                # Spam Score: <15% good, <30% moderate, >30% poor
-                score = float(value.rstrip('%'))
-                if score < 15:
-                    color = HexColor('#4CAF50')  # Green
-                elif score < 30:
-                    color = HexColor('#FF9800')  # Orange
-                else:
-                    color = HexColor('#F44336')  # Red
-
-                table_style.append(('BACKGROUND', (1, i), (1, i), color))
-                table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
-                table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
-
-            elif 'Toxic Links' in metric:
-                # Toxic Links: 0 good, <10 moderate, >10 poor
-                toxic = int(value)
-                if toxic == 0:
-                    color = HexColor('#4CAF50')  # Green
-                elif toxic < 10:
-                    color = HexColor('#FF9800')  # Orange
-                else:
-                    color = HexColor('#F44336')  # Red
-
-                table_style.append(('BACKGROUND', (1, i), (1, i), color))
-                table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
-                table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
-
-        summary_table.setStyle(TableStyle(table_style))
-        story.append(summary_table)
-        story.append(Spacer(1, 30))
-
-    def add_backlink_types_distribution(self, story):
-        """Add Backlink Types Distribution section"""
-        # Section heading
-        distribution_title_style = ParagraphStyle(
-            'BacklinkDistributionTitle',
-            parent=self.heading_style,
-            fontSize=18,
-            spaceAfter=20,
-            textColor=HexColor('#2E86AB'),
-            fontName='Helvetica-Bold'
-        )
-
-        story.append(Paragraph("Backlink Types Distribution", distribution_title_style))
-        story.append(Spacer(1, 15))
-
-        # Create backlink types distribution table
-        backlink_types_data = [
-            ['Link Type', 'Count', 'Percentage'],
-            ['DoFollow Links', '978', '76.2%'],
-            ['NoFollow Links', '306', '23.8%'],
-            ['Text Links', '1,150', '89.6%'],
-            ['Image Links', '134', '10.4%'],
-            ['Redirects', '12', '0.9%']
-        ]
-
-        # Create table with proper column widths
-        backlink_types_table = Table(backlink_types_data, colWidths=[2.5*inch, 1.5*inch, 1.5*inch])
-
-        # Define table style
-        table_style = [
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 12),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 11),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
-        ]
-
-        # Color code based on link type quality
-        for i in range(1, len(backlink_types_data)):
-            # Alternate row backgrounds
-            if i % 2 == 0:
-                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
-
-            # Color code based on link type quality
-            link_type = backlink_types_data[i][0]
-            percentage = float(backlink_types_data[i][2].rstrip('%'))
-
-            if 'DoFollow' in link_type and percentage > 70:
-                color = HexColor('#4CAF50')  # Green - Good DoFollow ratio
-            elif 'NoFollow' in link_type and percentage < 30:
-                color = HexColor('#4CAF50')  # Green - Balanced NoFollow ratio
-            elif 'Text Links' in link_type and percentage > 85:
-                color = HexColor('#4CAF50')  # Green - Good text link ratio
-            elif 'Image Links' in link_type and percentage < 15:
-                color = HexColor('#4CAF50')  # Green - Balanced image link ratio
-            elif 'Redirects' in link_type and percentage < 5:
-                color = HexColor('#4CAF50')  # Green - Low redirect rate
-            else:
-                color = HexColor('#FF9800')  # Orange - Moderate
-
-            table_style.append(('BACKGROUND', (2, i), (2, i), color))
-            table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
-            table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
-
-        backlink_types_table.setStyle(TableStyle(table_style))
-        story.append(backlink_types_table)
-        story.append(Spacer(1, 25))
-
-        # Add Key Insights section
-        insights_title_style = ParagraphStyle(
-            'InsightsTitle',
-            parent=self.subheading_style,
-            fontSize=14,
-            spaceAfter=12,
-            textColor=HexColor('#2E86AB'),
-                        fontName='Helvetica-Bold'
-        )
-
-        story.append(Paragraph("Key Insights", insights_title_style))
-        story.append(Spacer(1, 8))
-
-        # Generate insights based on the data
-        insights = [
-            "• Strong DoFollow ratio at 76.2% indicates good link equity potential",
-            "• High text link percentage (89.6%) shows natural link building patterns",
-            "• Low redirect rate (0.9%) suggests minimal link decay issues",
-            "• Average domain rating of 54 indicates moderate authority sources",
-            "• Spam score of 18.7% requires monitoring and potential toxic link cleanup",
-            "• 7 toxic links detected should be reviewed and potentially disavoweddef _get_sample_referring_domains_data(self):
-        """Get sample referring domains data"""
-        return [
-            ['Domain', 'Domain Rating', 'Spam Score'],
-            ['google.com', '100', '0%'],
-            ['facebook.com', '96', '2%'],
-            ['linkedin.com', '95', '1%'],
-            ['twitter.com', '94', '3%'],
-            ['wikipedia.org', '93', '0%'],
-            ['medium.com', '87', '5%'],
-            ['reddit.com', '91', '8%'],
-            ['github.com', '85', '2%'],
-            ['stackoverflow.com', '84', '1%'],
-            ['youtube.com', '100', '0%'],
-            ['instagram.com', '94', '4%'],
-            ['quora.com', '78', '12%'],
-            ['pinterest.com', '83', '6%'],
-            ['tumblr.com', '72', '18%'],
-            ['wordpress.com', '82', '7%'],
-            ['blogspot.com', '75', '15%'],
-            ['techcrunch.com', '91', '3%'],
-            ['forbes.com', '95', '1%'],
-            ['bbc.com', '94', '2%'],
-            ['cnn.com', '92', '1%']
-        ]
-
-    def add_top_referring_domains_section(self, story, analyzed_pages):
-        """Add Top 20 Referring Domains section"""
-        story.append(PageBreak())
-
-        # Section heading
-        domains_title_style = ParagraphStyle(
-            'DomainsTitle',
-            parent=self.heading_style,
-            fontSize=18,
-            spaceAfter=20,
-            textColor=HexColor('#2E86AB'),
-            fontName='Helvetica-Bold'
-        )
-
-        story.append(Paragraph("Top 20 Referring Domains", domains_title_style))
-        story.append(Spacer(1, 15))
-
-        # Create sample top referring domains data
-        domains_data = self._get_sample_referring_domains_data()
-
-        # Create table with proper column widths
-        domains_table = Table(domains_data, colWidths=[3.0*inch, 1.5*inch, 1.5*inch])
-
-        # Define table style
-        table_style = [
-            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 1, black),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
-        ]
-
-        # Color code based on domain rating and spam score
-        for i in range(1, len(domains_data)):
-            # Alternate row backgrounds
-            if i % 2 == 0:
-                table_style.append(('BACKGROUND', (0, i), (0, i), HexColor('#f8f9fa')))
-                table_style.append(('BACKGROUND', (2, i), (2, i), HexColor('#f8f9fa')))
-
-            # Color code domain rating
-            try:
-                domain_rating = int(domains_data[i][1])
-                if domain_rating >= 90:
-                    rating_color = HexColor('#4CAF50')  # Green - Excellent
-                elif domain_rating >= 70:
-                    rating_color = HexColor('#FF9800')  # Orange - Good
-                else:
-                    rating_color = HexColor('#F44336')  # Red - Poor
-
-                table_style.append(('BACKGROUND', (1, i), (1, i), rating_color))
-                table_style.append(('TEXTCOLOR', (1, i), (1, i), white))
-                table_style.append(('FONTNAME', (1, i), (1, i), 'Helvetica-Bold'))
-            except (ValueError, IndexError):
-                pass
-
-            # Color code spam score
-            try:
-                spam_score = domains_data[i][2]
-                spam_percentage = int(spam_score.rstrip('%'))
-                if spam_percentage <= 5:
-                    spam_color = HexColor('#4CAF50')  # Green - Low spam
-                elif spam_percentage <= 15:
-                    spam_color = HexColor('#FF9800')  # Orange - Medium spam
-                else:
-                    spam_color = HexColor('#F44336')  # Red - High spam
-
-                table_style.append(('BACKGROUND', (2, i), (2, i), spam_color))
-                table_style.append(('TEXTCOLOR', (2, i), (2, i), white))
-                table_style.append(('FONTNAME', (2, i), (2, i), 'Helvetica-Bold'))
-            except (IndexError, ValueError):
-                pass
-
-        domains_table.setStyle(TableStyle(table_style))
-        story.append(domains_table)
-        story.append(Spacer(1, 25))
-
-        # Add Actionable Recommendations section
-        recommendations_title_style = ParagraphStyle(
-            'RecommendationsTitle',
-            parent=self.subheading_style,
-            fontSize=14,
-            spaceAfter=12,
-            textColor=HexColor('#2E86AB'),
-            fontName='Helvetica-Bold'
-        )
-
-        story.append(Paragraph("Actionable Recommendations", recommendations_title_style))
-        story.append(Spacer(1, 8))
-
-        # Generate recommendations based on the referring domains data
-        recommendations = [
-            "• Focus on maintaining relationships with high-authority domains (DR 60+) like Google, Facebook, and LinkedIn",
-            "• Monitor and potentially disavow links from domains with spam scores above 15% (tumblr.com, blogspot.com)",
-            "• Seek more DoFollow links from medium-authority domains (DR 30-59) to improve link equity",
-            "• Diversify anchor text in outreach to high-authority domains like TechCrunch and Forbes",
-            "• Review and potentially remove or disavow links from domains with spam scores above 10%",
-            "• Leverage existing relationships with quality domains to request more contextual backlinks",
-            "• Monitor competitor backlink profiles to identify new high-quality linking opportunities"
-        ]
-
-        # Create recommendation style
-        recommendation_style = ParagraphStyle(
-            'RecommendationBullet',
-            parent=self.body_style,
-            fontSize=11,
-            spaceAfter=6,
-            leftIndent=10
-        )
-
-        for recommendation in recommendations:
-            story.append(Paragraph(recommendation, recommendation_style))
-
-        story.append(Spacer(1, 25))
-
-        # Add Download Additional Report Data section
-        download_title_style = ParagraphStyle(
-            'DownloadTitle',
-            parent=self.subheading_style,
-            fontSize=16,
-            spaceAfter=15,
-            textColor=HexColor('#2E86AB'),
-            fontName='Helvetica-Bold'
-        )
-
-        story.append(Paragraph("📥 Download Additional Report Data", download_title_style))
-        story.append(Spacer(1, 8))
-
-        # Add description
-        download_desc_style = ParagraphStyle(
-            'DownloadDesc',
-            parent=self.body_style,
-            fontSize=11,
-            spaceAfter=12,
-            leading=14
-        )
-
-        story.append(Paragraph(
-            "Click the links below to download detailed CSV files containing all the raw data discovered during the audit. "
-            "These files provide comprehensive information that can be used for further analysis and remediation.",
-            download_desc_style
-        ))
-        story.append(Spacer(1, 5))
-
-        # Add download links with proper formatting
-        download_info_style = ParagraphStyle(
-            'DownloadInfo',
-            parent=self.body_style,
-            fontSize=11,
-            spaceAfter=6,
-            leftIndent=10
-        )
-
-        # Use proper domain-based filenames for download links
-        homepage_url = list(analyzed_pages.keys())[0] if analyzed_pages else 'https://example.com'
-        domain_raw = urllib.parse.urlparse(homepage_url).netloc
-        clean_domain = domain_raw.replace('www.', '')
-        domain_for_csv = re.sub(r'[^\w\-_]', '_', clean_domain)
-
-        # Create clickable download links with proper styling
-        download_link_style = ParagraphStyle(
-            'DownloadLink',
-            parent=self.body_style,
-            fontSize=11,
-            spaceAfter=8,
-            leftIndent=10,
-            textColor=HexColor('#2E86AB')
-        )
-
-        # Use proper domain-based filenames for download links
-        broken_filename = f"broken_links_{domain_for_csv}.csv"
-        orphan_filename = f"orphan_pages_{domain_for_csv}.csv"
-        referring_filename = f"referring_domains_{domain_for_csv}.csv"
-        excel_filename = f"report_{domain_for_csv}.xlsx"
-
-        broken_link_text = f'• <link href="/reports/{broken_filename}" color="#2E86AB"><b>Broken Link File</b></link> - Download CSV with all broken links found'
-        orphan_link_text = f'• <link href="/reports/{orphan_filename}" color="#2E86AB"><b>Orphan Page File</b></link> - Download CSV with all orphan pages found'
-        referring_link_text = f'• <link href="/reports/{referring_filename}" color="#2E86AB"><b>Referring Domain File</b></link> - Download CSV with top referring domains'
-        excel_link_text = f'• <link href="/reports/{excel_filename}" color="#2E86AB"><b>Combined Excel Report</b></link> - Download Excel file with all data in separate sheets'
-
-        story.append(Paragraph(broken_link_text, download_link_style))
-        story.append(Paragraph(orphan_link_text, download_link_style))
-        story.append(Paragraph(referring_link_text, download_link_style))
-        story.append(Paragraph(excel_link_text, download_link_style))
-
-        story.append(Spacer(1, 30))
-
-    def add_backlink_profile_summary(self, story):
-        """Add Backlink Profile Summary section"""
-        # Section heading
-        summary_title_style = ParagraphStyle(
-            'BacklinkSummaryTitle',
-            parent=self.heading_style,
-            fontSize=18,
-            spaceAfter=20,
-            textColor=HexColor('#2E86AB'),
-            fontName='Helvetica-Bold'
-        )
-
-        story.append(Paragraph("Backlink Profile Summary", summary_title_style))
-
-        # Description paragraph
-        description_style = ParagraphStyle(
-            'BacklinkDescription',
-            parent=self.body_style,
-            fontSize=11,
-            spaceAfter=20,
-            leading=14
-        )
-
-        story.append(Paragraph(
-            "This section summarizes the key metrics of your website's backlink profile, giving you a quick overview of link quantity, quality, and potential issues.",
-            description_style
-        ))
-
-        # Create summary metrics table
-        summary_data = [
-            ['Metric', 'Value'],
-            ['Total Backlinks', '1,284'],
-            ['Unique Referring Domains', '432'],
-            ['DoFollow Links', '978'],
-            ['NoFollow Links', '306'],
-            ['Redirects', '12'],
-            ['Average Domain Rating', '54'],
-            ['Average Spam Score', '18.7%'],
-            ['Toxic Links Detected', '7']
-        ]
+            summary_data = [
+                ['Metric', 'Value'],
+                ['Total Backlinks', f'{total_backlinks:,}'],
+                ['Unique Referring Domains', f'{referring_domains:,}'],
+                ['DoFollow Links', f'{dofollow_links:,}'],
+                ['NoFollow Links', f'{nofollow_links:,}'],
+                ['Domain Rating', str(domain_rating)],
+                ['Spam Score', f'{spam_score}%'],
+                ['Data Source', 'DataForSEO API (Real-time)']
+            ]
+        else:
+            # Create summary metrics table with sample data
+            summary_data = [
+                ['Metric', 'Value'],
+                ['Total Backlinks', '1,284'],
+                ['Unique Referring Domains', '432'],
+                ['DoFollow Links', '978'],
+                ['NoFollow Links', '306'],
+                ['Redirects', '12'],
+                ['Average Domain Rating', '54'],
+                ['Average Spam Score', '18.7%'],
+                ['Toxic Links Detected', '7'],
+                ['Data Source', 'Sample Data (API Failed)']
+            ]
 
         # Create table with proper column widths
         summary_table = Table(summary_data, colWidths=[3.0*inch, 2.0*inch])
