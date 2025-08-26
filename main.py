@@ -1694,6 +1694,169 @@ class SEOAuditor:
         story.append(Spacer(1, 30))
 
 
+class PDFReportGenerator:
+    def __init__(self):
+        # Define styles for PDF generation
+        self.styles = getSampleStyleSheet()
+        self.title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=self.styles['Heading1'],
+            fontSize=24,
+            spaceAfter=30,
+            textColor=HexColor('#2E86AB'),
+            alignment=TA_CENTER
+        )
+        
+        self.heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=self.styles['Heading2'],
+            fontSize=16,
+            spaceBefore=20,
+            spaceAfter=12,
+            textColor=HexColor('#2E86AB')
+        )
+        
+        self.subheading_style = ParagraphStyle(
+            'CustomSubheading',
+            parent=self.styles['Heading3'],
+            fontSize=14,
+            spaceBefore=15,
+            spaceAfter=10,
+            textColor=HexColor('#333333')
+        )
+        
+        self.body_style = ParagraphStyle(
+            'CustomBody',
+            parent=self.styles['Normal'],
+            fontSize=10,
+            spaceBefore=6,
+            spaceAfter=6,
+            leftIndent=0
+        )
+
+    def generate_multi_page_report(self, analyzed_pages, overall_stats, filepath, crawler_results=None, selected_checks=None, backlink_data=None):
+        """Generate comprehensive multi-page SEO audit PDF report"""
+        try:
+            logger.info(f"Starting PDF generation: {filepath}")
+            
+            # Create PDF document
+            doc = SimpleDocTemplate(filepath, pagesize=A4)
+            story = []
+            
+            # Add title page
+            story.append(Paragraph("Comprehensive SEO Audit Report", self.title_style))
+            story.append(Spacer(1, 30))
+            
+            # Add overview section
+            if analyzed_pages:
+                first_url = list(analyzed_pages.keys())[0]
+                domain = urllib.parse.urlparse(first_url).netloc
+                story.append(Paragraph(f"Domain: {domain}", self.heading_style))
+                story.append(Paragraph(f"Pages Analyzed: {overall_stats.get('total_pages', 0)}", self.body_style))
+                story.append(Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", self.body_style))
+                story.append(Spacer(1, 20))
+            
+            # Add executive summary
+            story.append(Paragraph("Executive Summary", self.heading_style))
+            if overall_stats.get('avg_scores'):
+                for metric, score in overall_stats['avg_scores'].items():
+                    story.append(Paragraph(f"• {metric.replace('_', ' ').title()}: {score}/100", self.body_style))
+            story.append(Spacer(1, 20))
+            
+            # Add page-by-page analysis
+            story.append(PageBreak())
+            story.append(Paragraph("Page Analysis", self.heading_style))
+            
+            for url, analysis in analyzed_pages.items():
+                story.append(Paragraph(f"URL: {url}", self.subheading_style))
+                story.append(Paragraph(f"Title: {analysis.get('title', 'N/A')}", self.body_style))
+                story.append(Paragraph(f"Meta Description: {analysis.get('meta_description', 'N/A')}", self.body_style))
+                
+                # Add scores
+                scores = analysis.get('scores', {})
+                for metric, score in scores.items():
+                    story.append(Paragraph(f"• {metric.replace('_', ' ').title()}: {score}/100", self.body_style))
+                
+                # Add issues
+                issues = analysis.get('issues', [])
+                if issues:
+                    story.append(Paragraph("Issues:", self.body_style))
+                    for issue in issues:
+                        story.append(Paragraph(f"• {issue}", self.body_style))
+                
+                story.append(Spacer(1, 15))
+            
+            # Add backlink analysis if data is provided
+            if backlink_data and selected_checks and 'backlink' in selected_checks:
+                if 'detailed_anchor_text' in selected_checks['backlink'] and backlink_data.get('anchor_texts'):
+                    self.add_detailed_anchor_text_analysis(story, backlink_data['anchor_texts'])
+            
+            # Add crawler results if available
+            if crawler_results and selected_checks and 'link_analysis' in selected_checks:
+                story.append(PageBreak())
+                story.append(Paragraph("Link Analysis", self.heading_style))
+                
+                # Broken links
+                if 'broken_links' in selected_checks['link_analysis']:
+                    broken_links = crawler_results.get('broken_links', [])
+                    story.append(Paragraph(f"Broken Links Found: {len(broken_links)}", self.subheading_style))
+                    
+                    for link in broken_links[:10]:  # Show first 10
+                        story.append(Paragraph(f"• {link.get('broken_url', 'N/A')} (Status: {link.get('status_code', 'N/A')})", self.body_style))
+                
+                # Orphan pages
+                if 'orphan_pages' in selected_checks['link_analysis']:
+                    orphan_pages = crawler_results.get('orphan_pages', [])
+                    story.append(Paragraph(f"Orphan Pages Found: {len(orphan_pages)}", self.subheading_style))
+                    
+                    for page in orphan_pages[:10]:  # Show first 10
+                        story.append(Paragraph(f"• {page.get('url', 'N/A')}", self.body_style))
+            
+            # Build PDF
+            doc.build(story)
+            logger.info(f"PDF generated successfully: {filepath}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error generating PDF: {e}")
+            return None
+
+    def add_detailed_anchor_text_analysis(self, story, anchor_text_data):
+        """Add detailed anchor text analysis section"""
+        story.append(PageBreak())
+        story.append(Paragraph("Detailed Anchor Text Analysis", self.heading_style))
+        
+        if anchor_text_data and 'anchor_texts' in anchor_text_data:
+            anchor_texts = anchor_text_data['anchor_texts']
+            total_anchors = sum(anchor_texts.values())
+            
+            # Create table data
+            table_data = [['Anchor Text', 'Count', 'Percentage']]
+            
+            # Sort and take top 20
+            sorted_anchors = sorted(anchor_texts.items(), key=lambda x: x[1], reverse=True)[:20]
+            
+            for anchor, count in sorted_anchors:
+                percentage = (count / total_anchors) * 100 if total_anchors > 0 else 0
+                display_anchor = anchor[:35] + "..." if len(anchor) > 35 else anchor
+                table_data.append([display_anchor, str(count), f"{percentage:.1f}%"])
+            
+            # Create table
+            table = Table(table_data, colWidths=[3.0*inch, 1.0*inch, 1.0*inch])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), white),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), HexColor('#f8f9fa')),
+                ('GRID', (0, 0), (-1, -1), 1, black)
+            ]))
+            
+            story.append(table)
+            story.append(Spacer(1, 20))
+
 # Initialize components
 auditor = SEOAuditor()
 pdf_generator = PDFReportGenerator()
