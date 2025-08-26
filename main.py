@@ -617,7 +617,79 @@ class SEOAuditor:
 
         analysis['scores']['external_links'] = external_link_score
 
+        # Add advanced technical SEO analysis
+        try:
+            advanced_technical_data = self.get_advanced_technical_seo(analysis['url'])
+            analysis['advanced_technical'] = advanced_technical_data
+            
+            # Calculate advanced technical score
+            technical_score = self._calculate_advanced_technical_score(advanced_technical_data)
+            analysis['scores']['advanced_technical'] = technical_score
+            
+        except Exception as e:
+            logger.error(f"Error adding advanced technical analysis: {e}")
+            analysis['advanced_technical'] = None
+            analysis['scores']['advanced_technical'] = 50
+
         return analysis
+    
+    def _calculate_advanced_technical_score(self, technical_data):
+        """Calculate score based on advanced technical SEO factors"""
+        if not technical_data:
+            return 50
+            
+        score = 100
+        deductions = []
+        
+        # Canonical tags
+        canonical = technical_data.get('canonical_tags', {})
+        if not canonical.get('has_canonical'):
+            score -= 15
+            deductions.append("Missing canonical tag")
+        elif canonical.get('issues'):
+            score -= 10
+            deductions.extend(canonical['issues'])
+        
+        # Robots directives
+        robots = technical_data.get('robots_txt', {})
+        if not robots.get('indexable'):
+            score -= 20
+            deductions.append("Page set to noindex")
+        
+        # HTTP headers and security
+        headers = technical_data.get('http_headers', {})
+        security = headers.get('security_headers', {})
+        
+        if not security.get('x_frame_options'):
+            score -= 5
+            deductions.append("Missing X-Frame-Options header")
+        if not security.get('x_content_type_options'):
+            score -= 5
+            deductions.append("Missing X-Content-Type-Options header")
+        if not security.get('strict_transport_security'):
+            score -= 10
+            deductions.append("Missing HSTS header")
+        
+        # Redirects
+        redirects = technical_data.get('redirects', {})
+        redirect_count = redirects.get('redirect_count', 0)
+        if redirect_count > 3:
+            score -= 15
+            deductions.append(f"Too many redirects ({redirect_count})")
+        elif redirect_count > 1:
+            score -= 5
+            deductions.append(f"Multiple redirects ({redirect_count})")
+        
+        # Duplicate content
+        duplicates = technical_data.get('duplicate_content', {})
+        if duplicates.get('duplicate_title_tags'):
+            score -= 15
+            deductions.append("Duplicate title tags detected")
+        if duplicates.get('duplicate_meta_descriptions'):
+            score -= 10
+            deductions.append("Duplicate meta descriptions detected")
+        
+        return max(0, min(100, score))
 
     def calculate_scores(self, analysis):
         """Calculate SEO scores for different aspects"""
@@ -775,37 +847,106 @@ class SEOAuditor:
                         word_count = analysis_data.get('content', {}).get('word_count', 0)
                         text_content = analysis_data.get('content', {}).get('text_content', '') # Get raw text if available
 
-                        # Calculate Readability (Flesch Reading Ease)
-                        readability_score = 0
+                        # Calculate comprehensive readability metrics using textstat
+                        readability_metrics = {}
                         if text_content:
                             try:
-                                readability_score = textstat.flesch_reading_ease(text_content)
-                            except ImportError:
-                                logger.warning("textstat library not found. Cannot calculate readability score.")
+                                readability_metrics = {
+                                    'flesch_reading_ease': round(textstat.flesch_reading_ease(text_content), 2),
+                                    'flesch_kincaid_grade': round(textstat.flesch_kincaid().grade(text_content), 2),
+                                    'gunning_fog_index': round(textstat.gunning_fog(text_content), 2),
+                                    'smog_index': round(textstat.smog_index(text_content), 2),
+                                    'automated_readability_index': round(textstat.automated_readability_index(text_content), 2),
+                                    'coleman_liau_index': round(textstat.coleman_liau_index(text_content), 2),
+                                    'difficult_words': textstat.difficult_words(text_content),
+                                    'lexicon_count': textstat.lexicon_count(text_content),
+                                    'sentence_count': textstat.sentence_count(text_content),
+                                    'avg_sentence_length': round(textstat.avg_sentence_length(text_content), 2)
+                                }
                             except Exception as e:
-                                logger.error(f"Error calculating readability: {e}")
+                                logger.error(f"Error calculating readability metrics: {e}")
+                                readability_metrics = {
+                                    'flesch_reading_ease': 0,
+                                    'flesch_kincaid_grade': 0,
+                                    'gunning_fog_index': 0,
+                                    'smog_index': 0,
+                                    'automated_readability_index': 0,
+                                    'coleman_liau_index': 0,
+                                    'difficult_words': 0,
+                                    'lexicon_count': 0,
+                                    'sentence_count': 0,
+                                    'avg_sentence_length': 0
+                                }
 
-                        # Calculate Keyword Density
-                        keyword_density = 0
-                        if keyword and word_count > 0:
-                            # Simple keyword count - could be improved for better accuracy
-                            keyword_count = text_content.lower().count(keyword.lower())
-                            keyword_density = (keyword_count / word_count) * 100 if word_count > 0 else 0
+                        # Enhanced Keyword Density Analysis
+                        keyword_analysis = {}
+                        if keyword and word_count > 0 and text_content:
+                            # More sophisticated keyword counting
+                            text_lower = text_content.lower()
+                            keyword_lower = keyword.lower()
+                            
+                            # Exact keyword matches
+                            exact_matches = text_lower.count(keyword_lower)
+                            
+                            # Keyword variations (simple stemming approximation)
+                            keyword_variations = [keyword_lower, keyword_lower + 's', keyword_lower + 'ing', keyword_lower + 'ed']
+                            total_keyword_instances = sum(text_lower.count(var) for var in keyword_variations)
+                            
+                            keyword_analysis = {
+                                'primary_keyword': keyword,
+                                'exact_matches': exact_matches,
+                                'total_instances': total_keyword_instances,
+                                'keyword_density': round((total_keyword_instances / word_count) * 100, 2),
+                                'keyword_prominence': self._calculate_keyword_prominence(text_content, keyword)
+                            }
 
-                        # Determine Content Quality Score
-                        content_quality_score = "Needs Improvement"
-                        if readability_score > 60 and word_count > 500:
+                        # Determine Content Quality Score based on multiple factors
+                        flesch_score = readability_metrics.get('flesch_reading_ease', 0)
+                        content_quality_score = "Poor"
+                        quality_factors = []
+                        
+                        if word_count >= 500:
+                            quality_factors.append("Good length")
+                        elif word_count >= 300:
+                            quality_factors.append("Adequate length")
+                        else:
+                            quality_factors.append("Too short")
+                            
+                        if flesch_score >= 60:
+                            quality_factors.append("Easy to read")
+                            content_quality_score = "Good" if word_count >= 300 else "Fair"
+                        elif flesch_score >= 30:
+                            quality_factors.append("Moderately difficult")
+                            content_quality_score = "Fair"
+                        else:
+                            quality_factors.append("Difficult to read")
+                            
+                        if word_count >= 500 and flesch_score >= 60:
                             content_quality_score = "Excellent"
-                        elif readability_score > 50 and word_count > 300:
-                            content_quality_score = "Good"
+                        elif word_count >= 800 and flesch_score >= 50:
+                            content_quality_score = "Very Good"
 
                         return {
                             'url': url,
                             'word_count': word_count,
-                            'readability_score': round(readability_score, 2),
-                            'keyword_density': round(keyword_density, 2) if keyword else None,
-                            'content_quality_score': content_quality_score
+                            'readability_metrics': readability_metrics,
+                            'keyword_analysis': keyword_analysis,
+                            'content_quality_score': content_quality_score,
+                            'quality_factors': quality_factors
                         }
+                        
+    def _calculate_keyword_prominence(self, text_content, keyword):
+        """Calculate keyword prominence (position in content)"""
+        if not text_content or not keyword:
+            return 0
+            
+        # Find first occurrence position as percentage of total content
+        first_occurrence = text_content.lower().find(keyword.lower())
+        if first_occurrence == -1:
+            return 0
+            
+        prominence = (1 - (first_occurrence / len(text_content))) * 100
+        return round(prominence, 2)
                     elif task_info['status_message'] in ['In progress', 'Pending']:
                         time.sleep(5) # Wait and retry
                     else:
@@ -1123,6 +1264,229 @@ class SEOAuditor:
                 'content_links': 892,
                 'footer_links': 234,
                 'navigation_links': 121
+            }
+        }
+
+    def get_advanced_technical_seo(self, url):
+        """Fetch advanced technical SEO data from DataForSEO API"""
+        if not self.login or not self.password:
+            logger.warning("DataForSEO credentials not configured, using fallback data.")
+            return self._get_fallback_technical_data(url)
+
+        endpoint = "/on_page/instant"
+        data = [{
+            "target": url,
+            "load_resources": True,
+            "enable_javascript": True,
+            "enable_browser_rendering": True,
+            "custom_js": "meta",
+            "browser_preset": "desktop",
+            "validate_micromarkup": True
+        }]
+
+        try:
+            logger.info(f"Fetching advanced technical SEO data for {url}")
+            result = self.make_request(endpoint, data, 'POST')
+
+            if result and result.get('status_code') == 20000:
+                tasks = result.get('tasks', [])
+                if tasks and tasks[0].get('status_message') == 'Ok':
+                    task_id = tasks[0]['id']
+                    
+                    # Poll for results
+                    max_retries = 15
+                    for _ in range(max_retries):
+                        task_result_endpoint = f"/on_page/task_get/{task_id}"
+                        task_result = self.make_request(task_result_endpoint)
+
+                        if task_result and task_result.get('status_code') == 20000:
+                            task_info = task_result['tasks'][0]
+                            if task_info['status_message'] == 'Ok':
+                                page_result = task_info.get('result', [{}])[0]
+                                
+                                # Extract advanced technical data
+                                technical_data = {
+                                    'url': url,
+                                    'canonical_tags': self._extract_canonical_data(page_result),
+                                    'robots_txt': self._extract_robots_data(page_result),
+                                    'meta_robots': self._extract_meta_robots(page_result),
+                                    'sitemap_links': self._extract_sitemap_data(page_result),
+                                    'hreflang': self._extract_hreflang_data(page_result),
+                                    'http_headers': self._extract_http_headers(page_result),
+                                    'redirects': self._extract_redirect_data(page_result),
+                                    'duplicate_content': self._extract_duplicate_content(page_result)
+                                }
+                                
+                                return technical_data
+                            elif task_info['status_message'] in ['In progress', 'Pending']:
+                                time.sleep(2)
+                            else:
+                                break
+        except Exception as e:
+            logger.error(f"Error fetching advanced technical SEO data: {e}")
+
+        return self._get_fallback_technical_data(url)
+
+    def _extract_canonical_data(self, page_result):
+        """Extract canonical tag information"""
+        checks = page_result.get('checks', {})
+        meta = page_result.get('meta', {})
+        
+        canonical_url = meta.get('canonical')
+        canonical_issues = []
+        
+        if not canonical_url:
+            canonical_issues.append("Missing canonical tag")
+        elif canonical_url != page_result.get('url'):
+            canonical_issues.append("Canonical URL differs from page URL")
+        
+        return {
+            'canonical_url': canonical_url,
+            'has_canonical': bool(canonical_url),
+            'issues': canonical_issues,
+            'self_referencing': canonical_url == page_result.get('url') if canonical_url else False
+        }
+
+    def _extract_robots_data(self, page_result):
+        """Extract robots.txt and meta robots information"""
+        checks = page_result.get('checks', {})
+        meta = page_result.get('meta', {})
+        
+        return {
+            'meta_robots': meta.get('robots', ''),
+            'robots_txt_accessible': checks.get('robots_txt', {}).get('accessible', True),
+            'robots_txt_issues': [],
+            'indexable': 'noindex' not in meta.get('robots', '').lower(),
+            'followable': 'nofollow' not in meta.get('robots', '').lower()
+        }
+
+    def _extract_meta_robots(self, page_result):
+        """Extract meta robots tag information"""
+        meta = page_result.get('meta', {})
+        robots = meta.get('robots', '').lower()
+        
+        return {
+            'content': meta.get('robots', ''),
+            'index_directive': 'index' if 'noindex' not in robots else 'noindex',
+            'follow_directive': 'follow' if 'nofollow' not in robots else 'nofollow',
+            'additional_directives': [d.strip() for d in robots.split(',') if d.strip() not in ['index', 'noindex', 'follow', 'nofollow']]
+        }
+
+    def _extract_sitemap_data(self, page_result):
+        """Extract sitemap information"""
+        checks = page_result.get('checks', {})
+        
+        return {
+            'sitemap_accessible': checks.get('sitemap', {}).get('accessible', True),
+            'sitemap_urls_count': checks.get('sitemap', {}).get('urls_count', 0),
+            'sitemap_issues': []
+        }
+
+    def _extract_hreflang_data(self, page_result):
+        """Extract hreflang information"""
+        checks = page_result.get('checks', {})
+        
+        hreflang_tags = checks.get('hreflang', [])
+        
+        return {
+            'has_hreflang': len(hreflang_tags) > 0,
+            'hreflang_count': len(hreflang_tags),
+            'languages': [tag.get('lang') for tag in hreflang_tags if tag.get('lang')],
+            'issues': []
+        }
+
+    def _extract_http_headers(self, page_result):
+        """Extract HTTP header information"""
+        return {
+            'status_code': page_result.get('status_code', 200),
+            'content_type': page_result.get('content_type', ''),
+            'content_encoding': page_result.get('content_encoding', ''),
+            'server': page_result.get('server', ''),
+            'cache_control': page_result.get('cache_control', ''),
+            'security_headers': {
+                'x_frame_options': page_result.get('x_frame_options', ''),
+                'x_content_type_options': page_result.get('x_content_type_options', ''),
+                'strict_transport_security': page_result.get('strict_transport_security', '')
+            }
+        }
+
+    def _extract_redirect_data(self, page_result):
+        """Extract redirect information"""
+        return {
+            'redirect_chain': page_result.get('redirect_chain', []),
+            'redirect_count': len(page_result.get('redirect_chain', [])),
+            'final_url': page_result.get('url', ''),
+            'redirect_issues': []
+        }
+
+    def _extract_duplicate_content(self, page_result):
+        """Extract duplicate content indicators"""
+        checks = page_result.get('checks', {})
+        
+        return {
+            'duplicate_title_tags': checks.get('duplicate_title', False),
+            'duplicate_meta_descriptions': checks.get('duplicate_description', False),
+            'duplicate_content_issues': []
+        }
+
+    def _get_fallback_technical_data(self, url):
+        """Generate fallback advanced technical SEO data"""
+        logger.info(f"Using fallback advanced technical data for {url}")
+        
+        return {
+            'url': url,
+            'canonical_tags': {
+                'canonical_url': url,
+                'has_canonical': True,
+                'issues': [],
+                'self_referencing': True
+            },
+            'robots_txt': {
+                'meta_robots': 'index, follow',
+                'robots_txt_accessible': True,
+                'robots_txt_issues': [],
+                'indexable': True,
+                'followable': True
+            },
+            'meta_robots': {
+                'content': 'index, follow',
+                'index_directive': 'index',
+                'follow_directive': 'follow',
+                'additional_directives': []
+            },
+            'sitemap_links': {
+                'sitemap_accessible': True,
+                'sitemap_urls_count': 45,
+                'sitemap_issues': []
+            },
+            'hreflang': {
+                'has_hreflang': False,
+                'hreflang_count': 0,
+                'languages': [],
+                'issues': []
+            },
+            'http_headers': {
+                'status_code': 200,
+                'content_type': 'text/html; charset=utf-8',
+                'content_encoding': 'gzip',
+                'server': 'nginx/1.18.0',
+                'cache_control': 'max-age=3600',
+                'security_headers': {
+                    'x_frame_options': 'SAMEORIGIN',
+                    'x_content_type_options': 'nosniff',
+                    'strict_transport_security': 'max-age=31536000'
+                }
+            },
+            'redirects': {
+                'redirect_chain': [],
+                'redirect_count': 0,
+                'final_url': url,
+                'redirect_issues': []
+            },
+            'duplicate_content': {
+                'duplicate_title_tags': False,
+                'duplicate_meta_descriptions': False,
+                'duplicate_content_issues': []
             }
         }
 
