@@ -1696,24 +1696,42 @@ class SEOAuditor:
 
 class PDFReportGenerator:
     def __init__(self):
-        # Define styles for PDF generation
+        # Define comprehensive styles for PDF generation
         self.styles = getSampleStyleSheet()
+        
+        # Title page styles
         self.title_style = ParagraphStyle(
             'CustomTitle',
             parent=self.styles['Heading1'],
-            fontSize=24,
+            fontSize=28,
             spaceAfter=30,
-            textColor=HexColor('#2E86AB'),
-            alignment=TA_CENTER
+            textColor=HexColor('#1E3A8A'),
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
         )
         
+        self.subtitle_style = ParagraphStyle(
+            'CustomSubtitle',
+            parent=self.styles['Normal'],
+            fontSize=16,
+            spaceAfter=20,
+            textColor=HexColor('#374151'),
+            alignment=TA_CENTER,
+            fontName='Helvetica'
+        )
+        
+        # Section heading styles
         self.heading_style = ParagraphStyle(
             'CustomHeading',
             parent=self.styles['Heading2'],
-            fontSize=16,
-            spaceBefore=20,
-            spaceAfter=12,
-            textColor=HexColor('#2E86AB')
+            fontSize=18,
+            spaceBefore=25,
+            spaceAfter=15,
+            textColor=HexColor('#1E3A8A'),
+            fontName='Helvetica-Bold',
+            borderWidth=2,
+            borderColor=HexColor('#1E3A8A'),
+            borderPadding=5
         )
         
         self.subheading_style = ParagraphStyle(
@@ -1722,140 +1740,1220 @@ class PDFReportGenerator:
             fontSize=14,
             spaceBefore=15,
             spaceAfter=10,
-            textColor=HexColor('#333333')
+            textColor=HexColor('#374151'),
+            fontName='Helvetica-Bold'
         )
         
+        self.minor_heading_style = ParagraphStyle(
+            'MinorHeading',
+            parent=self.styles['Heading4'],
+            fontSize=12,
+            spaceBefore=12,
+            spaceAfter=8,
+            textColor=HexColor('#4B5563'),
+            fontName='Helvetica-Bold'
+        )
+        
+        # Body text styles
         self.body_style = ParagraphStyle(
             'CustomBody',
             parent=self.styles['Normal'],
             fontSize=10,
             spaceBefore=6,
             spaceAfter=6,
-            leftIndent=0
+            leftIndent=0,
+            fontName='Helvetica'
+        )
+        
+        self.bullet_style = ParagraphStyle(
+            'BulletStyle',
+            parent=self.styles['Normal'],
+            fontSize=10,
+            spaceBefore=3,
+            spaceAfter=3,
+            leftIndent=15,
+            bulletIndent=5,
+            fontName='Helvetica'
+        )
+        
+        self.score_style = ParagraphStyle(
+            'ScoreStyle',
+            parent=self.styles['Normal'],
+            fontSize=11,
+            spaceBefore=4,
+            spaceAfter=4,
+            leftIndent=10,
+            fontName='Helvetica-Bold'
+        )
+        
+        # Special styles
+        self.warning_style = ParagraphStyle(
+            'WarningStyle',
+            parent=self.styles['Normal'],
+            fontSize=10,
+            spaceBefore=6,
+            spaceAfter=6,
+            textColor=HexColor('#DC2626'),
+            fontName='Helvetica'
+        )
+        
+        self.success_style = ParagraphStyle(
+            'SuccessStyle',
+            parent=self.styles['Normal'],
+            fontSize=10,
+            spaceBefore=6,
+            spaceAfter=6,
+            textColor=HexColor('#059669'),
+            fontName='Helvetica'
+        )
+        
+        self.info_style = ParagraphStyle(
+            'InfoStyle',
+            parent=self.styles['Normal'],
+            fontSize=9,
+            spaceBefore=6,
+            spaceAfter=6,
+            textColor=HexColor('#6B7280'),
+            fontName='Helvetica'
         )
 
     def generate_multi_page_report(self, analyzed_pages, overall_stats, filepath, crawler_results=None, selected_checks=None, backlink_data=None):
-        """Generate comprehensive multi-page SEO audit PDF report"""
+        """Generate comprehensive multi-page SEO audit PDF report with all features"""
         try:
-            logger.info(f"Starting PDF generation: {filepath}")
+            logger.info(f"Starting comprehensive PDF generation: {filepath}")
             
-            # Create PDF document
-            doc = SimpleDocTemplate(filepath, pagesize=A4)
+            # Create PDF document with custom page template
+            doc = SimpleDocTemplate(
+                filepath, 
+                pagesize=A4,
+                rightMargin=50,
+                leftMargin=50,
+                topMargin=50,
+                bottomMargin=50
+            )
             story = []
             
-            # Add title page
-            story.append(Paragraph("Comprehensive SEO Audit Report", self.title_style))
-            story.append(Spacer(1, 30))
-            
-            # Add overview section
+            # Extract domain information
             if analyzed_pages:
                 first_url = list(analyzed_pages.keys())[0]
                 domain = urllib.parse.urlparse(first_url).netloc
-                story.append(Paragraph(f"Domain: {domain}", self.heading_style))
-                story.append(Paragraph(f"Pages Analyzed: {overall_stats.get('total_pages', 0)}", self.body_style))
-                story.append(Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", self.body_style))
-                story.append(Spacer(1, 20))
-            
-            # Add executive summary
-            story.append(Paragraph("Executive Summary", self.heading_style))
-            if overall_stats.get('avg_scores'):
-                for metric, score in overall_stats['avg_scores'].items():
-                    story.append(Paragraph(f"• {metric.replace('_', ' ').title()}: {score}/100", self.body_style))
-            story.append(Spacer(1, 20))
-            
-            # Add page-by-page analysis
-            story.append(PageBreak())
-            story.append(Paragraph("Page Analysis", self.heading_style))
-            
-            for url, analysis in analyzed_pages.items():
-                story.append(Paragraph(f"URL: {url}", self.subheading_style))
-                story.append(Paragraph(f"Title: {analysis.get('title', 'N/A')}", self.body_style))
-                story.append(Paragraph(f"Meta Description: {analysis.get('meta_description', 'N/A')}", self.body_style))
+            else:
+                domain = "Unknown Domain"
                 
-                # Add scores
-                scores = analysis.get('scores', {})
-                for metric, score in scores.items():
-                    story.append(Paragraph(f"• {metric.replace('_', ' ').title()}: {score}/100", self.body_style))
-                
-                # Add issues
-                issues = analysis.get('issues', [])
-                if issues:
-                    story.append(Paragraph("Issues:", self.body_style))
-                    for issue in issues:
-                        story.append(Paragraph(f"• {issue}", self.body_style))
-                
-                story.append(Spacer(1, 15))
+            # Title Page
+            self.add_title_page(story, domain, overall_stats, analyzed_pages)
             
-            # Add backlink analysis if data is provided
-            if backlink_data and selected_checks and 'backlink' in selected_checks:
-                if 'detailed_anchor_text' in selected_checks['backlink'] and backlink_data.get('anchor_texts'):
-                    self.add_detailed_anchor_text_analysis(story, backlink_data['anchor_texts'])
+            # Table of Contents
+            self.add_table_of_contents(story, selected_checks, crawler_results, backlink_data)
             
-            # Add crawler results if available
-            if crawler_results and selected_checks and 'link_analysis' in selected_checks:
-                story.append(PageBreak())
-                story.append(Paragraph("Link Analysis", self.heading_style))
-                
-                # Broken links
-                if 'broken_links' in selected_checks['link_analysis']:
-                    broken_links = crawler_results.get('broken_links', [])
-                    story.append(Paragraph(f"Broken Links Found: {len(broken_links)}", self.subheading_style))
-                    
-                    for link in broken_links[:10]:  # Show first 10
-                        story.append(Paragraph(f"• {link.get('broken_url', 'N/A')} (Status: {link.get('status_code', 'N/A')})", self.body_style))
-                
-                # Orphan pages
-                if 'orphan_pages' in selected_checks['link_analysis']:
-                    orphan_pages = crawler_results.get('orphan_pages', [])
-                    story.append(Paragraph(f"Orphan Pages Found: {len(orphan_pages)}", self.subheading_style))
-                    
-                    for page in orphan_pages[:10]:  # Show first 10
-                        story.append(Paragraph(f"• {page.get('url', 'N/A')}", self.body_style))
+            # Executive Summary
+            self.add_executive_summary(story, overall_stats, analyzed_pages, domain)
+            
+            # On-Page SEO Analysis
+            if selected_checks and 'on_page' in selected_checks and selected_checks['on_page']:
+                self.add_on_page_analysis(story, analyzed_pages, selected_checks['on_page'])
+            
+            # Technical SEO Analysis  
+            if selected_checks and 'technical' in selected_checks and selected_checks['technical']:
+                self.add_technical_analysis(story, analyzed_pages, selected_checks['technical'])
+            
+            # Backlink Analysis
+            if backlink_data and selected_checks and 'backlink' in selected_checks and selected_checks['backlink']:
+                self.add_backlink_analysis(story, backlink_data, selected_checks['backlink'], domain)
+            
+            # Link Analysis (Crawler Results)
+            if crawler_results and selected_checks and 'link_analysis' in selected_checks and selected_checks['link_analysis']:
+                self.add_crawler_analysis(story, crawler_results, selected_checks['link_analysis'])
+            
+            # UI/UX Analysis
+            if selected_checks and 'uiux' in selected_checks and selected_checks['uiux']:
+                self.add_uiux_analysis(story, analyzed_pages, selected_checks['uiux'])
+            
+            # Detailed Page Analysis
+            self.add_detailed_page_analysis(story, analyzed_pages)
+            
+            # Recommendations & Action Items
+            self.add_recommendations_section(story, analyzed_pages, overall_stats)
+            
+            # Technical Appendix
+            self.add_technical_appendix(story, analyzed_pages)
             
             # Build PDF
             doc.build(story)
-            logger.info(f"PDF generated successfully: {filepath}")
+            logger.info(f"Comprehensive PDF generated successfully: {filepath}")
             return True
             
         except Exception as e:
-            logger.error(f"Error generating PDF: {e}")
+            logger.error(f"Error generating comprehensive PDF: {e}")
             return None
 
-    def add_detailed_anchor_text_analysis(self, story, anchor_text_data):
-        """Add detailed anchor text analysis section"""
-        story.append(PageBreak())
-        story.append(Paragraph("Detailed Anchor Text Analysis", self.heading_style))
+    def add_title_page(self, story, domain, overall_stats, analyzed_pages):
+        """Add professional title page"""
+        # Main title
+        story.append(Paragraph("Website SEO Audit Report", self.title_style))
+        story.append(Spacer(1, 30))
         
-        if anchor_text_data and 'anchor_texts' in anchor_text_data:
-            anchor_texts = anchor_text_data['anchor_texts']
-            total_anchors = sum(anchor_texts.values())
+        # Domain info box
+        domain_info = f"<b>Domain:</b> {domain}"
+        story.append(Paragraph(domain_info, self.subtitle_style))
+        story.append(Spacer(1, 20))
+        
+        # Key metrics summary table
+        summary_data = [
+            ['Metric', 'Value', 'Status'],
+            ['Pages Analyzed', str(overall_stats.get('total_pages', 0)), '✓'],
+            ['Total Issues Found', str(overall_stats.get('total_issues', 0)), '⚠' if overall_stats.get('total_issues', 0) > 0 else '✓'],
+            ['Pages with Issues', str(overall_stats.get('pages_with_issues', 0)), '⚠' if overall_stats.get('pages_with_issues', 0) > 0 else '✓'],
+            ['Average Overall Score', f"{overall_stats.get('avg_scores', {}).get('overall', 0)}/100", self.get_score_status(overall_stats.get('avg_scores', {}).get('overall', 0))]
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[2.5*inch, 1.5*inch, 1*inch])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#1E3A8A')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('TOPPADDING', (0, 0), (-1, -1), 12),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [HexColor('#F9FAFB'), white])
+        ]))
+        
+        story.append(summary_table)
+        story.append(Spacer(1, 40))
+        
+        # Generation info
+        generation_info = f"Generated on: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}"
+        story.append(Paragraph(generation_info, self.info_style))
+        story.append(Spacer(1, 20))
+        
+        # Report description
+        description = ("This comprehensive SEO audit report analyzes your website's search engine optimization "
+                      "performance across multiple categories including on-page SEO, technical SEO, backlink profile, "
+                      "and user experience factors. Each section provides actionable recommendations to improve "
+                      "your website's search engine visibility and performance.")
+        story.append(Paragraph(description, self.body_style))
+        
+        story.append(PageBreak())
+
+    def add_table_of_contents(self, story, selected_checks, crawler_results, backlink_data):
+        """Add table of contents"""
+        story.append(Paragraph("Table of Contents", self.heading_style))
+        story.append(Spacer(1, 20))
+        
+        toc_items = [
+            "1. Executive Summary",
+            "2. On-Page SEO Analysis",
+            "3. Technical SEO Analysis",
+        ]
+        
+        section_num = 4
+        if backlink_data and selected_checks and 'backlink' in selected_checks and selected_checks['backlink']:
+            toc_items.append(f"{section_num}. Backlink Analysis")
+            section_num += 1
             
-            # Create table data
-            table_data = [['Anchor Text', 'Count', 'Percentage']]
+        if crawler_results and selected_checks and 'link_analysis' in selected_checks and selected_checks['link_analysis']:
+            toc_items.append(f"{section_num}. Link Analysis")
+            section_num += 1
             
-            # Sort and take top 20
-            sorted_anchors = sorted(anchor_texts.items(), key=lambda x: x[1], reverse=True)[:20]
+        if selected_checks and 'uiux' in selected_checks and selected_checks['uiux']:
+            toc_items.append(f"{section_num}. UI/UX Analysis")
+            section_num += 1
+        
+        toc_items.extend([
+            f"{section_num}. Detailed Page Analysis",
+            f"{section_num + 1}. Recommendations & Action Items",
+            f"{section_num + 2}. Technical Appendix"
+        ])
+        
+        for item in toc_items:
+            story.append(Paragraph(item, self.body_style))
+            story.append(Spacer(1, 8))
+        
+        story.append(PageBreak())
+
+    def add_executive_summary(self, story, overall_stats, analyzed_pages, domain):
+        """Add comprehensive executive summary"""
+        story.append(Paragraph("Executive Summary", self.heading_style))
+        story.append(Spacer(1, 15))
+        
+        # Overview paragraph
+        overview = f"This report analyzes {overall_stats.get('total_pages', 0)} pages from {domain}. "
+        if overall_stats.get('total_issues', 0) > 0:
+            overview += f"A total of {overall_stats.get('total_issues', 0)} SEO issues were identified across "
+            overview += f"{overall_stats.get('pages_with_issues', 0)} pages, providing clear opportunities for optimization."
+        else:
+            overview += "The analysis shows strong SEO performance with minimal issues identified."
             
-            for anchor, count in sorted_anchors:
-                percentage = (count / total_anchors) * 100 if total_anchors > 0 else 0
-                display_anchor = anchor[:35] + "..." if len(anchor) > 35 else anchor
-                table_data.append([display_anchor, str(count), f"{percentage:.1f}%"])
+        story.append(Paragraph(overview, self.body_style))
+        story.append(Spacer(1, 15))
+        
+        # Score breakdown
+        story.append(Paragraph("Performance Scores", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        if overall_stats.get('avg_scores'):
+            # Create scores table
+            score_data = [['SEO Category', 'Score', 'Grade', 'Status']]
             
-            # Create table
-            table = Table(table_data, colWidths=[3.0*inch, 1.0*inch, 1.0*inch])
-            table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#2E86AB')),
+            for metric, score in overall_stats['avg_scores'].items():
+                grade = self.get_grade_from_score(score)
+                status = self.get_score_status(score)
+                metric_name = metric.replace('_', ' ').title()
+                score_data.append([metric_name, f"{score}/100", grade, status])
+            
+            scores_table = Table(score_data, colWidths=[2*inch, 1*inch, 1*inch, 1*inch])
+            scores_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), HexColor('#1E3A8A')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), white),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), HexColor('#f8f9fa')),
-                ('GRID', (0, 0), (-1, -1), 1, black)
+                ('FONTSIZE', (0, 0), (-1, 0), 11),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+                ('TOPPADDING', (0, 0), (-1, -1), 10),
+                ('GRID', (0, 0), (-1, -1), 1, black),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [HexColor('#F9FAFB'), white])
             ]))
             
-            story.append(table)
+            story.append(scores_table)
             story.append(Spacer(1, 20))
+        
+        # Key findings
+        story.append(Paragraph("Key Findings", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        findings = self.generate_key_findings(overall_stats, analyzed_pages)
+        for finding in findings:
+            story.append(Paragraph(f"• {finding}", self.bullet_style))
+        
+        story.append(PageBreak())
+
+    def add_on_page_analysis(self, story, analyzed_pages, selected_on_page_checks):
+        """Add comprehensive on-page SEO analysis"""
+        story.append(Paragraph("On-Page SEO Analysis", self.heading_style))
+        story.append(Spacer(1, 15))
+        
+        if 'titles' in selected_on_page_checks:
+            self.add_title_analysis(story, analyzed_pages)
+            
+        if 'meta_description' in selected_on_page_checks:
+            self.add_meta_description_analysis(story, analyzed_pages)
+            
+        if 'headings' in selected_on_page_checks:
+            self.add_headings_analysis(story, analyzed_pages)
+            
+        if 'images' in selected_on_page_checks:
+            self.add_images_analysis(story, analyzed_pages)
+            
+        if 'content' in selected_on_page_checks:
+            self.add_content_analysis(story, analyzed_pages)
+            
+        if 'internal_links' in selected_on_page_checks:
+            self.add_internal_links_analysis(story, analyzed_pages)
+            
+        if 'external_links' in selected_on_page_checks:
+            self.add_external_links_analysis(story, analyzed_pages)
+
+    def add_title_analysis(self, story, analyzed_pages):
+        """Add title tag analysis"""
+        story.append(Paragraph("Title Tag Analysis", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        title_issues = []
+        good_titles = []
+        
+        for url, analysis in analyzed_pages.items():
+            title = analysis.get('title', '')
+            title_score = analysis.get('scores', {}).get('title', 0)
+            
+            if title_score < 70:
+                if not title:
+                    title_issues.append(f"• {url} - Missing title tag")
+                elif len(title) < 30:
+                    title_issues.append(f"• {url} - Title too short ({len(title)} chars): '{title[:50]}...'")
+                elif len(title) > 60:
+                    title_issues.append(f"• {url} - Title too long ({len(title)} chars): '{title[:50]}...'")
+            else:
+                good_titles.append(f"• {url} - Good title ({len(title)} chars)")
+        
+        if title_issues:
+            story.append(Paragraph("Issues Found:", self.minor_heading_style))
+            for issue in title_issues[:10]:  # Limit to first 10
+                story.append(Paragraph(issue, self.warning_style))
+            story.append(Spacer(1, 10))
+        
+        if good_titles:
+            story.append(Paragraph("Well-Optimized Titles:", self.minor_heading_style))
+            for title in good_titles[:5]:  # Limit to first 5
+                story.append(Paragraph(title, self.success_style))
+            
+        story.append(Spacer(1, 15))
+
+    def add_meta_description_analysis(self, story, analyzed_pages):
+        """Add meta description analysis"""
+        story.append(Paragraph("Meta Description Analysis", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        desc_issues = []
+        good_descriptions = []
+        
+        for url, analysis in analyzed_pages.items():
+            meta_desc = analysis.get('meta_description', '')
+            desc_score = analysis.get('scores', {}).get('meta_description', 0)
+            
+            if desc_score < 70:
+                if not meta_desc:
+                    desc_issues.append(f"• {url} - Missing meta description")
+                elif len(meta_desc) < 120:
+                    desc_issues.append(f"• {url} - Description too short ({len(meta_desc)} chars)")
+                elif len(meta_desc) > 160:
+                    desc_issues.append(f"• {url} - Description too long ({len(meta_desc)} chars)")
+            else:
+                good_descriptions.append(f"• {url} - Good description ({len(meta_desc)} chars)")
+        
+        if desc_issues:
+            story.append(Paragraph("Issues Found:", self.minor_heading_style))
+            for issue in desc_issues[:10]:
+                story.append(Paragraph(issue, self.warning_style))
+            story.append(Spacer(1, 10))
+        
+        if good_descriptions:
+            story.append(Paragraph("Well-Optimized Descriptions:", self.minor_heading_style))
+            for desc in good_descriptions[:5]:
+                story.append(Paragraph(desc, self.success_style))
+        
+        story.append(Spacer(1, 15))
+
+    def add_headings_analysis(self, story, analyzed_pages):
+        """Add headings structure analysis"""
+        story.append(Paragraph("Headings Structure Analysis", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        heading_issues = []
+        good_headings = []
+        
+        for url, analysis in analyzed_pages.items():
+            h1_tags = analysis.get('h1_tags', [])
+            h2_tags = analysis.get('h2_tags', [])
+            headings_score = analysis.get('scores', {}).get('headings', 0)
+            
+            h1_count = len(h1_tags) if isinstance(h1_tags, list) else 0
+            h2_count = len(h2_tags) if isinstance(h2_tags, list) else 0
+            
+            if headings_score < 70:
+                if h1_count == 0:
+                    heading_issues.append(f"• {url} - Missing H1 tag")
+                elif h1_count > 1:
+                    heading_issues.append(f"• {url} - Multiple H1 tags ({h1_count} found)")
+                elif h2_count == 0:
+                    heading_issues.append(f"• {url} - No H2 tags found")
+            else:
+                good_headings.append(f"• {url} - Good heading structure (H1: {h1_count}, H2: {h2_count})")
+        
+        if heading_issues:
+            story.append(Paragraph("Issues Found:", self.minor_heading_style))
+            for issue in heading_issues[:10]:
+                story.append(Paragraph(issue, self.warning_style))
+            story.append(Spacer(1, 10))
+        
+        if good_headings:
+            story.append(Paragraph("Well-Structured Headings:", self.minor_heading_style))
+            for heading in good_headings[:5]:
+                story.append(Paragraph(heading, self.success_style))
+        
+        story.append(Spacer(1, 15))
+
+    def add_images_analysis(self, story, analyzed_pages):
+        """Add images optimization analysis"""
+        story.append(Paragraph("Images Optimization Analysis", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        total_images = 0
+        total_missing_alt = 0
+        pages_with_issues = []
+        
+        for url, analysis in analyzed_pages.items():
+            images_count = analysis.get('total_images', 0)
+            missing_alt = analysis.get('images_without_alt', 0)
+            missing_alt_images = analysis.get('missing_alt_images', [])
+            
+            total_images += images_count
+            total_missing_alt += missing_alt
+            
+            if missing_alt > 0:
+                pages_with_issues.append({
+                    'url': url,
+                    'missing_alt': missing_alt,
+                    'total_images': images_count,
+                    'missing_alt_images': missing_alt_images[:5]  # Show first 5
+                })
+        
+        # Summary
+        story.append(Paragraph(f"Total Images Analyzed: {total_images}", self.body_style))
+        story.append(Paragraph(f"Images Missing Alt Text: {total_missing_alt}", self.body_style))
+        if total_images > 0:
+            alt_percentage = ((total_images - total_missing_alt) / total_images) * 100
+            story.append(Paragraph(f"Alt Text Coverage: {alt_percentage:.1f}%", self.body_style))
+        story.append(Spacer(1, 10))
+        
+        if pages_with_issues:
+            story.append(Paragraph("Pages with Missing Alt Text:", self.minor_heading_style))
+            for page_issue in pages_with_issues[:10]:
+                story.append(Paragraph(f"• {page_issue['url']} - {page_issue['missing_alt']}/{page_issue['total_images']} images missing alt text", self.warning_style))
+                
+                # Show specific missing images
+                if page_issue['missing_alt_images']:
+                    for img_src in page_issue['missing_alt_images']:
+                        img_name = img_src.split('/')[-1] if '/' in img_src else img_src
+                        story.append(Paragraph(f"  - {img_name}", self.info_style))
+        
+        story.append(Spacer(1, 15))
+
+    def add_content_analysis(self, story, analyzed_pages):
+        """Add content quality analysis"""
+        story.append(Paragraph("Content Quality Analysis", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        content_data = [['Page URL', 'Word Count', 'Content Score', 'Status']]
+        
+        for url, analysis in analyzed_pages.items():
+            word_count = analysis.get('word_count', 0)
+            content_score = analysis.get('scores', {}).get('content', 0)
+            
+            if content_score >= 80:
+                status = "✓ Good"
+            elif content_score >= 60:
+                status = "⚠ Fair"
+            else:
+                status = "✗ Poor"
+            
+            # Truncate URL for display
+            display_url = url[:40] + "..." if len(url) > 40 else url
+            content_data.append([display_url, str(word_count), f"{content_score}/100", status])
+        
+        content_table = Table(content_data, colWidths=[2.5*inch, 1*inch, 1*inch, 1*inch])
+        content_table.setStyle(self.get_standard_table_style())
+        story.append(content_table)
+        story.append(Spacer(1, 15))
+
+    def add_internal_links_analysis(self, story, analyzed_pages):
+        """Add internal links analysis"""
+        story.append(Paragraph("Internal Links Analysis", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        low_internal_links = []
+        good_internal_links = []
+        
+        for url, analysis in analyzed_pages.items():
+            internal_links = analysis.get('internal_links', 0)
+            
+            if internal_links < 3:
+                low_internal_links.append(f"• {url} - Only {internal_links} internal links")
+            elif internal_links >= 8:
+                good_internal_links.append(f"• {url} - {internal_links} internal links")
+        
+        if low_internal_links:
+            story.append(Paragraph("Pages with Low Internal Links:", self.minor_heading_style))
+            for link in low_internal_links[:10]:
+                story.append(Paragraph(link, self.warning_style))
+            story.append(Spacer(1, 10))
+        
+        if good_internal_links:
+            story.append(Paragraph("Pages with Good Internal Linking:", self.minor_heading_style))
+            for link in good_internal_links[:5]:
+                story.append(Paragraph(link, self.success_style))
+        
+        story.append(Spacer(1, 15))
+
+    def add_external_links_analysis(self, story, analyzed_pages):
+        """Add external links analysis"""
+        story.append(Paragraph("External Links Analysis", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        external_data = [['Page URL', 'External Links', 'Score', 'Recommendation']]
+        
+        for url, analysis in analyzed_pages.items():
+            external_links = analysis.get('external_links', 0)
+            external_score = analysis.get('scores', {}).get('external_links', 0)
+            
+            if external_links == 0:
+                recommendation = "Add some external links"
+            elif external_links < 3:
+                recommendation = "Consider adding more"
+            elif external_links <= 10:
+                recommendation = "Good balance"
+            else:
+                recommendation = "Consider reducing"
+            
+            display_url = url[:35] + "..." if len(url) > 35 else url
+            external_data.append([display_url, str(external_links), f"{external_score}/100", recommendation])
+        
+        external_table = Table(external_data, colWidths=[2*inch, 1*inch, 1*inch, 1.5*inch])
+        external_table.setStyle(self.get_standard_table_style())
+        story.append(external_table)
+        story.append(Spacer(1, 20))
+
+    def add_technical_analysis(self, story, analyzed_pages, selected_technical_checks):
+        """Add comprehensive technical SEO analysis"""
+        story.append(Paragraph("Technical SEO Analysis", self.heading_style))
+        story.append(Spacer(1, 15))
+        
+        # Page load performance
+        if 'performance' in selected_technical_checks:
+            self.add_performance_analysis(story, analyzed_pages)
+        
+        # Mobile optimization
+        if 'mobile' in selected_technical_checks:
+            self.add_mobile_analysis(story, analyzed_pages)
+        
+        # SSL and security
+        if 'ssl' in selected_technical_checks:
+            self.add_security_analysis(story, analyzed_pages)
+        
+        # Structured data
+        if 'structured_data' in selected_technical_checks:
+            self.add_structured_data_analysis(story, analyzed_pages)
+        
+        # Advanced technical checks
+        if 'canonicalization' in selected_technical_checks:
+            self.add_canonicalization_analysis(story, analyzed_pages)
+
+    def add_performance_analysis(self, story, analyzed_pages):
+        """Add page performance analysis"""
+        story.append(Paragraph("Page Performance Analysis", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        perf_data = [['Page URL', 'Load Time (ms)', 'Page Size (KB)', 'Status']]
+        
+        for url, analysis in analyzed_pages.items():
+            load_time = analysis.get('load_time', 0)
+            page_size = analysis.get('page_size', 0)
+            
+            if load_time < 2000 and page_size < 1000:
+                status = "✓ Fast"
+            elif load_time < 4000 and page_size < 2000:
+                status = "⚠ Moderate"
+            else:
+                status = "✗ Slow"
+            
+            display_url = url[:35] + "..." if len(url) > 35 else url
+            perf_data.append([display_url, str(load_time), str(page_size), status])
+        
+        perf_table = Table(perf_data, colWidths=[2*inch, 1.2*inch, 1.2*inch, 1*inch])
+        perf_table.setStyle(self.get_standard_table_style())
+        story.append(perf_table)
+        story.append(Spacer(1, 15))
+
+    def add_mobile_analysis(self, story, analyzed_pages):
+        """Add mobile optimization analysis"""
+        story.append(Paragraph("Mobile Optimization", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        mobile_friendly_count = 0
+        total_pages = len(analyzed_pages)
+        
+        for url, analysis in analyzed_pages.items():
+            technical = analysis.get('technical', {})
+            if technical.get('mobile_friendly', False):
+                mobile_friendly_count += 1
+        
+        mobile_percentage = (mobile_friendly_count / total_pages) * 100 if total_pages > 0 else 0
+        
+        story.append(Paragraph(f"Mobile-Friendly Pages: {mobile_friendly_count}/{total_pages} ({mobile_percentage:.1f}%)", self.body_style))
+        
+        if mobile_percentage < 100:
+            story.append(Paragraph("⚠ Some pages may not be mobile-optimized. Consider implementing responsive design.", self.warning_style))
+        else:
+            story.append(Paragraph("✓ All pages appear to be mobile-friendly.", self.success_style))
+        
+        story.append(Spacer(1, 15))
+
+    def add_security_analysis(self, story, analyzed_pages):
+        """Add SSL and security analysis"""
+        story.append(Paragraph("SSL & Security Analysis", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        ssl_enabled_count = 0
+        total_pages = len(analyzed_pages)
+        
+        for url, analysis in analyzed_pages.items():
+            technical = analysis.get('technical', {})
+            if technical.get('ssl_certificate', False):
+                ssl_enabled_count += 1
+        
+        ssl_percentage = (ssl_enabled_count / total_pages) * 100 if total_pages > 0 else 0
+        
+        story.append(Paragraph(f"SSL-Secured Pages: {ssl_enabled_count}/{total_pages} ({ssl_percentage:.1f}%)", self.body_style))
+        
+        if ssl_percentage < 100:
+            story.append(Paragraph("⚠ SSL certificate issues detected. Ensure all pages use HTTPS.", self.warning_style))
+        else:
+            story.append(Paragraph("✓ All pages are SSL-secured.", self.success_style))
+        
+        story.append(Spacer(1, 15))
+
+    def add_structured_data_analysis(self, story, analyzed_pages):
+        """Add structured data analysis"""
+        story.append(Paragraph("Structured Data Analysis", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        schema_summary = {}
+        
+        for url, analysis in analyzed_pages.items():
+            structured_data = analysis.get('structured_data', [])
+            for schema in structured_data:
+                schema_type = schema.get('type', 'Unknown')
+                if schema.get('found', False):
+                    schema_summary[schema_type] = schema_summary.get(schema_type, 0) + 1
+        
+        if schema_summary:
+            story.append(Paragraph("Structured Data Found:", self.minor_heading_style))
+            for schema_type, count in schema_summary.items():
+                story.append(Paragraph(f"• {schema_type}: {count} pages", self.success_style))
+        else:
+            story.append(Paragraph("⚠ No structured data found. Consider implementing schema markup.", self.warning_style))
+        
+        story.append(Spacer(1, 15))
+
+    def add_canonicalization_analysis(self, story, analyzed_pages):
+        """Add canonicalization analysis"""
+        story.append(Paragraph("Canonicalization Analysis", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        canonical_issues = []
+        good_canonical = []
+        
+        for url, analysis in analyzed_pages.items():
+            advanced_technical = analysis.get('advanced_technical', {})
+            canonical_data = advanced_technical.get('canonical_tags', {})
+            
+            if canonical_data.get('has_canonical', False):
+                if canonical_data.get('issues'):
+                    canonical_issues.extend([f"• {url} - {issue}" for issue in canonical_data['issues']])
+                else:
+                    good_canonical.append(f"• {url} - Proper canonical tag")
+            else:
+                canonical_issues.append(f"• {url} - Missing canonical tag")
+        
+        if canonical_issues:
+            story.append(Paragraph("Canonicalization Issues:", self.minor_heading_style))
+            for issue in canonical_issues[:10]:
+                story.append(Paragraph(issue, self.warning_style))
+        
+        if good_canonical:
+            story.append(Paragraph("Pages with Proper Canonicalization:", self.minor_heading_style))
+            for canonical in good_canonical[:5]:
+                story.append(Paragraph(canonical, self.success_style))
+        
+        story.append(Spacer(1, 20))
+
+    def add_backlink_analysis(self, story, backlink_data, selected_backlink_checks, domain):
+        """Add comprehensive backlink analysis"""
+        story.append(Paragraph("Backlink Analysis", self.heading_style))
+        story.append(Spacer(1, 15))
+        
+        # Profile summary
+        if 'profile_summary' in selected_backlink_checks:
+            self.add_backlink_profile_summary(story, backlink_data.get('profile_summary'))
+        
+        # Anchor text analysis
+        if 'anchor_text' in selected_backlink_checks or 'detailed_anchor_text' in selected_backlink_checks:
+            self.add_anchor_text_analysis(story, backlink_data.get('anchor_texts'), domain)
+        
+        # Referring domains
+        if 'referring_domains' in selected_backlink_checks:
+            self.add_referring_domains_analysis(story, backlink_data.get('referring_domains'))
+        
+        # Link types distribution
+        if 'types_distribution' in selected_backlink_checks:
+            self.add_link_types_analysis(story, backlink_data.get('types_distribution'))
+
+    def add_backlink_profile_summary(self, story, profile_data):
+        """Add backlink profile summary"""
+        if not profile_data:
+            return
+            
+        story.append(Paragraph("Backlink Profile Summary", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        summary_data = [
+            ['Metric', 'Count', 'Quality'],
+            ['Total Backlinks', str(profile_data.get('total_backlinks', 0)), self.get_backlink_quality(profile_data.get('total_backlinks', 0))],
+            ['Referring Domains', str(profile_data.get('referring_domains', 0)), self.get_domain_quality(profile_data.get('referring_domains', 0))],
+            ['Dofollow Links', str(profile_data.get('dofollow_backlinks', 0)), '✓'],
+            ['Nofollow Links', str(profile_data.get('nofollow_backlinks', 0)), '◐'],
+            ['Broken Backlinks', str(profile_data.get('broken_backlinks', 0)), '✗' if profile_data.get('broken_backlinks', 0) > 0 else '✓']
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[2*inch, 1.5*inch, 1*inch])
+        summary_table.setStyle(self.get_standard_table_style())
+        story.append(summary_table)
+        story.append(Spacer(1, 15))
+
+    def add_anchor_text_analysis(self, story, anchor_data, domain):
+        """Add comprehensive anchor text analysis"""
+        if not anchor_data:
+            return
+            
+        story.append(Paragraph("Anchor Text Distribution", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        if 'anchor_texts' in anchor_data:
+            anchor_texts = anchor_data['anchor_texts']
+            total_anchors = sum(anchor_texts.values())
+            
+            # Categorize anchors
+            auditor = SEOAuditor()  # Create instance to access categorization method
+            category_counts = {}
+            
+            for anchor, count in anchor_texts.items():
+                category = auditor.categorize_anchor_text(anchor, domain)
+                category_counts[category] = category_counts.get(category, 0) + count
+            
+            # Create category distribution table
+            category_data = [['Anchor Type', 'Count', 'Percentage']]
+            for category, count in sorted(category_counts.items(), key=lambda x: x[1], reverse=True):
+                percentage = (count / total_anchors) * 100 if total_anchors > 0 else 0
+                category_data.append([category, str(count), f"{percentage:.1f}%"])
+            
+            category_table = Table(category_data, colWidths=[2*inch, 1*inch, 1*inch])
+            category_table.setStyle(self.get_standard_table_style())
+            story.append(category_table)
+            story.append(Spacer(1, 15))
+            
+            # Top anchor texts
+            story.append(Paragraph("Top Anchor Texts", self.minor_heading_style))
+            sorted_anchors = sorted(anchor_texts.items(), key=lambda x: x[1], reverse=True)[:10]
+            
+            anchor_detail_data = [['Anchor Text', 'Count', 'Type']]
+            for anchor, count in sorted_anchors:
+                category = auditor.categorize_anchor_text(anchor, domain)
+                display_anchor = anchor[:40] + "..." if len(anchor) > 40 else anchor
+                anchor_detail_data.append([display_anchor, str(count), category])
+            
+            anchor_detail_table = Table(anchor_detail_data, colWidths=[2.5*inch, 1*inch, 1.5*inch])
+            anchor_detail_table.setStyle(self.get_standard_table_style())
+            story.append(anchor_detail_table)
+        
+        story.append(Spacer(1, 15))
+
+    def add_referring_domains_analysis(self, story, referring_data):
+        """Add referring domains analysis"""
+        if not referring_data or 'referring_domains' not in referring_data:
+            return
+            
+        story.append(Paragraph("Top Referring Domains", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        domains = referring_data['referring_domains'][:15]  # Top 15
+        
+        domain_data = [['Domain', 'Backlinks', 'Domain Authority', 'First Seen']]
+        for domain in domains:
+            domain_data.append([
+                domain.get('domain', 'N/A'),
+                str(domain.get('backlinks_count', 0)),
+                str(domain.get('domain_authority', 'N/A')),
+                domain.get('first_seen', 'N/A')
+            ])
+        
+        domain_table = Table(domain_data, colWidths=[2*inch, 1*inch, 1*inch, 1*inch])
+        domain_table.setStyle(self.get_standard_table_style())
+        story.append(domain_table)
+        story.append(Spacer(1, 15))
+
+    def add_link_types_analysis(self, story, types_data):
+        """Add link types distribution analysis"""
+        if not types_data or 'link_types' not in types_data:
+            return
+            
+        story.append(Paragraph("Link Types Distribution", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        link_types = types_data['link_types']
+        
+        types_data_table = [['Link Type', 'Count', 'Percentage']]
+        total_links = sum(link_types.values())
+        
+        for link_type, count in link_types.items():
+            percentage = (count / total_links) * 100 if total_links > 0 else 0
+            type_name = link_type.replace('_', ' ').title()
+            types_data_table.append([type_name, str(count), f"{percentage:.1f}%"])
+        
+        types_table = Table(types_data_table, colWidths=[2*inch, 1*inch, 1*inch])
+        types_table.setStyle(self.get_standard_table_style())
+        story.append(types_table)
+        story.append(Spacer(1, 20))
+
+    def add_crawler_analysis(self, story, crawler_results, selected_link_checks):
+        """Add crawler-based link analysis"""
+        story.append(Paragraph("Link Analysis", self.heading_style))
+        story.append(Spacer(1, 15))
+        
+        # Crawl summary
+        crawl_stats = crawler_results.get('crawl_stats', {})
+        story.append(Paragraph("Crawl Summary", self.subheading_style))
+        story.append(Paragraph(f"Pages Crawled: {crawl_stats.get('pages_crawled', 0)}", self.body_style))
+        story.append(Paragraph(f"Broken Links Found: {crawl_stats.get('broken_links_count', 0)}", self.body_style))
+        story.append(Paragraph(f"Orphan Pages Found: {crawl_stats.get('orphan_pages_count', 0)}", self.body_style))
+        story.append(Spacer(1, 15))
+        
+        # Broken links analysis
+        if 'broken_links' in selected_link_checks:
+            self.add_broken_links_analysis(story, crawler_results.get('broken_links', []))
+        
+        # Orphan pages analysis
+        if 'orphan_pages' in selected_link_checks:
+            self.add_orphan_pages_analysis(story, crawler_results.get('orphan_pages', []))
+
+    def add_broken_links_analysis(self, story, broken_links):
+        """Add broken links analysis"""
+        story.append(Paragraph("Broken Links Analysis", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        if not broken_links:
+            story.append(Paragraph("✓ No broken links found.", self.success_style))
+            story.append(Spacer(1, 15))
+            return
+        
+        # Summary by status code
+        status_summary = {}
+        for link in broken_links:
+            status = str(link.get('status_code', 'Unknown'))
+            status_summary[status] = status_summary.get(status, 0) + 1
+        
+        story.append(Paragraph("Broken Links by Status Code:", self.minor_heading_style))
+        for status, count in status_summary.items():
+            story.append(Paragraph(f"• {status}: {count} links", self.body_style))
+        story.append(Spacer(1, 10))
+        
+        # Detailed broken links table
+        story.append(Paragraph("Detailed Broken Links (Top 20):", self.minor_heading_style))
+        
+        broken_data = [['Source Page', 'Broken URL', 'Status', 'Type']]
+        for link in broken_links[:20]:
+            source = link.get('source_page', '')[:30] + "..." if len(link.get('source_page', '')) > 30 else link.get('source_page', '')
+            broken_url = link.get('broken_url', '')[:35] + "..." if len(link.get('broken_url', '')) > 35 else link.get('broken_url', '')
+            
+            broken_data.append([
+                source,
+                broken_url,
+                str(link.get('status_code', 'N/A')),
+                link.get('link_type', 'N/A')
+            ])
+        
+        broken_table = Table(broken_data, colWidths=[1.8*inch, 2*inch, 0.7*inch, 0.7*inch])
+        broken_table.setStyle(self.get_standard_table_style())
+        story.append(broken_table)
+        story.append(Spacer(1, 15))
+
+    def add_orphan_pages_analysis(self, story, orphan_pages):
+        """Add orphan pages analysis"""
+        story.append(Paragraph("Orphan Pages Analysis", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        true_orphans = [page for page in orphan_pages if page.get('internally_linked') == 'No']
+        
+        if not true_orphans:
+            story.append(Paragraph("✓ No orphan pages found.", self.success_style))
+            story.append(Spacer(1, 15))
+            return
+        
+        story.append(Paragraph(f"Found {len(true_orphans)} orphan pages (in sitemap but not internally linked):", self.body_style))
+        story.append(Spacer(1, 10))
+        
+        orphan_data = [['Orphan Page URL', 'In Sitemap', 'Internally Linked']]
+        for page in true_orphans[:15]:
+            url = page.get('url', '')[:50] + "..." if len(page.get('url', '')) > 50 else page.get('url', '')
+            orphan_data.append([
+                url,
+                page.get('found_in_sitemap', 'No'),
+                page.get('internally_linked', 'No')
+            ])
+        
+        orphan_table = Table(orphan_data, colWidths=[3*inch, 1*inch, 1*inch])
+        orphan_table.setStyle(self.get_standard_table_style())
+        story.append(orphan_table)
+        story.append(Spacer(1, 20))
+
+    def add_uiux_analysis(self, story, analyzed_pages, selected_uiux_checks):
+        """Add UI/UX analysis section"""
+        story.append(Paragraph("UI/UX Analysis", self.heading_style))
+        story.append(Spacer(1, 15))
+        
+        story.append(Paragraph("User Experience Factors", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        # Mobile responsiveness
+        if 'mobile_responsive' in selected_uiux_checks:
+            mobile_friendly_count = sum(1 for analysis in analyzed_pages.values() 
+                                      if analysis.get('technical', {}).get('mobile_friendly', False))
+            total_pages = len(analyzed_pages)
+            mobile_percentage = (mobile_friendly_count / total_pages) * 100 if total_pages > 0 else 0
+            
+            story.append(Paragraph(f"Mobile Responsiveness: {mobile_percentage:.1f}% of pages", self.body_style))
+        
+        # Page load performance
+        if 'performance' in selected_uiux_checks:
+            avg_load_time = sum(analysis.get('load_time', 0) for analysis in analyzed_pages.values()) / len(analyzed_pages) if analyzed_pages else 0
+            story.append(Paragraph(f"Average Load Time: {avg_load_time:.0f}ms", self.body_style))
+        
+        # Content readability
+        if 'readability_accessibility' in selected_uiux_checks:
+            avg_word_count = sum(analysis.get('word_count', 0) for analysis in analyzed_pages.values()) / len(analyzed_pages) if analyzed_pages else 0
+            story.append(Paragraph(f"Average Word Count: {avg_word_count:.0f} words", self.body_style))
+        
+        story.append(Spacer(1, 20))
+
+    def add_detailed_page_analysis(self, story, analyzed_pages):
+        """Add detailed page-by-page analysis"""
+        story.append(Paragraph("Detailed Page Analysis", self.heading_style))
+        story.append(Spacer(1, 15))
+        
+        for url, analysis in analyzed_pages.items():
+            story.append(Paragraph(f"Page: {url}", self.subheading_style))
+            story.append(Spacer(1, 10))
+            
+            # Basic info
+            story.append(Paragraph(f"Title: {analysis.get('title', 'N/A')}", self.body_style))
+            story.append(Paragraph(f"Meta Description: {analysis.get('meta_description', 'N/A')[:100]}...", self.body_style))
+            story.append(Paragraph(f"Word Count: {analysis.get('word_count', 0)}", self.body_style))
+            story.append(Spacer(1, 8))
+            
+            # Scores
+            scores = analysis.get('scores', {})
+            story.append(Paragraph("SEO Scores:", self.minor_heading_style))
+            for metric, score in scores.items():
+                color_style = self.success_style if score >= 80 else (self.warning_style if score >= 60 else self.warning_style)
+                story.append(Paragraph(f"• {metric.replace('_', ' ').title()}: {score}/100", color_style))
+            
+            # Issues
+            issues = analysis.get('issues', [])
+            if issues:
+                story.append(Paragraph("Issues Found:", self.minor_heading_style))
+                for issue in issues:
+                    story.append(Paragraph(f"• {issue}", self.warning_style))
+            
+            story.append(Spacer(1, 15))
+
+    def add_recommendations_section(self, story, analyzed_pages, overall_stats):
+        """Add comprehensive recommendations section"""
+        story.append(Paragraph("Recommendations & Action Items", self.heading_style))
+        story.append(Spacer(1, 15))
+        
+        # Priority recommendations
+        story.append(Paragraph("High Priority Actions", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        high_priority = self.generate_high_priority_recommendations(analyzed_pages, overall_stats)
+        for rec in high_priority:
+            story.append(Paragraph(f"🔴 {rec}", self.warning_style))
+        story.append(Spacer(1, 15))
+        
+        # Medium priority recommendations
+        story.append(Paragraph("Medium Priority Actions", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        medium_priority = self.generate_medium_priority_recommendations(analyzed_pages, overall_stats)
+        for rec in medium_priority:
+            story.append(Paragraph(f"🟡 {rec}", self.body_style))
+        story.append(Spacer(1, 15))
+        
+        # Quick wins
+        story.append(Paragraph("Quick Wins", self.subheading_style))
+        story.append(Spacer(1, 10))
+        
+        quick_wins = self.generate_quick_wins(analyzed_pages)
+        for win in quick_wins:
+            story.append(Paragraph(f"🟢 {win}", self.success_style))
+        
+        story.append(Spacer(1, 20))
+
+    def add_technical_appendix(self, story, analyzed_pages):
+        """Add technical appendix with detailed data"""
+        story.append(Paragraph("Technical Appendix", self.heading_style))
+        story.append(Spacer(1, 15))
+        
+        # Technical summary table
+        tech_data = [['Page URL', 'SSL', 'Mobile', 'Gzip', 'Minified CSS', 'Minified JS']]
+        
+        for url, analysis in analyzed_pages.items():
+            technical = analysis.get('technical', {})
+            display_url = url[:35] + "..." if len(url) > 35 else url
+            
+            tech_data.append([
+                display_url,
+                "✓" if technical.get('ssl_certificate', False) else "✗",
+                "✓" if technical.get('mobile_friendly', False) else "✗",
+                "✓" if technical.get('gzip_compression', False) else "✗",
+                "✓" if technical.get('minified_css', False) else "✗",
+                "✓" if technical.get('minified_js', False) else "✗"
+            ])
+        
+        tech_table = Table(tech_data, colWidths=[2*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.8*inch, 0.8*inch])
+        tech_table.setStyle(self.get_standard_table_style())
+        story.append(tech_table)
+        story.append(Spacer(1, 20))
+
+    def get_standard_table_style(self):
+        """Return standard table styling"""
+        return TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#1E3A8A')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, black),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [HexColor('#F9FAFB'), white]),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ])
+
+    def get_score_status(self, score):
+        """Get status emoji based on score"""
+        if score >= 80:
+            return "✓"
+        elif score >= 60:
+            return "⚠"
+        else:
+            return "✗"
+
+    def get_grade_from_score(self, score):
+        """Convert score to letter grade"""
+        if score >= 90:
+            return "A"
+        elif score >= 80:
+            return "B"
+        elif score >= 70:
+            return "C"
+        elif score >= 60:
+            return "D"
+        else:
+            return "F"
+
+    def get_backlink_quality(self, count):
+        """Assess backlink quality based on count"""
+        if count > 1000:
+            return "Excellent"
+        elif count > 500:
+            return "Good"
+        elif count > 100:
+            return "Fair"
+        else:
+            return "Poor"
+
+    def get_domain_quality(self, count):
+        """Assess referring domain quality"""
+        if count > 100:
+            return "Excellent"
+        elif count > 50:
+            return "Good"
+        elif count > 20:
+            return "Fair"
+        else:
+            return "Poor"
+
+    def generate_key_findings(self, overall_stats, analyzed_pages):
+        """Generate key findings for executive summary"""
+        findings = []
+        
+        avg_scores = overall_stats.get('avg_scores', {})
+        
+        # Overall performance
+        overall_score = avg_scores.get('overall', 0)
+        if overall_score >= 80:
+            findings.append("Strong overall SEO performance with solid optimization foundation")
+        elif overall_score >= 60:
+            findings.append("Moderate SEO performance with room for improvement in key areas")
+        else:
+            findings.append("Significant SEO optimization opportunities identified across multiple areas")
+        
+        # Content issues
+        content_score = avg_scores.get('content', 0)
+        if content_score < 70:
+            findings.append("Content optimization needed - consider increasing word count and improving quality")
+        
+        # Technical issues
+        technical_score = avg_scores.get('technical', 0)
+        if technical_score < 80:
+            findings.append("Technical SEO improvements needed for better search engine accessibility")
+        
+        # Image optimization
+        images_score = avg_scores.get('images', 0)
+        if images_score < 70:
+            findings.append("Image optimization required - many images missing alt text attributes")
+        
+        return findings[:5]  # Return top 5 findings
+
+    def generate_high_priority_recommendations(self, analyzed_pages, overall_stats):
+        """Generate high priority recommendations"""
+        recommendations = []
+        
+        # Check for missing title tags
+        missing_titles = [url for url, analysis in analyzed_pages.items() if not analysis.get('title')]
+        if missing_titles:
+            recommendations.append(f"Add title tags to {len(missing_titles)} pages with missing titles")
+        
+        # Check for missing meta descriptions
+        missing_meta = [url for url, analysis in analyzed_pages.items() if not analysis.get('meta_description')]
+        if missing_meta:
+            recommendations.append(f"Add meta descriptions to {len(missing_meta)} pages")
+        
+        # Check for missing H1 tags
+        missing_h1 = [url for url, analysis in analyzed_pages.items() if len(analysis.get('h1_tags', [])) == 0]
+        if missing_h1:
+            recommendations.append(f"Add H1 tags to {len(missing_h1)} pages for better content structure")
+        
+        return recommendations[:5]
+
+    def generate_medium_priority_recommendations(self, analyzed_pages, overall_stats):
+        """Generate medium priority recommendations"""
+        recommendations = []
+        
+        # Image optimization
+        total_missing_alt = sum(analysis.get('images_without_alt', 0) for analysis in analyzed_pages.values())
+        if total_missing_alt > 0:
+            recommendations.append(f"Add alt text to {total_missing_alt} images across the website")
+        
+        # Content length
+        short_content = [url for url, analysis in analyzed_pages.items() if analysis.get('word_count', 0) < 300]
+        if short_content:
+            recommendations.append(f"Expand content on {len(short_content)} pages (less than 300 words)")
+        
+        # Internal linking
+        low_internal_links = [url for url, analysis in analyzed_pages.items() if analysis.get('internal_links', 0) < 3]
+        if low_internal_links:
+            recommendations.append(f"Improve internal linking on {len(low_internal_links)} pages")
+        
+        return recommendations[:5]
+
+    def generate_quick_wins(self, analyzed_pages):
+        """Generate quick win recommendations"""
+        quick_wins = []
+        
+        # Title length optimization
+        long_titles = [url for url, analysis in analyzed_pages.items() if len(analysis.get('title', '')) > 60]
+        if long_titles:
+            quick_wins.append(f"Shorten {len(long_titles)} title tags that exceed 60 characters")
+        
+        # Meta description length
+        long_meta = [url for url, analysis in analyzed_pages.items() if len(analysis.get('meta_description', '')) > 160]
+        if long_meta:
+            quick_wins.append(f"Optimize {len(long_meta)} meta descriptions that exceed 160 characters")
+        
+        # Multiple H1 tags
+        multiple_h1 = [url for url, analysis in analyzed_pages.items() if len(analysis.get('h1_tags', [])) > 1]
+        if multiple_h1:
+            quick_wins.append(f"Fix {len(multiple_h1)} pages with multiple H1 tags")
+        
+        return quick_wins[:5]
 
 # Initialize components
 auditor = SEOAuditor()
