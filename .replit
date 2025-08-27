@@ -3,7 +3,6 @@ modules = ["python-3.11"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["freetype", "geckodriver", "gitFull", "glibcLocales", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "playwright-driver", "tcl", "tk", "zlib"]
 
 [unitTest]
 language = "python3"
@@ -14,23 +13,3 @@ requiredFiles = [".replit", "replit.nix"]
 [deployment]
 run = ["python3", "main.py"]
 deploymentTarget = "cloudrun"
-
-[workflows]
-runButton = "SEO Audit Tool"
-
-[[workflows.workflow]]
-name = "SEO Audit Tool"
-author = 45417983
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pkill -f \"python main.py\" || true"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python main.py"
-
-[[ports]]
-localPort = 5000
-externalPort = 80
